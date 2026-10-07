@@ -893,6 +893,191 @@ ipcMain.handle('game:dismiss', () => launcher.stopWatching());
 ipcMain.handle('app:quit', () => app.quit());
 
 // ---------- Steam (perfil y logros) ----------
+// ---------- Portapapeles (en Electron 44 se lee con promesas, como en el navegador) ----------
+async function clipboardText() {
+  try {
+    return String((await clipboard.readText()) || '').trim();
+  } catch {
+    return '';
+  }
+}
+// Imagen copiada (por ejemplo "Copiar imagen" en el navegador) como PNG, o null
+async function clipboardImagePng() {
+  try {
+    const items = await clipboard.read();
+    for (const it of items || []) {
+      const type = (it.types || []).find((t) => /^image\//i.test(t));
+      if (!type) continue;
+      const blob = await it.getType(type);
+      const buf = Buffer.from(await blob.arrayBuffer());
+      const img = nativeImage.createFromBuffer(buf);
+      if (!img.isEmpty()) return img.toPNG();
+      if (/png/i.test(type)) return buf;
+    }
+  } catch {}
+  return null;
+}
+
+// ---------- Cambiar imágenes y descripción de un juego desde la app (clic derecho) ----------
+// Las imágenes se guardan en personalizar/<Nombre del juego>/ con el nombre que corresponde (canal.png, burbuja.png…)
+const EDITABLE = ['tile', 'hero', 'logo', 'video', 'model', 'cover', 'bubble'];
+function gameById(id) {
+  return config.games.find((g) => g.id === id) || null;
+}
+function customDirs(g) {
+  return [path.join(CUSTOM_DIR, folderName(g)), path.join(CUSTOM_DIR, media.safeId(g.id))];
+}
+// Borra los archivos propios de ese tipo (cualquier extensión) en las carpetas del juego
+function removeCustom(g, kind) {
+  const spec = media.CUSTOM_FILES[kind];
+  for (const dir of customDirs(g)) {
+    let files = [];
+    try {
+      files = fs.readdirSync(dir);
+    } catch {
+      continue;
+    }
+    for (const f of files) {
+      if (path.basename(f, path.extname(f)).toLowerCase() === spec.base && spec.ext.includes(path.extname(f).toLowerCase())) {
+        try {
+          fs.rmSync(path.join(dir, f), { force: true });
+        } catch {}
+      }
+    }
+  }
+}
+function customInfo(id) {
+  const g = gameById(id);
+  if (!g) return null;
+  const c = customFilesFor(g);
+  const m = g.media || {};
+  const auto = { tile: m.tile, hero: m.hero, logo: m.logo, cover: m.cover, bubble: m.cover };
+  const slots = {};
+  for (const kind of EDITABLE) {
+    const file = c[kind] || null;
+    slots[kind] = {
+      custom: fileUrl(file),
+      customName: file ? path.basename(file) : null,
+      auto: fileUrl(auto[kind]),
+      isVideo: !!file && media.isVideoFile(file),
+    };
+  }
+  return {
+    id: g.id,
+    name: g.name,
+    type: g.type,
+    slots,
+    description: { custom: c.description ? readDescription(c.description) : '', steam: m.description || '' },
+  };
+}
+function saveCustomFile(g, kind, src) {
+  const spec = media.CUSTOM_FILES[kind];
+  const ext = path.extname(src).toLowerCase();
+  if (!spec || !spec.ext.includes(ext)) return { ok: false, message: `Ese tipo de archivo no sirve aquí. Usa: ${spec.ext.join(', ')}` };
+  const dir = customDirs(g)[0];
+  fs.mkdirSync(dir, { recursive: true });
+  const dest = path.join(dir, spec.base + ext);
+  const tmp = dest + '.tmp';
+  fs.copyFileSync(src, tmp); // primero se copia (src podría ser el mismo archivo que se borra)
+  removeCustom(g, kind);
+  fs.renameSync(tmp, dest);
+  return { ok: true };
+}
+function afterCustomChange(id) {
+  pushGamesSoon();
+  return { ok: true, info: customInfo(id) };
+}
+ipcMain.handle('game:custom-get', (_e, id) => customInfo(id));
+ipcMain.handle('game:custom-pick', async (_e, id, kind) => {
+  const g = gameById(id);
+  const spec = media.CUSTOM_FILES[kind];
+  if (!g || !spec) return { ok: false, message: 'No se encontró el juego.' };
+  const names = { tile: 'Imagen o video', video: 'Video', model: 'Modelo 3D' };
+  const r = await dialog.showOpenDialog(win, {
+    title: `Elegir archivo para ${g.name}`,
+    properties: ['openFile'],
+    filters: [{ name: names[kind] || 'Imagen', extensions: spec.ext.map((e) => e.slice(1)) }],
+  });
+  if (r.canceled || !r.filePaths[0]) return { ok: false, canceled: true };
+  const res = saveCustomFile(g, kind, r.filePaths[0]);
+  return res.ok ? afterCustomChange(id) : res;
+});
+// Archivo arrastrado (ruta) o imagen arrastrada desde el navegador (dirección web)
+ipcMain.handle('game:custom-from', async (_e, id, kind, from) => {
+  const g = gameById(id);
+  if (!g || !media.CUSTOM_FILES[kind]) return { ok: false, message: 'No se encontró el juego.' };
+  if (from && from.path && fs.existsSync(from.path)) {
+    const res = saveCustomFile(g, kind, from.path);
+    return res.ok ? afterCustomChange(id) : res;
+  }
+  if (from && /^https?:\/\//i.test(from.url || '')) {
+    const tmpDir = path.join(DATA_DIR, 'cache', 'descargas');
+    fs.mkdirSync(tmpDir, { recursive: true });
+    const file = await media.downloadImage(from.url, path.join(tmpDir, `img-${Date.now()}`));
+    if (!file) return { ok: false, message: 'No se pudo descargar esa imagen. Prueba guardándola en tu PC y eligiéndola.' };
+    const res = saveCustomFile(g, kind, file);
+    fs.rmSync(file, { force: true });
+    return res.ok ? afterCustomChange(id) : res;
+  }
+  return { ok: false, message: 'Eso no es un archivo que se pueda usar.' };
+});
+// Imagen copiada (por ejemplo "Copiar imagen" en el navegador), o una ruta / dirección copiada
+ipcMain.handle('game:custom-paste', async (_e, id, kind) => {
+  const g = gameById(id);
+  const spec = media.CUSTOM_FILES[kind];
+  if (!g || !spec) return { ok: false, message: 'No se encontró el juego.' };
+  const png = spec.ext.includes('.png') ? await clipboardImagePng() : null;
+  if (png) {
+    const tmp = path.join(DATA_DIR, 'cache', `pegada-${Date.now()}.png`);
+    fs.mkdirSync(path.dirname(tmp), { recursive: true });
+    fs.writeFileSync(tmp, png);
+    const res = saveCustomFile(g, kind, tmp);
+    fs.rmSync(tmp, { force: true });
+    return res.ok ? afterCustomChange(id) : res;
+  }
+  const text = (await clipboardText()).replace(/^"(.*)"$/, '$1');
+  if (text && fs.existsSync(text)) {
+    const res = saveCustomFile(g, kind, text);
+    return res.ok ? afterCustomChange(id) : res;
+  }
+  if (/^https?:\/\//i.test(text)) {
+    const tmpDir = path.join(DATA_DIR, 'cache', 'descargas');
+    fs.mkdirSync(tmpDir, { recursive: true });
+    const file = await media.downloadImage(text, path.join(tmpDir, `img-${Date.now()}`));
+    if (file) {
+      const res = saveCustomFile(g, kind, file);
+      fs.rmSync(file, { force: true });
+      return res.ok ? afterCustomChange(id) : res;
+    }
+  }
+  return { ok: false, message: 'No hay una imagen copiada. En el navegador: clic derecho en la imagen → "Copiar imagen".' };
+});
+ipcMain.handle('game:custom-clear', (_e, id, kind) => {
+  const g = gameById(id);
+  if (!g || !media.CUSTOM_FILES[kind]) return { ok: false };
+  removeCustom(g, kind);
+  return afterCustomChange(id);
+});
+ipcMain.handle('game:description-set', (_e, id, text) => {
+  const g = gameById(id);
+  if (!g) return { ok: false };
+  removeCustom(g, 'description');
+  const t = String(text || '').trim().slice(0, 800);
+  if (t) {
+    const dir = customDirs(g)[0];
+    fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(path.join(dir, 'descripcion.txt'), t, 'utf8');
+  }
+  return afterCustomChange(id);
+});
+ipcMain.handle('game:open-folder', (_e, id) => {
+  const g = gameById(id);
+  if (!g) return;
+  const dir = customDirs(g)[0];
+  fs.mkdirSync(dir, { recursive: true });
+  return shell.openPath(dir);
+});
+
 // ---------- Conectar Steam y Discord desde la app (sin abrir archivos) ----------
 function openSetup(which) {
   showWindow();
@@ -915,8 +1100,12 @@ ipcMain.handle('setup:steam', async (_e, key) => {
   return res;
 });
 ipcMain.handle('setup:discord', (_e, data) => discord.saveKeys(data || {}));
-ipcMain.handle('clipboard:read', () => clipboard.readText().trim().slice(0, 300));
-ipcMain.handle('clipboard:write', (_e, text) => clipboard.writeText(String(text || '').slice(0, 300)));
+ipcMain.handle('clipboard:read', async () => (await clipboardText()).slice(0, 300));
+ipcMain.handle('clipboard:write', async (_e, text) => {
+  try {
+    await clipboard.writeText(String(text || '').slice(0, 300));
+  } catch {}
+});
 
 ipcMain.handle('steam:profile', async () => {
   const u = steamUser;

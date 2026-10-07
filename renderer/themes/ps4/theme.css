@@ -628,3 +628,46 @@ body.playing .theme-ps4 .p4-spin { animation-play-state: paused; }
 .p4-playing .np-m .np-ic { width: 26px; height: 26px; color: #ff9a9a; }
 .p4-playing .np-m.talking .np-av { border-color: #5fd4ff; box-shadow: 0 0 18px rgba(95, 212, 255, 0.7); }
 .p4-playing .np-msg { flex: 1; display: grid; place-items: center; text-align: center; font-size: 26px; opacity: 0.8; padding: 0 8px; }
+
+/* ============ Cambiar imágenes de un juego (clic derecho o tecla I) ============ */
+.theme-ps4 .ge-wrap { background: rgba(3, 16, 64, 0.72); backdrop-filter: blur(12px); font-family: var(--p4-font); }
+.theme-ps4 .ge-panel {
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: linear-gradient(170deg, rgba(22, 82, 207, 0.92), rgba(6, 38, 119, 0.95));
+  box-shadow: 0 30px 80px rgba(0, 10, 50, 0.6);
+  color: #fff;
+  animation: p4-up 0.4s var(--p4-ease) both;
+}
+.theme-ps4 .ge-head { padding: 34px 50px 18px; }
+.theme-ps4 .ge-title { font-size: 56px; font-weight: 300; }
+.theme-ps4 .ge-sub { font-size: 26px; opacity: 0.75; margin-top: 4px; }
+.theme-ps4 .ge-body { padding: 14px 50px 24px; }
+.theme-ps4 .ge-slot, .theme-ps4 .ge-desc { padding: 20px; background: var(--p4-panel); border: 1px solid rgba(255, 255, 255, 0.14); transition: box-shadow 0.15s; }
+.theme-ps4 .ge-slot.on, .theme-ps4 .ge-desc.on { box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.5); }
+.theme-ps4 .ge-prev { background: rgba(0, 20, 80, 0.55); border: 1px solid rgba(255, 255, 255, 0.25); color: rgba(255, 255, 255, 0.6); }
+.theme-ps4 .ge-name { font-size: 34px; font-weight: 400; }
+.theme-ps4 .ge-state { font-size: 20px; padding: 2px 12px; border: 1px solid rgba(255, 255, 255, 0.4); color: rgba(255, 255, 255, 0.8); }
+.theme-ps4 .is-custom .ge-state { background: #fff; color: #0b3aa3; border-color: #fff; }
+.theme-ps4 .ge-hint, .theme-ps4 .ge-used { font-size: 22px; opacity: 0.72; line-height: 1.35; }
+.theme-ps4 .ge-b {
+  height: 58px;
+  padding: 0 26px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  background: rgba(255, 255, 255, 0.08);
+  font-size: 24px;
+  color: #fff;
+  transition: background 0.15s, color 0.15s, box-shadow 0.15s;
+}
+.theme-ps4 .ge-b.kf, .theme-ps4 .ge-b:hover { background: rgba(255, 255, 255, 0.95); color: #0b3aa3; box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.3), 0 0 24px rgba(160, 210, 255, 0.6); }
+.theme-ps4 .ge-text { border: 1px solid rgba(255, 255, 255, 0.35); padding: 14px 18px; font-size: 26px; color: #fff; background: rgba(0, 15, 60, 0.55); line-height: 1.4; }
+.theme-ps4 .ge-text.kf, .theme-ps4 .ge-text:focus { border-color: #fff; box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.3); }
+.theme-ps4 .ge-msg { padding: 8px 50px; font-size: 25px; }
+.theme-ps4 .ge-msg.bad { color: #ffb0b0; }
+.theme-ps4 .ge-foot { padding: 18px 50px 30px; }
+.theme-ps4 .ge-drop { background: rgba(255, 255, 255, 0.85); color: #0b3aa3; }
+/* el menú es como el de "Opciones" de la PS4: un panel a la derecha del cursor */
+.theme-ps4 .ge-ctx { padding: 12px 0; background: rgba(8, 36, 110, 0.97); border: 1px solid rgba(255, 255, 255, 0.25); box-shadow: 0 20px 50px rgba(0, 10, 50, 0.6); font-family: var(--p4-font); }
+.theme-ps4 .ge-ctx-title { font-size: 22px; opacity: 0.7; padding: 6px 26px 10px; }
+.theme-ps4 .ge-ci { height: 70px; padding: 0 26px; font-size: 30px; font-weight: 300; color: #fff; background: none; border: 0; }
+.theme-ps4 .ge-ci.kf { background: rgba(255, 255, 255, 0.95); color: #0b3aa3; }

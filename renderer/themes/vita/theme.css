@@ -674,3 +674,46 @@ body.playing .theme-vita .v-bub.sel .v-face,
 body.playing .theme-vita .v-mu-disc,
 body.playing .theme-vita .v-gate-btn,
 body.playing .theme-vita .v-lock-hint { animation-play-state: paused; }
+
+/* ============ Cambiar imágenes de un juego (clic derecho o tecla I), como la app de Ajustes ============ */
+.theme-vita .ge-wrap { background: rgba(0, 10, 40, 0.5); font-family: var(--v-font); z-index: 58; }
+.theme-vita .ge-panel { border-radius: 24px; background: linear-gradient(#f2f5fa, #e1e7f0); color: #2c3a55; box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55); animation: v-drop 0.3s var(--v-ease) both; }
+.theme-vita .ge-head { padding: 22px 44px; background: linear-gradient(#4a92f5, #1f62d6); color: #fff; box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.35); }
+.theme-vita .ge-title { font-size: 46px; font-weight: 800; }
+.theme-vita .ge-sub { font-size: 25px; opacity: 0.85; font-weight: 700; }
+.theme-vita .ge-body { padding: 26px 40px; }
+.theme-vita .ge-slot, .theme-vita .ge-desc { padding: 18px; border-radius: 18px; background: #fff; box-shadow: 0 4px 12px rgba(30, 70, 140, 0.12); transition: box-shadow 0.15s, background 0.15s; }
+.theme-vita .ge-slot.on, .theme-vita .ge-desc.on { background: linear-gradient(#f2f9ff, #e1f1ff); box-shadow: inset 0 0 0 3px #3fa0ff, 0 4px 12px rgba(30, 70, 140, 0.15); }
+.theme-vita .ge-prev { border-radius: 14px; background: #dfe7f5; color: #7a879e; box-shadow: 0 0 0 3px #fff, 0 4px 10px rgba(0, 0, 0, 0.18); }
+.theme-vita .ge-prev.shape-circle::after { content: ''; position: absolute; inset: 0; border-radius: 50%; pointer-events: none;
+  background: radial-gradient(ellipse 66% 40% at 50% 15%, rgba(255, 255, 255, 0.85) 0%, rgba(255, 255, 255, 0.3) 55%, rgba(255, 255, 255, 0) 72%), radial-gradient(circle at 50% 45%, rgba(0, 0, 0, 0) 58%, rgba(0, 10, 50, 0.3) 100%); }
+.theme-vita .ge-name { font-size: 34px; font-weight: 800; }
+.theme-vita .ge-state { font-size: 20px; font-weight: 800; padding: 3px 14px; border-radius: 12px; background: #e9edf3; color: #7a879e; }
+.theme-vita .is-custom .ge-state { background: linear-gradient(#5aa4ff, #1f62d6); color: #fff; }
+.theme-vita .ge-hint, .theme-vita .ge-used { font-size: 22px; color: #6b7894; line-height: 1.35; }
+.theme-vita .ge-used { color: #1d6cf0; font-weight: 700; }
+.theme-vita .ge-b {
+  height: 58px;
+  padding: 0 26px;
+  border-radius: 29px;
+  border: 0;
+  background: linear-gradient(#ffffff, #dfe6f2);
+  color: #1d4fb8;
+  font-size: 23px;
+  font-weight: 800;
+  box-shadow: 0 4px 10px rgba(0, 20, 80, 0.2), inset 0 2px 0 #fff;
+  transition: transform 0.2s var(--v-pop), box-shadow 0.2s;
+}
+.theme-vita .ge-b.kf, .theme-vita .ge-b:hover { transform: scale(1.05); box-shadow: 0 0 0 4px #3fa0ff, 0 0 20px 4px rgba(130, 210, 255, 0.7); }
+.theme-vita .ge-b.main { background: linear-gradient(#7fdcff, #23a2ef 55%, #1478d8); color: #fff; text-shadow: 0 2px 3px rgba(0, 50, 130, 0.5); min-width: 220px; }
+.theme-vita .ge-text { border-radius: 14px; border: 3px solid #d5dce8; padding: 14px 18px; font-size: 26px; color: #2c3a55; background: #fff; line-height: 1.4; }
+.theme-vita .ge-text.kf, .theme-vita .ge-text:focus { border-color: #3fa0ff; box-shadow: 0 0 0 4px rgba(63, 160, 255, 0.25); }
+.theme-vita .ge-msg { padding: 8px 44px; font-size: 25px; font-weight: 800; color: #1d6cf0; }
+.theme-vita .ge-msg.bad { color: #d23a3a; }
+.theme-vita .ge-foot { padding: 16px 40px 26px; }
+.theme-vita .ge-drop { background: rgba(29, 108, 240, 0.85); color: #fff; }
+.theme-vita .ge-ctx { border-radius: 20px; overflow: hidden; background: #f6f8fc; box-shadow: 0 20px 50px rgba(0, 10, 50, 0.55); font-family: var(--v-font); z-index: 59; animation: v-drop 0.2s var(--v-ease) both; }
+.theme-vita .ge-ctx-title { font-size: 26px; font-weight: 800; color: #fff; padding: 16px 26px; background: linear-gradient(#4a92f5, #1f62d6); }
+.theme-vita .ge-ci { height: 80px; padding: 0 26px; font-size: 29px; font-weight: 700; color: #2c3a55; background: none; border: 0; border-bottom: 2px solid #e6ebf2; }
+.theme-vita .ge-ci:last-child { border-bottom: 0; }
+.theme-vita .ge-ci.kf { background: linear-gradient(#e2f2ff, #c4e3ff); }

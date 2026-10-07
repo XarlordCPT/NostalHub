@@ -301,6 +301,7 @@
         const t = document.createElement('button');
         t.className = `p4-tile ${it.type}`;
         t.dataset.i = i;
+        if (it.type === 'game') t.dataset.gameId = it.game.id; // clic derecho → cambiar imágenes
         const face = document.createElement('div');
         face.className = 'p4-tface';
         if (it.type === 'game') face.appendChild(tileArt(it.game));
@@ -461,6 +462,7 @@
       if (!g) return;
       current = g;
       showScreen('game');
+      $('.p4-game').dataset.gameCurrent = g.id; // clic derecho / tecla I → imágenes de este juego
       setArt(g.hero || g.tile, true);
       const title = $('.p4g-title');
       title.innerHTML = '';
@@ -590,6 +592,7 @@
         const c = document.createElement('button');
         c.className = 'p4l-cell';
         c.dataset.i = i;
+        c.dataset.gameId = g.id;
         const art = tileArt(g);
         const name = document.createElement('div');
         name.className = 'p4l-name';
@@ -741,6 +744,7 @@
         const r = document.createElement('button');
         r.className = 'p4t-row';
         r.dataset.i = i;
+        r.dataset.gameId = g.id;
         const art = tileArt(g);
         const pct = Math.round((tp.done / tp.total) * 100);
         const info = document.createElement('div');

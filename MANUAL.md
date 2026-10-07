@@ -105,7 +105,15 @@ También sirven `.webp` y `.svg` para el ícono y el logo.
 
 ## 2. Cada juego — `personalizar\<Nombre del juego>\`
 
-La app crea una carpeta por juego, con el nombre del juego. Para abrirla: ajustes → Archivos → **Carpeta de personalización**.
+**Lo más fácil, desde la app:** haz **clic derecho sobre un juego** (en cualquier consola) → **Cambiar imágenes**, o
+márcalo y presiona la tecla **I**. Se abre una ventana con el estilo de esa consola que muestra **solo las imágenes que
+se ven en esa consola** (por ejemplo, en la Wii: canal, fondo, logo y video; en la PS Vita: burbuja, fondo y logo).
+En cada una puedes **Elegir archivo**, **arrastrar** una imagen encima (también desde el navegador), **Pegar** una imagen
+copiada ("Copiar imagen" en el navegador) o **volver a la automática**. Abajo está la **descripción** para escribir la
+tuya (si la dejas igual o la borras, se usa la de Steam) y el botón **Ver todas las consolas**. Los cambios se ven al tiro.
+
+Por dentro, la app guarda esos archivos en una carpeta por juego, con el nombre del juego (ajustes → Archivos →
+**Carpeta de personalización**). También puedes ponerlos a mano:
 
 | Archivo | Dónde se ve | Qué hace |
 |---|---|---|
@@ -297,6 +305,7 @@ Las mismas opciones del menú del ícono junto al reloj, con el estilo de cada c
 | PS2 | Flechas moverse · Enter elegir · **C** configuración · Esc volver |
 | Xbox 360 | Flechas moverse · **Q / E** cambiar de pestaña · **G** la Guía · Enter seleccionar · Esc volver |
 | PS4 | ← → juegos · **↑** funciones · **↓** ficha del juego · Enter jugar · **P** menú rápido · Esc volver (en el menú principal: selector) |
+| Cualquier consola | **Clic derecho** sobre un juego, o la tecla **I** con el juego marcado: cambiar imágenes y descripción |
 | PS Vita | Flechas entre burbujas (↑ ↓ en los bordes, o la rueda / RePág / AvPág, cambian de página) · Enter abrir · **Q / E** cambiar de tarjeta · **Retroceso** cerrar la tarjeta · **P** menú rápido · **N** avisos · Esc inicio (en el inicio: selector) |
 
 ---

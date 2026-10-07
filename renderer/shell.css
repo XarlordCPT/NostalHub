@@ -415,3 +415,44 @@ img, video { -webkit-user-drag: none; }
 
 /* Contador de fotogramas (tecla F3) */
 #fps { position: absolute; left: 16px; bottom: 16px; z-index: 70; padding: 8px 18px; border-radius: 20px; background: rgba(0, 0, 0, 0.72); color: #7dff9b; font: 700 24px Consolas, monospace; pointer-events: none; }
+
+/* ============ Cambiar imágenes de un juego (clic derecho) — forma común; el estilo lo pone cada consola ============ */
+.ge-wrap { position: absolute; inset: 0; z-index: 55; display: grid; place-items: center; animation: ge-fade 0.22s ease both; }
+.ge-wrap.leave { animation: ge-fade 0.2s ease reverse both; }
+@keyframes ge-fade { from { opacity: 0; } to { opacity: 1; } }
+.ge-panel { width: 1580px; max-height: 1000px; display: flex; flex-direction: column; overflow: hidden; position: relative; }
+.ge-head { flex: none; }
+.ge-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ge-body { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; }
+.ge-body::-webkit-scrollbar { width: 12px; }
+.ge-body::-webkit-scrollbar-thumb { border-radius: 6px; background: rgba(128, 128, 128, 0.45); }
+.ge-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
+.ge-slot { display: flex; gap: 26px; align-items: center; min-width: 0; position: relative; }
+.ge-prev { flex: none; position: relative; overflow: hidden; display: grid; place-items: center; }
+.ge-prev.shape-wide { width: 300px; height: 169px; }
+.ge-prev.shape-tall { width: 140px; height: 210px; margin: 0 80px; }
+.ge-prev.shape-circle { width: 190px; height: 190px; margin: 0 55px; border-radius: 50% !important; }
+.ge-prev.shape-logo { width: 300px; height: 150px; }
+.ge-prev.shape-square { width: 190px; height: 190px; margin: 0 55px; }
+.ge-prev img, .ge-prev video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.ge-prev.shape-logo img { object-fit: contain; padding: 10px; }
+.ge-empty, .ge-file { font-size: 24px; text-align: center; padding: 10px; opacity: 0.7; word-break: break-all; }
+.ge-drop { position: absolute; inset: 0; display: grid; place-items: center; font-size: 26px; font-weight: 700; opacity: 0; pointer-events: none; transition: opacity 0.15s; }
+.ge-slot.drag .ge-drop { opacity: 1; }
+.ge-info { flex: 1; min-width: 0; text-align: left; }
+.ge-body { text-align: left; }
+.ge-name { display: flex; align-items: center; justify-content: flex-start; gap: 14px; flex-wrap: wrap; }
+.ge-hint { margin-top: 6px; }
+.ge-btns { display: flex; gap: 12px; flex-wrap: wrap; justify-content: flex-start; margin-top: 14px; }
+.ge-b { cursor: pointer; font-family: inherit; white-space: nowrap; }
+.ge-desc { margin-top: 24px; }
+.ge-text { display: block; width: 100%; height: 150px; margin-top: 10px; resize: none; font-family: inherit; outline: none; box-sizing: border-box; }
+.ge-msg { flex: none; min-height: 0; }
+.ge-msg:empty { display: none; }
+.ge-msg.pop { animation: ge-pop 0.3s ease both; }
+@keyframes ge-pop { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.ge-foot { flex: none; display: flex; align-items: center; gap: 16px; }
+.ge-gap { flex: 1; }
+.ge-ctx { position: absolute; z-index: 56; width: 460px; animation: ge-fade 0.15s ease both; }
+.ge-ctx-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ge-ci { display: flex; align-items: center; width: 100%; text-align: left; cursor: pointer; font-family: inherit; }

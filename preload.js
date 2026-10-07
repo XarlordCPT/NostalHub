@@ -1,5 +1,5 @@
 // Puente seguro entre la interfaz (renderer) y el proceso principal.
-const { contextBridge, ipcRenderer } = require('electron');
+const { contextBridge, ipcRenderer, webUtils } = require('electron');
 
 function on(channel) {
   return (cb) => {
@@ -41,6 +41,21 @@ contextBridge.exposeInMainWorld('nostalhub', {
   discordWatch: (on) => ipcRenderer.invoke('discord:watch', on),
   discordAuthorize: () => ipcRenderer.invoke('discord:authorize'),
   onDiscord: on('discord:update'),
+  // Imágenes y descripción de cada juego (clic derecho → Cambiar imágenes)
+  getGameCustom: (id) => ipcRenderer.invoke('game:custom-get', id),
+  pickGameFile: (id, kind) => ipcRenderer.invoke('game:custom-pick', id, kind),
+  setGameFileFrom: (id, kind, from) => ipcRenderer.invoke('game:custom-from', id, kind, from),
+  pasteGameFile: (id, kind) => ipcRenderer.invoke('game:custom-paste', id, kind),
+  clearGameFile: (id, kind) => ipcRenderer.invoke('game:custom-clear', id, kind),
+  setGameDescription: (id, text) => ipcRenderer.invoke('game:description-set', id, text),
+  openGameFolder: (id) => ipcRenderer.invoke('game:open-folder', id),
+  pathForFile: (file) => {
+    try {
+      return webUtils.getPathForFile(file);
+    } catch {
+      return '';
+    }
+  },
   // Conectar Steam y Discord desde la app
   getSetup: () => ipcRenderer.invoke('setup:get'),
   saveSteamKey: (key) => ipcRenderer.invoke('setup:steam', key),

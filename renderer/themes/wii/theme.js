@@ -198,6 +198,7 @@
       const btn = document.createElement('button');
       btn.className = 'tile game';
       btn.dataset.index = index;
+      btn.dataset.gameId = g.id; // clic derecho → cambiar imágenes
       btn.title = g.name;
       const inner = document.createElement('div');
       inner.className = 'tile-inner';
@@ -325,6 +326,7 @@
       fillChannel(g);
       await anim.finished;
       channel.hidden = false;
+      channel.dataset.gameCurrent = g.id; // clic derecho / tecla I → imágenes de este juego
       channel.classList.remove('leave');
       channel.classList.add('enter');
       await wait(30);
@@ -507,6 +509,7 @@
     function switchChannel(dir) {
       if (view !== 'channel' || games.length < 2) return;
       current = (current + dir + games.length) % games.length;
+      channel.dataset.gameCurrent = games[current].id;
       fillChannel(games[current]);
       chTop.classList.remove('swap-next', 'swap-prev');
       chTop.offsetWidth; // reinicia la animación

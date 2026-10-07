@@ -422,6 +422,7 @@
           b.style.left = `${s.x - D / 2}px`;
           b.style.top = `${s.y - D / 2}px`;
           b.style.setProperty('--d', `${(i % 4) * 0.05 + s.row * 0.06}s`);
+          if (entry.game) b.dataset.gameId = entry.game.id; // clic derecho → cambiar imágenes
           b.appendChild(bubbleFace(entry));
           const label = document.createElement('div');
           label.className = 'v-label';
@@ -672,6 +673,9 @@
       cards.forEach((c, i) => {
         c.el.style.left = `${W + CARD_X + i * (CARD_W + CARD_GAP)}px`;
         c.el.classList.toggle('cur', i === at);
+        // solo la tarjeta de juego abierta cuenta como "el juego actual" (clic derecho / tecla I)
+        if (c.kind === 'game' && i === at) c.el.dataset.gameCurrent = c.game.id;
+        else delete c.el.dataset.gameCurrent;
       });
     }
     function goTo(i, animate = true) {
@@ -1040,6 +1044,7 @@
         const r = document.createElement('button');
         r.className = 'v-tr-row';
         r.dataset.f = 'game';
+        r.dataset.gameId = g.id;
         const b = document.createElement('div');
         b.className = 'v-tr-bub';
         b.appendChild(bubbleFace({ game: g }));
@@ -1101,6 +1106,7 @@
         const c = document.createElement('button');
         c.className = 'v-lib-cell';
         c.dataset.f = 'g';
+        c.dataset.gameId = g.id;
         c.appendChild(bubbleFace({ game: g }));
         const n = document.createElement('div');
         n.className = 'v-lib-name';

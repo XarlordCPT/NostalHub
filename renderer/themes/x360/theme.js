@@ -246,6 +246,7 @@
   function buildCase(g, size = '') {
     const el = document.createElement('div');
     el.className = `xb-case ${size}`;
+    el.dataset.gameId = g.id; // clic derecho → cambiar imágenes
     const art = document.createElement('div');
     art.className = 'xb-case-art';
     if (g.cover) {
@@ -439,7 +440,9 @@
         art.style.backgroundImage = g.hero || g.tile ? `url("${g.hero || g.tile}")` : '';
         art.innerHTML = g.logo ? `<img src="${g.logo}" alt="" />` : '';
         label.textContent = `Jugar ${g.name}`;
+        $('.xb-last').dataset.gameId = g.id; // clic derecho / tecla I → imágenes de este juego
       } else {
+        delete $('.xb-last').dataset.gameId;
         art.style.backgroundImage = '';
         art.innerHTML = '';
         label.textContent = 'Sin juegos';
@@ -645,6 +648,7 @@
     function openDetail(g) {
       current = g;
       showView('detail');
+      $('.xb-detail').dataset.gameCurrent = g.id; // clic derecho / tecla I → imágenes de este juego
       const box = $('.xb-detail-case');
       box.innerHTML = '';
       box.appendChild(buildCase(g, 'big'));

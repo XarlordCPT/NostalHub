@@ -106,6 +106,7 @@
     ],
   };
   const dcCbs = new Set();
+  const mockCustom = {};
 
   const noop = () => () => {};
   let endedCb = null;
@@ -142,6 +143,32 @@
     getSetup: async () => ({ steam: { hasKey: false, foundUser: true, name: null }, discord: { clientId: '', hasSecret: false, state: { status: 'no-config' } } }),
     saveSteamKey: async (k) => (/^[0-9a-f]{32}$/i.test(k.trim()) ? { ok: true, name: 'Cristóbal', warning: null } : { ok: false, message: 'La clave tiene 32 letras y números (de la A a la F y del 0 al 9). Revisa que la copiaste completa.' }),
     saveDiscord: async ({ id }) => (/^\d{15,22}$/.test(String(id).trim()) ? { ok: true, state: { status: 'authorizing' } } : { ok: false, message: 'El Client ID son solo números (unos 18 o 19). Está en OAuth2 → Client ID.' }),
+    getGameCustom: async (id) => {
+      const g = games.find((x) => x.id === id);
+      if (!g) return null;
+      const c = (mockCustom[id] = mockCustom[id] || {});
+      const slot = (k, auto) => ({ custom: c[k] || null, customName: c[k] ? 'archivo.png' : null, auto: auto || null, isVideo: false });
+      return {
+        id, name: g.name, type: g.type,
+        slots: { tile: slot('tile', g.tile), hero: slot('hero', g.heroIsReal ? g.hero : null), logo: slot('logo', g.logo), video: slot('video'), model: slot('model'), cover: slot('cover', g.cover), bubble: slot('bubble', g.cover) },
+        description: { custom: c.desc || '', steam: g.description || '' },
+      };
+    },
+    pickGameFile: async (id, kind) => {
+      (mockCustom[id] = mockCustom[id] || {})[kind] = art(600, 600, ['#ffd166', '#ef476f'], '★', 200);
+      return { ok: true, info: await window.mockNostalHub.getGameCustom(id) };
+    },
+    pasteGameFile: async () => ({ ok: false, message: 'No hay una imagen copiada. En el navegador: clic derecho en la imagen → "Copiar imagen".' }),
+    setGameFileFrom: async (id, kind) => window.mockNostalHub.pickGameFile(id, kind),
+    clearGameFile: async (id, kind) => {
+      if (mockCustom[id]) delete mockCustom[id][kind];
+      return { ok: true, info: await window.mockNostalHub.getGameCustom(id) };
+    },
+    setGameDescription: async (id, text) => {
+      (mockCustom[id] = mockCustom[id] || {}).desc = text;
+      return { ok: true, info: await window.mockNostalHub.getGameCustom(id) };
+    },
+    openGameFolder: async (id) => console.log('[mock] carpeta', id),
     readClipboard: async () => '0123456789ABCDEF0123456789ABCDEF',
     writeClipboard: async () => {},
     onSetup: noop,

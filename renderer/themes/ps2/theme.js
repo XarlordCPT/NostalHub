@@ -398,6 +398,7 @@
         const cell = document.createElement('button');
         cell.className = 'ps-cell';
         cell.dataset.index = i;
+        cell.dataset.gameId = g.id; // clic derecho → cambiar imágenes
         cell.style.setProperty('--d', `${(Math.floor(i / COLS) % ROWS_VISIBLE) * 90 + (i % COLS) * 45}ms`);
         cell.appendChild(buildIcon(g));
         cell.addEventListener('mouseenter', () => setSel(i, false));
@@ -472,6 +473,7 @@
       current = i;
       setSel(i);
       const g = games[i];
+      detail.dataset.gameCurrent = g.id;
       const cell = grid.querySelector(`.ps-cell[data-index="${i}"]`);
       const from = cell ? ctx.stageRect(cell.querySelector('.ps-icon')) : null;
 

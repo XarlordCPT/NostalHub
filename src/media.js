@@ -189,4 +189,4 @@ function isVideoFile(p) {
   return !!p && VIDEO_EXT.includes(path.extname(p).toLowerCase());
 }
 
-module.exports = { ensureSteamMedia, findCustomFiles, safeId, isVideoFile, CUSTOM_FILES };
+module.exports = { ensureSteamMedia, findCustomFiles, safeId, isVideoFile, downloadImage, CUSTOM_FILES };
