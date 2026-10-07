@@ -1,7 +1,7 @@
 // Proceso principal: ventana en la segunda pantalla, bandeja del sistema,
 // arranque con Windows, juegos y arte.
 
-const { app, BrowserWindow, Tray, Menu, screen, ipcMain, shell, session, nativeImage, dialog } = require('electron');
+const { app, BrowserWindow, Tray, Menu, screen, ipcMain, shell, session, nativeImage, dialog, clipboard } = require('electron');
 const fs = require('fs');
 const path = require('path');
 const { pathToFileURL } = require('url');
@@ -744,6 +744,14 @@ function menuSections() {
       ],
     },
     {
+      id: 'accounts',
+      title: 'Cuentas',
+      items: [
+        { id: 'setup-steam', type: 'action', label: 'Conectar Steam (logros)', desc: 'Pega tu clave de Steam aquí mismo para ver tus logros, tu nombre y tu foto.', closes: true, run: () => openSetup('steam') },
+        { id: 'setup-discord', type: 'action', label: 'Conectar Discord (grupo)', desc: 'Conecta tu Discord para ver tu canal de voz y quiénes están contigo.', closes: true, run: () => openSetup('discord') },
+      ],
+    },
+    {
       id: 'files',
       title: 'Archivos',
       items: [
@@ -756,8 +764,6 @@ function menuSections() {
           run: () => (fs.mkdirSync(CONSOLES_DIR, { recursive: true }), shell.openPath(CONSOLES_DIR)),
         },
         { id: 'open-config', type: 'action', label: 'Abrir config.json', desc: 'Lista de juegos y opciones.', run: () => shell.openPath(config.file) },
-        { id: 'open-apikey', type: 'action', label: 'Clave de API de Steam (logros)', desc: 'Para ver tus logros. Los pasos están en el manual.', run: () => shell.openPath(steamWeb.ensureKeyFile()) },
-        { id: 'open-discord', type: 'action', label: 'Datos de Discord (grupo)', desc: 'Para ver tu canal de voz en la PS4. Los pasos están en el manual.', run: () => shell.openPath(discord.ensureKeyFile()) },
         { id: 'devtools', type: 'action', label: 'Herramientas de desarrollo', desc: 'Para ver errores.', run: () => win && win.webContents.openDevTools({ mode: 'detach' }) },
       ],
     },
@@ -887,6 +893,31 @@ ipcMain.handle('game:dismiss', () => launcher.stopWatching());
 ipcMain.handle('app:quit', () => app.quit());
 
 // ---------- Steam (perfil y logros) ----------
+// ---------- Conectar Steam y Discord desde la app (sin abrir archivos) ----------
+function openSetup(which) {
+  showWindow();
+  if (win) win.focus(); // para poder escribir en los cuadros de texto
+  send('shell:setup', which);
+}
+ipcMain.handle('setup:get', async () => {
+  const web = steamUser && steamWeb.key ? await steamWeb.profile(steamUser.steamId) : null;
+  return {
+    steam: { hasKey: !!steamWeb.key, foundUser: !!steamUser, name: (web && web.name) || (steamUser && steamUser.name) || null },
+    discord: (({ clientId, hasSecret }) => ({ clientId, hasSecret, state: discord.state }))(discord.peek()), // nunca se manda el secret
+  };
+});
+ipcMain.handle('setup:steam', async (_e, key) => {
+  const res = await steamWeb.saveKey(String(key || ''), steamUser && steamUser.steamId);
+  if (res.ok) {
+    send('steam:changed');
+    refreshAchievementTotals();
+  }
+  return res;
+});
+ipcMain.handle('setup:discord', (_e, data) => discord.saveKeys(data || {}));
+ipcMain.handle('clipboard:read', () => clipboard.readText().trim().slice(0, 300));
+ipcMain.handle('clipboard:write', (_e, text) => clipboard.writeText(String(text || '').slice(0, 300)));
+
 ipcMain.handle('steam:profile', async () => {
   const u = steamUser;
   const web = u ? await steamWeb.profile(u.steamId) : null;
@@ -926,9 +957,17 @@ ipcMain.handle('app:open', (_e, what) => {
     case 'manual':
       return shell.openPath(MANUAL_FILE);
     case 'apikey':
-      return shell.openPath(steamWeb.ensureKeyFile());
+    case 'setup-steam':
+      return openSetup('steam');
     case 'discord':
+    case 'setup-discord':
+      return openSetup('discord');
+    case 'apikey-file':
+      return shell.openPath(steamWeb.ensureKeyFile());
+    case 'discord-file':
       return shell.openPath(discord.ensureKeyFile());
+    case 'steam-apikey-page':
+      return shell.openExternal('https://steamcommunity.com/dev/apikey');
     case 'discord-app':
       return shell.openExternal('discord://');
     case 'discord-portal':

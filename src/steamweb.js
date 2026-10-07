@@ -37,6 +37,37 @@ class SteamWeb {
     }
   }
 
+  // Guarda la clave pegada en la app, después de probarla con Steam.
+  // Devuelve { ok, name, warning } o { ok: false, message }
+  async saveKey(raw, steamId) {
+    const key = String(raw || '')
+      .trim()
+      .replace(/^(clave|key)\s*[:=]\s*/i, '');
+    if (!/^[0-9A-F]{32}$/i.test(key)) {
+      return { ok: false, message: 'La clave tiene 32 letras y números (de la A a la F y del 0 al 9). Revisa que la copiaste completa.' };
+    }
+    const id = steamId || '76561197960435530'; // si no se encontró tu usuario, se prueba con un perfil público
+    let data = null;
+    try {
+      const res = await fetch(`${API}/ISteamUser/GetPlayerSummaries/v2/?key=${key}&steamids=${id}`, { signal: AbortSignal.timeout(15000) });
+      if (res.status === 401 || res.status === 403) return { ok: false, message: 'Steam dice que esa clave no es válida. Vuelve a copiarla desde la página de Steam.' };
+      if (!res.ok) return { ok: false, message: `Steam respondió con un error (${res.status}). Intenta de nuevo en un rato.` };
+      data = await res.json().catch(() => null);
+    } catch {
+      return { ok: false, message: 'No se pudo conectar con Steam. Revisa tu internet e intenta de nuevo.' };
+    }
+    fs.mkdirSync(path.dirname(this.keyFile), { recursive: true });
+    fs.writeFileSync(this.keyFile, KEY_TEMPLATE + key + '\r\n', 'utf8');
+    this.memo.clear();
+    const p = steamId && data && data.response && data.response.players && data.response.players[0];
+    return {
+      ok: true,
+      name: p ? p.personaname : null,
+      // 3 = perfil público. Si es privado, Steam no entrega los logros
+      warning: p && p.communityvisibilitystate !== 3 ? 'Tu perfil de Steam es privado, así que Steam no va a mostrar tus logros. En Steam → tu perfil → Editar perfil → Privacidad, pon "Detalles de juegos" en Público.' : null,
+    };
+  }
+
   // ---------- Peticiones ----------
   async get(url, maxAgeMs = 10 * 60 * 1000) {
     const hit = this.memo.get(url);

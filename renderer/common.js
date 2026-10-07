@@ -31,7 +31,7 @@
   // Mensaje para cuando no hay logros que mostrar
   function achievementMessage(res) {
     const texts = {
-      'no-key': 'Para ver tus logros, agrega tu clave de API de Steam.<br><small>Menú → "Clave de API de Steam (logros)". Los pasos están en MANUAL.md.</small>',
+      'no-key': 'Para ver tus logros, conecta tu Steam.<br><small>Ajustes → Cuentas → Conectar Steam (se hace aquí mismo, en 1 minuto).</small>',
       private: 'Steam no deja ver tus logros.<br><small>En Steam → tu perfil → Editar perfil → Privacidad, pon "Detalles de juegos" en Público.</small>',
       none: 'Este juego no tiene logros.',
       error: `No se pudieron cargar los logros.<br><small>${escapeHtml((res && res.message) || 'Revisa tu conexión a internet.')}</small>`,

@@ -12,7 +12,8 @@
       { id: 'games', title: 'Juegos', items: [a('import', 'Buscar juegos nuevos de Steam', 'Agrega los juegos de Steam que instalaste desde la última vez.'), a('art', 'Volver a descargar el arte', 'Descarga otra vez las imágenes de Steam de todos los juegos.'), t('tileTitle', 'Título encima de cada canal', 'En la Wii, pone el logo del juego encima de su imagen de fondo.'), t('trailers', 'Mostrar tráileres de Steam', 'Usa el tráiler de Steam como animación del juego.')] },
       { id: 'screen', title: 'Pantalla', items: [{ id: 'display', type: 'choice', label: 'Pantalla', desc: 'En qué pantalla se muestra NostalHub.', options: [{ value: 'auto', label: 'Automática (la secundaria)', short: 'Automática' }, { value: '1', label: 'Pantalla 1 — 1920×1080 (principal)', short: 'Pantalla 1' }, { value: '2', label: 'Pantalla 2 — 1920×1080', short: 'Pantalla 2' }], value: String(o.display) }, t('fullscreen', 'Cubrir la barra de tareas', 'Desactívalo si la barra de Windows aparece encima del menú.'), t('autoStart', 'Iniciar con Windows', 'Abre NostalHub sola al prender el PC.')] },
       { id: 'sound', title: 'Sonido', items: [t('music', 'Música de fondo', 'La música de cada consola (musica.mp3).'), t('sounds', 'Sonidos del menú', 'Los sonidos al moverte, elegir y volver.'), t('intros', 'Videos de inicio de las consolas', 'El video (intro.mp4) al entrar a una consola.'), { id: 'musicVolume', type: 'choice', label: 'Volumen de la música', options: [['Bajo', 0.15], ['Medio', 0.35], ['Alto', 0.6], ['Máximo', 1]].map(([label, value]) => ({ label, value })), value: Number(o.musicVolume) }, { id: 'sfxVolume', type: 'choice', label: 'Volumen de los sonidos', options: [['Bajo', 0.3], ['Medio', 0.6], ['Alto', 1]].map(([label, value]) => ({ label, value })), value: Number(o.sfxVolume) }] },
-      { id: 'files', title: 'Archivos', items: [a('open-custom', 'Carpeta de personalización', 'Logos, fondos, videos y modelos de cada juego.'), a('open-consoles', 'Carpeta de consolas', 'Íconos, música, sonidos y videos de inicio de cada consola.'), a('open-config', 'Abrir config.json', 'Lista de juegos y opciones.'), a('open-apikey', 'Clave de API de Steam (logros)', 'Para ver tus logros.'), a('open-discord', 'Datos de Discord (grupo)', 'Para ver tu canal de voz en la PS4.'), a('devtools', 'Herramientas de desarrollo', 'Para ver errores.')] },
+      { id: 'accounts', title: 'Cuentas', items: [a('setup-steam', 'Conectar Steam (logros)', 'Pega tu clave de Steam aquí mismo para ver tus logros, tu nombre y tu foto.', { closes: true }), a('setup-discord', 'Conectar Discord (grupo)', 'Conecta tu Discord para ver tu canal de voz y quiénes están contigo.', { closes: true })] },
+      { id: 'files', title: 'Archivos', items: [a('open-custom', 'Carpeta de personalización', 'Logos, fondos, videos y modelos de cada juego.'), a('open-consoles', 'Carpeta de consolas', 'Íconos, música, sonidos y videos de inicio de cada consola.'), a('open-config', 'Abrir config.json', 'Lista de juegos y opciones.'), a('devtools', 'Herramientas de desarrollo', 'Para ver errores.')] },
     ];
   }
 
@@ -122,6 +123,7 @@
       console.log('[mock] opción', id, value);
       if (it && it.type === 'toggle') mockOpts[id] = value === undefined ? !it.value : !!value;
       if (it && it.type === 'choice') mockOpts[id] = value;
+      if (id === 'setup-steam' || id === 'setup-discord') window.NostalHubSetup && window.NostalHubSetup.open(id.slice(6));
       return mockMenu();
     },
     onGamesUpdated: noop,
@@ -132,7 +134,17 @@
     onShowSelector: noop,
     onConsolesUpdated: noop,
     quitApp: async () => console.log('[mock] salir'),
-    open: async (w) => console.log('[mock] abrir', w),
+    open: async (w) => {
+      console.log('[mock] abrir', w);
+      if (['apikey', 'setup-steam'].includes(w) && window.NostalHubSetup) window.NostalHubSetup.open('steam');
+      if (['discord', 'setup-discord'].includes(w) && window.NostalHubSetup) window.NostalHubSetup.open('discord');
+    },
+    getSetup: async () => ({ steam: { hasKey: false, foundUser: true, name: null }, discord: { clientId: '', hasSecret: false, state: { status: 'no-config' } } }),
+    saveSteamKey: async (k) => (/^[0-9a-f]{32}$/i.test(k.trim()) ? { ok: true, name: 'Cristóbal', warning: null } : { ok: false, message: 'La clave tiene 32 letras y números (de la A a la F y del 0 al 9). Revisa que la copiaste completa.' }),
+    saveDiscord: async ({ id }) => (/^\d{15,22}$/.test(String(id).trim()) ? { ok: true, state: { status: 'authorizing' } } : { ok: false, message: 'El Client ID son solo números (unos 18 o 19). Está en OAuth2 → Client ID.' }),
+    readClipboard: async () => '0123456789ABCDEF0123456789ABCDEF',
+    writeClipboard: async () => {},
+    onSetup: noop,
     getSteamProfile: async () => ({ name: 'Cristóbal', avatar: art(184, 184, ['#6ab04c', '#30336b'], 'CM', 70), hasKey: true }),
     getAchievements: async (appId) => (appId === '1003' ? { status: 'none', list: [] } : { status: 'ok', list: fakeAch, done: 13, total: 18 }),
     getAchievementSummary: async () => ({ done: 213, total: 488, hasKey: true, perGame: { 1000: { done: 13, total: 18 }, 1001: { done: 40, total: 52 }, 1002: { done: 3, total: 30 }, 1005: { done: 22, total: 22 }, 1007: { done: 9, total: 41 } } }),

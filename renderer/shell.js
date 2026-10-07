@@ -524,6 +524,46 @@
       if (theme && mode === 'theme' && prevMusic !== nextMusic) Sound.startMusic(theme.id);
     });
 
+  // ---------- Contador de fotogramas (F3) ----------
+  // Muestra cuántos cuadros por segundo dibuja la app y el cuadro más lento del último segundo.
+  let fpsBox = null;
+  let fpsRaf = 0;
+  function toggleFps() {
+    if (fpsBox) {
+      cancelAnimationFrame(fpsRaf);
+      fpsBox.remove();
+      fpsBox = null;
+      return;
+    }
+    fpsBox = document.createElement('div');
+    fpsBox.id = 'fps';
+    fpsBox.textContent = '… FPS';
+    stage.appendChild(fpsBox);
+    let frames = 0;
+    let worst = 0;
+    let last = performance.now();
+    let t0 = last;
+    const tick = (t) => {
+      worst = Math.max(worst, t - last);
+      last = t;
+      frames++;
+      if (t - t0 >= 1000) {
+        fpsBox.textContent = `${Math.round((frames * 1000) / (t - t0))} FPS · más lento ${Math.round(worst)} ms`;
+        frames = 0;
+        worst = 0;
+        t0 = t;
+      }
+      fpsRaf = requestAnimationFrame(tick);
+    };
+    fpsRaf = requestAnimationFrame(tick);
+  }
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'F3') {
+      e.preventDefault();
+      toggleFps();
+    }
+  });
+
   // ---------- Inicio ----------
   (async () => {
     const res = await loadAssets();

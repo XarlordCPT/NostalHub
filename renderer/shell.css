@@ -321,3 +321,97 @@ img, video { -webkit-user-drag: none; }
   transition: opacity 0.6s ease;
 }
 .intro-skip.show { opacity: 1; }
+
+/* ============ Conectar Steam y Discord (Ajustes → Cuentas) ============ */
+#setup {
+  position: absolute;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  background: rgba(8, 14, 30, 0.55);
+  backdrop-filter: blur(6px);
+  font-family: 'M PLUS Rounded 1c', 'Segoe UI', sans-serif;
+  color: #2b3245;
+  animation: su-fade 0.22s ease both;
+}
+#setup[hidden] { display: none; }
+#setup.leave { animation: su-fade 0.22s ease reverse both; }
+@keyframes su-fade { from { opacity: 0; } to { opacity: 1; } }
+#setup button { font-family: inherit; cursor: pointer; border: 0; }
+.su-panel {
+  --su-accent: #1a9fff;
+  width: 1360px;
+  max-height: 1050px;
+  display: flex;
+  flex-direction: column;
+  border-radius: 34px;
+  background: #f7f9fc;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.45);
+  overflow: hidden;
+  animation: su-pop 0.3s cubic-bezier(0.25, 0.8, 0.25, 1) both;
+}
+#setup[data-tab='discord'] .su-panel { --su-accent: #5865f2; }
+@keyframes su-pop { from { opacity: 0; transform: translateY(24px) scale(0.98); } to { opacity: 1; transform: none; } }
+.su-head { display: flex; align-items: center; padding: 22px 26px 0 40px; background: #fff; border-bottom: 2px solid #e4e9f1; }
+.su-tabs { display: flex; gap: 10px; flex: 1; }
+.su-tab { display: flex; align-items: center; gap: 14px; height: 78px; padding: 0 34px; border-radius: 20px 20px 0 0; background: none; font-size: 32px; font-weight: 800; color: #8a94a8; border-bottom: 5px solid transparent !important; }
+.su-tab svg { width: 38px; height: 38px; }
+.su-tab.on { color: var(--su-accent); border-bottom-color: var(--su-accent) !important; }
+.su-tab:hover { color: var(--su-accent); }
+.su-x { width: 64px; height: 64px; border-radius: 50%; background: #eef2f7; color: #6b7590; display: grid; place-items: center; }
+.su-x svg { width: 30px; height: 30px; }
+.su-x:hover { background: #e2e8f1; }
+.su-body { padding: 24px 56px 8px; overflow-y: auto; }
+.su-title { display: flex; align-items: center; gap: 24px; }
+.su-title h2 { margin: 0; font-size: 46px; font-weight: 800; }
+.su-chip { display: inline-flex; align-items: center; gap: 10px; height: 46px; padding: 0 22px; border-radius: 23px; font-size: 24px; font-weight: 700; background: #e9edf3; color: #6b7590; max-width: 760px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.su-chip i { width: 12px; height: 12px; border-radius: 50%; background: currentColor; flex: none; }
+.su-chip svg { width: 26px; height: 26px; flex: none; }
+.su-chip.ok { background: #dcf6e4; color: #1f8a46; }
+.su-chip.warn { background: #fff1d6; color: #b4700c; }
+.su-chip.bad { background: #ffe1e1; color: #c62f2f; }
+.su-lead { font-size: 26px; line-height: 1.4; color: #4d5770; margin: 12px 0 16px; }
+.su-step { display: flex; gap: 22px; padding: 14px 0; border-top: 2px solid #e8edf4; }
+.su-n { width: 52px; height: 52px; flex: none; border-radius: 50%; display: grid; place-items: center; font-size: 28px; font-weight: 800; color: #fff; background: var(--su-accent); }
+.su-st { flex: 1; min-width: 0; font-size: 26px; line-height: 1.45; padding-top: 6px; }
+.su-st code { font-family: Consolas, monospace; font-size: 25px; background: #e9eef6; padding: 2px 10px; border-radius: 8px; color: #24314d; }
+.su-st .su-btn, .su-st .su-mini { margin-left: 12px; vertical-align: middle; }
+.su-btn { height: 60px; padding: 0 30px; border-radius: 30px; font-size: 25px; font-weight: 800; background: #fff; color: var(--su-accent); box-shadow: 0 0 0 3px var(--su-accent) inset; transition: transform 0.15s, box-shadow 0.15s; }
+.su-btn:hover { transform: translateY(-2px); }
+.su-btn.primary { height: 72px; padding: 0 46px; font-size: 29px; color: #fff; background: var(--su-accent); box-shadow: 0 8px 20px color-mix(in srgb, var(--su-accent) 40%, transparent); }
+.su-btn.wait { opacity: 0.6; cursor: progress; }
+.su-mini { height: 50px; padding: 0 22px; border-radius: 14px; font-size: 22px; font-weight: 800; background: #e6efff; color: var(--su-accent); }
+.su-mini.ghost { background: #eef2f7; color: #6b7590; }
+.su-mini.done { background: #dcf6e4; color: #1f8a46; }
+.su-field { display: block; margin-top: 10px; }
+.su-field > span:first-child { display: block; font-size: 22px; font-weight: 800; color: #6b7590; margin-bottom: 8px; }
+.su-input { display: flex; gap: 10px; align-items: center; }
+.su-input input {
+  flex: 1;
+  min-width: 0;
+  height: 60px;
+  padding: 0 22px;
+  border-radius: 16px;
+  border: 3px solid #d5dce8;
+  background: #fff;
+  font-family: Consolas, 'M PLUS Rounded 1c', monospace;
+  font-size: 27px;
+  color: #24314d;
+  outline: none;
+}
+.su-input input:focus { border-color: var(--su-accent); box-shadow: 0 0 0 5px color-mix(in srgb, var(--su-accent) 20%, transparent); }
+.su-input input::placeholder { font-family: 'M PLUS Rounded 1c', sans-serif; color: #a2abbd; font-size: 23px; }
+.su-two { display: flex; gap: 22px; }
+.su-two .su-field { flex: 1; min-width: 0; }
+.su-actions { display: flex; align-items: center; gap: 22px; padding: 16px 0 4px; border-top: 2px solid #e8edf4; flex-wrap: wrap; }
+.su-result { flex: 1; min-width: 380px; font-size: 25px; font-weight: 700; line-height: 1.4; }
+.su-result.ok { color: #1f8a46; }
+.su-result.bad { color: #c62f2f; }
+.su-result small { display: block; font-size: 22px; font-weight: 500; color: #b4700c; margin-top: 6px; }
+.su-note { font-size: 21px; color: #7a849a; line-height: 1.45; margin: 10px 0 6px; }
+.su-link { background: none; padding: 0; font-size: 22px; font-weight: 700; color: var(--su-accent); text-decoration: underline; }
+.su-foot { padding: 14px 40px 18px; font-size: 21px; color: #9aa3b5; background: #fff; border-top: 2px solid #e4e9f1; }
+
+/* Contador de fotogramas (tecla F3) */
+#fps { position: absolute; left: 16px; bottom: 16px; z-index: 70; padding: 8px 18px; border-radius: 20px; background: rgba(0, 0, 0, 0.72); color: #7dff9b; font: 700 24px Consolas, monospace; pointer-events: none; }

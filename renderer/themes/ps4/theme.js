@@ -864,7 +864,7 @@
     function partyStatusText() {
       switch (discord.status) {
         case 'no-config':
-          return { t: 'Conecta tu Discord', d: 'Para ver tu canal de voz, crea una aplicación en el portal de desarrolladores de Discord y pega sus datos en discord.txt. Los pasos están en el manual.', btns: [['discord', 'Abrir discord.txt'], ['discord-portal', 'Abrir el portal de Discord']] };
+          return { t: 'Conecta tu Discord', d: 'Para ver tu canal de voz y quiénes están contigo, conecta tu Discord. Se hace aquí mismo y toma unos 2 minutos.', btns: [['discord', 'Conectar Discord']] };
         case 'no-discord':
           return { t: 'Discord no está abierto', d: 'Abre la app de escritorio de Discord en tu PC. NostalHub se conecta sola cuando la detecte.', btns: [['discord-app', 'Abrir Discord']] };
         case 'connecting':
@@ -874,7 +874,7 @@
         case 'authorizing':
           return { t: 'Acepta en Discord', d: 'Revisa la ventana que apareció en Discord y presiona Autorizar.', btns: [] };
         case 'error':
-          return { t: 'No se pudo conectar', d: discord.message || 'Revisa los datos de discord.txt.', btns: [['auth', 'Intentar de nuevo'], ['discord', 'Abrir discord.txt']] };
+          return { t: 'No se pudo conectar', d: discord.message || 'Revisa los datos de tu aplicación de Discord.', btns: [['auth', 'Intentar de nuevo'], ['discord', 'Conectar Discord']] };
         default:
           return null;
       }
@@ -922,7 +922,7 @@
     let setLevel = 'cats'; // cats | items
     let setCat = 0;
     let setSel = 0;
-    const CAT_ICONS = { general: 'gear', games: 'pad', screen: 'screen', sound: 'speaker', files: 'folder' };
+    const CAT_ICONS = { general: 'gear', games: 'pad', screen: 'screen', sound: 'speaker', accounts: 'person', files: 'folder' };
     async function openSettings() {
       showScreen('settings');
       setArt(null);

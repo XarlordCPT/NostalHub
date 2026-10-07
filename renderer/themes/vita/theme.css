@@ -33,21 +33,18 @@
   transform: rotate(-11deg);
   filter: blur(30px);
   background: radial-gradient(ellipse 50% 50% at 50% 50%, rgba(255, 255, 255, 0.75), rgba(200, 230, 255, 0.25) 40%, rgba(255, 255, 255, 0) 70%);
-  animation: v-drift 26s ease-in-out infinite alternate;
+  /* quietos, como el fondo de la Vita: moverlos con el desenfoque costaba muchos fotogramas */
 }
 .v-light.l1 { top: 610px; }
-.v-light.l2 { top: 700px; height: 60px; filter: blur(6px); opacity: 0.8; animation-duration: 19s; animation-delay: -6s;
+.v-light.l2 { top: 700px; height: 60px; filter: blur(6px); opacity: 0.8;
   background: linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,0.95) 45%, rgba(255,255,255,0.4) 70%, rgba(255,255,255,0)); }
-.v-light.l3 { top: 500px; height: 140px; opacity: 0.4; animation-duration: 33s; filter: blur(22px); }
-@keyframes v-drift {
-  from { transform: rotate(-11deg) translate(-60px, 0); }
-  to { transform: rotate(-8deg) translate(60px, -40px); }
-}
+.v-light.l3 { top: 500px; height: 140px; opacity: 0.4; filter: blur(22px); }
+
 
 /* ============ Riel: inicio + tarjetas ============ */
 .v-track { position: absolute; inset: 0; z-index: 1; transition: transform 0.55s var(--v-ease); }
-.v-home { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; overflow: hidden; transition: opacity 0.3s ease, filter 0.3s ease; }
-.theme-vita.dim-home .v-home { opacity: 0.25; filter: blur(2px); }
+.v-home { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; overflow: hidden; transition: opacity 0.3s ease; will-change: opacity; }
+.theme-vita.dim-home .v-home { opacity: 0.25; }
 .v-pages { position: absolute; inset: 0; transition: transform 0.55s cubic-bezier(0.3, 0.75, 0.25, 1); }
 .v-page { position: absolute; left: 0; width: 1920px; height: 1080px; }
 
@@ -149,13 +146,19 @@
 .v-edge.right.from-home { right: 0; width: 60px; height: 220px; margin-top: -110px; border-radius: 30px 0 0 30px; background: rgba(255, 255, 255, 0.16) !important; }
 
 /* ============ Burbuja volando (al abrir) ============ */
-.v-fly { position: absolute; left: 0; top: 0; width: 236px; height: 236px; z-index: 20; pointer-events: none; }
+.v-fly { position: absolute; left: 0; top: 0; width: 236px; height: 236px; z-index: 20; pointer-events: none; will-change: transform; }
 .v-fly[hidden] { display: none; }
 .v-fly .v-face { box-shadow: 0 30px 60px rgba(0, 10, 60, 0.5), 0 0 0 4px #fff; backface-visibility: visible; }
 
 /* ============ Tarjetas (LiveArea) ============ */
-.v-card { position: absolute; transition: left 0.45s var(--v-ease), filter 0.3s ease; }
-.v-card:not(.cur) { filter: brightness(0.82); cursor: pointer; }
+.v-card { position: absolute; transition: left 0.45s var(--v-ease); }
+.v-card.prep { visibility: hidden; }
+/* cada tarjeta en su propia capa: abrirla, moverla o cambiar de tarjeta no obliga a redibujarla */
+.v-card { will-change: transform; }
+/* las tarjetas que se asoman, un poco más oscuras (una capa encima es más liviana que un filtro) */
+.v-card::after { content: ''; position: absolute; inset: 0; border-radius: 10px; background: rgba(0, 10, 40, 0.22); opacity: 0; pointer-events: none; transition: opacity 0.3s ease; z-index: 6; }
+.v-card:not(.cur)::after { opacity: 1; }
+.v-card:not(.cur) { cursor: pointer; }
 .v-card-body {
   position: absolute;
   inset: 0;

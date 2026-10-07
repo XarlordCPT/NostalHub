@@ -35,8 +35,8 @@ class DiscordVoice {
       fs.writeFileSync(
         this.keyFile,
         [
-          '# NostalHub: datos de tu aplicación de Discord (para ver tu canal de voz en la PS4).',
-          '# Los pasos están en MANUAL.md, sección "Discord". No compartas este archivo con nadie.',
+          '# NostalHub: datos de tu aplicación de Discord (para ver tu canal de voz).',
+          '# Lo más fácil: Ajustes → Cuentas → Conectar Discord, y se llena solo. No compartas este archivo con nadie.',
           '',
           'client_id=',
           'client_secret=',
@@ -69,6 +69,75 @@ class DiscordVoice {
       redirect: get('redirect_uri') || 'http://localhost',
       scopes: (get('scopes') || 'rpc').split(',').filter(Boolean),
     };
+  }
+
+  // Lo que ya está guardado, sin mostrar el secret (para la pantalla de conectar)
+  peek() {
+    let text = '';
+    try {
+      text = fs.readFileSync(this.keyFile, 'utf8');
+    } catch {}
+    const get = (k) => {
+      const m = text.match(new RegExp(`^\\s*${k}\\s*=\\s*(\\S+)\\s*$`, 'mi'));
+      return m ? m[1] : '';
+    };
+    const id = get('client_id');
+    return { clientId: /^\d{15,22}$/.test(id) ? id : '', hasSecret: get('client_secret').length >= 20, text, get };
+  }
+
+  // Guarda los datos pegados en la app y conecta (Discord muestra la ventana para autorizar)
+  async saveKeys({ id, secret }) {
+    id = String(id || '').trim();
+    secret = String(secret || '').trim();
+    const old = this.peek();
+    if (!/^\d{15,22}$/.test(id)) return { ok: false, message: 'El Client ID son solo números (unos 18 o 19). Está en OAuth2 → Client ID.' };
+    if (!secret && old.hasSecret && old.clientId === id) secret = old.get('client_secret'); // en blanco = deja el que ya estaba
+    if (/^[0-9a-f]{64}$/i.test(secret)) return { ok: false, message: 'Eso es la "Clave pública". El secret está en OAuth2 → Client Secret → Reset Secret.' };
+    if (secret.length < 20) return { ok: false, message: 'Falta el Client Secret (o está incompleto). En OAuth2 → Client Secret presiona Reset Secret y cópialo.' };
+    const scopes = old.get('scopes');
+    fs.mkdirSync(path.dirname(this.keyFile), { recursive: true });
+    fs.writeFileSync(
+      this.keyFile,
+      [
+        '# NostalHub: datos de tu aplicación de Discord (se llenan solos desde Ajustes → Cuentas → Conectar Discord).',
+        '# No compartas este archivo con nadie.',
+        '',
+        `client_id=${id}`,
+        `client_secret=${secret}`,
+        `redirect_uri=${old.get('redirect_uri') || 'http://localhost'}`,
+        ...(scopes ? [`scopes=${scopes}`] : []),
+        '',
+      ].join('\r\n'),
+      'utf8'
+    );
+    if (old.clientId && old.clientId !== id) {
+      try {
+        fs.unlinkSync(this.tokenFile); // el permiso era de la otra aplicación
+      } catch {}
+    }
+    this.autoAuth = true;
+    await this.restart();
+    return { ok: true, state: this.state };
+  }
+
+  // Cierra la conexión sin avisar "Discord no está abierto" y vuelve a conectar con los datos nuevos
+  async restart() {
+    clearTimeout(this.retryTimer);
+    const sock = this.sock;
+    this.sock = null;
+    if (sock) {
+      sock.removeAllListeners('close');
+      sock.removeAllListeners('data');
+      try {
+        sock.destroy();
+      } catch {}
+    }
+    this.pending.forEach((p) => p.reject(new Error('Reconectando')));
+    this.pending.clear();
+    this.channelId = null;
+    this.keysInUse = null;
+    this.connecting = false;
+    await this.connect();
   }
 
   // ---------- Encendido según si la pantalla lo está mostrando ----------
@@ -261,7 +330,7 @@ class DiscordVoice {
     if (/redirect_uri/i.test(m))
       return 'Falta la dirección de redirección. En el portal de Discord, en tu aplicación → OAuth2 → Redirects, agrega http://localhost, guarda con Save Changes y presiona "Intentar de nuevo".';
     if (/invalid_client|client_secret|unauthorized_client/i.test(m))
-      return 'El client_secret no es correcto. Cópialo desde OAuth2 → Client Secret → Reset Secret (no es la "Clave pública") y pégalo en discord.txt.';
+      return 'El Client Secret no es correcto. Cópialo de nuevo desde OAuth2 → Client Secret → Reset Secret (no es la "Clave pública") y pégalo en Ajustes → Cuentas → Conectar Discord.';
     if (/invalid_grant/i.test(m)) return 'El permiso venció antes de terminar. Presiona "Intentar de nuevo".';
     if (/client id|4000|invalid client/i.test(m)) return 'El client_id no es correcto. Es el "ID de la aplicación" (Application ID) del portal de Discord.';
     if (/cancel|denied|5000/i.test(m)) return 'Se canceló la autorización en Discord. Presiona "Intentar de nuevo" y acepta la ventana.';
@@ -308,7 +377,16 @@ class DiscordVoice {
         t = null;
       }
     }
-    if (!t) return this.set({ status: 'need-auth', message: '' });
+    if (!t) {
+      this.set({ status: 'need-auth', message: '' });
+      // Recién guardaste los datos en la app: se pide el permiso sin tener que apretar otro botón
+      if (this.autoAuth) {
+        this.autoAuth = false;
+        this.authorize();
+      }
+      return;
+    }
+    this.autoAuth = false;
     try {
       await this.send('AUTHENTICATE', { access_token: t.access_token });
     } catch (e) {

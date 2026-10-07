@@ -135,10 +135,15 @@ PS2: botón *Logros* en la ficha; Xbox: *Logros* en la ficha; PS4: *Trofeos*), e
 nombre y foto de tu perfil. Las **horas jugadas** y **"jugado hace…"** se ven siempre, aunque no tengas clave.
 Sin clave, el nombre y la foto igual se sacan de tu Steam instalado. Lo que no aparece sin clave son los logros.
 
-1. Entra a <https://steamcommunity.com/dev/apikey> con tu cuenta de Steam.
-2. En "Domain Name" escribe `localhost`, acepta y copia la clave (32 letras y números).
-3. Abre el archivo: menú → **Clave de API de Steam (logros)**, o en la Xbox: settings → **Clave de Steam**.
-4. Pega la clave en la línea vacía de abajo y guarda. Listo, se aplica sola.
+**Lo más fácil, desde la app:** ajustes → **Cuentas** → **Conectar Steam** (en la Xbox también el mosaico *Clave de
+Steam*). Se abre una ventana con los pasos:
+
+1. **Abrir página de Steam** (te lleva a <https://steamcommunity.com/dev/apikey>; inicia sesión si te lo pide).
+2. En "Domain Name" escribe `localhost` (hay un botón para copiarlo), acepta y presiona *Register*.
+3. Copia la clave (32 letras y números), presiona **Pegar** y **Guardar y probar**. La app la prueba con Steam y te
+   dice si quedó bien y con qué nombre. Si tu perfil es privado, también te avisa.
+
+(Si prefieres, la clave también se puede pegar a mano en `steam-api-key.txt`; hay un enlace al archivo en esa ventana.)
 
 > **No compartas la clave con nadie**, ni la pegues en el chat.
 > Si los logros dicen que tu perfil es privado: en Steam → tu perfil → *Editar perfil* → *Privacidad*,
@@ -202,10 +207,12 @@ Discord abierta** y estos pasos, una sola vez:
      página principal *no* es el secret (si la pegas, NostalHub te avisa);
    - en **Redirects** presiona **Add Redirect**, escribe `http://localhost` y guarda con **Save Changes**. Si falta
      este paso, Discord da el error *Missing "redirect_uri"*.
-3. En NostalHub: ajustes → Archivos → **Datos de Discord (grupo)**. Se abre `discord.txt`: pega el Client ID después de
-   `client_id=` y el secret después de `client_secret=`, y guarda.
-4. En la PS4 entra a **Grupo** y presiona **Conectar con Discord**. Discord te muestra una ventana para autorizar:
-   acéptala. Solo se pide una vez.
+3. En NostalHub: ajustes → **Cuentas** → **Conectar Discord** (o el botón *Conectar Discord* de la pantalla de
+   Grupo). Pega el Client ID y el Client Secret (botones **Pegar**) y presiona **Guardar y conectar**.
+4. Discord te muestra una ventana para autorizar: acéptala. Solo se pide una vez. La ventana de NostalHub te va
+   diciendo el estado (conectando, falta autorizar, listo).
+
+La misma ventana tiene botones para abrir el portal de Discord y para copiar `http://localhost`.
 
 > **No compartas el Client Secret con nadie.**
 > Discord solo deja usar esta función a la cuenta dueña de la aplicación (y a quienes agregue como testers). Como la
@@ -214,7 +221,7 @@ Discord abierta** y estos pasos, una sola vez:
 > Si algo falla, el detalle queda en `%APPDATA%\NostalHub\cache\discord.log`.
 
 **PS Vita:** el Grupo es la burbuja naranja de la primera página (con un número rojo: cuántas personas hay en tu
-canal). Usa los mismos datos de `discord.txt`.
+canal). Usa la misma conexión de Discord.
 
 ### Cómo se usa la PS Vita
 
@@ -300,3 +307,6 @@ Las mismas opciones del menú del ícono junto al reloj, con el estilo de cada c
 - **Juegos nuevos de Steam:** ajustes → Juegos → *Buscar juegos nuevos de Steam*.
 - **La barra de tareas tapa el menú:** ajustes → Pantalla → desactiva *Cubrir la barra de tareas*.
 - **Ver errores:** ajustes → Archivos → *Herramientas de desarrollo*, o `npm run dev`.
+- **¿Va fluido?** Presiona **F3** en cualquier pantalla: abajo a la izquierda aparecen los **FPS** (cuadros por
+  segundo; lo normal es lo mismo que tu monitor, por ejemplo 60) y el cuadro más lento del último segundo. F3 otra vez
+  lo esconde.

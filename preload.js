@@ -41,6 +41,13 @@ contextBridge.exposeInMainWorld('nostalhub', {
   discordWatch: (on) => ipcRenderer.invoke('discord:watch', on),
   discordAuthorize: () => ipcRenderer.invoke('discord:authorize'),
   onDiscord: on('discord:update'),
+  // Conectar Steam y Discord desde la app
+  getSetup: () => ipcRenderer.invoke('setup:get'),
+  saveSteamKey: (key) => ipcRenderer.invoke('setup:steam', key),
+  saveDiscord: (data) => ipcRenderer.invoke('setup:discord', data),
+  readClipboard: () => ipcRenderer.invoke('clipboard:read'),
+  writeClipboard: (text) => ipcRenderer.invoke('clipboard:write', text),
+  onSetup: on('shell:setup'),
   // Sonido
   getSettings: () => ipcRenderer.invoke('settings:get'),
   onSettings: on('settings:changed'),

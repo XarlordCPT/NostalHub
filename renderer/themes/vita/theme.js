@@ -32,6 +32,7 @@
   const I = {
     home: '<path d="M7 24 24 9l17 15"/><path d="M12 21v18h9V29h6v10h9V21"/>',
     music: '<path d="M19 35V11l20-4v23"/><circle cx="14" cy="35" r="5.5" fill="currentColor"/><circle cx="34" cy="30" r="5.5" fill="currentColor"/>',
+    person: '<circle cx="24" cy="15" r="7"/><path d="M10 41c0-9 6-14 14-14s14 5 14 14"/>',
     headset: '<path d="M8 30v-6a16 16 0 0 1 32 0v6"/><rect x="6" y="28" width="8" height="12" rx="3"/><rect x="34" y="28" width="8" height="12" rx="3"/><path d="M40 40c0 4-5 6-12 6"/>',
     trophy: '<path d="M16 8h16v10a8 8 0 0 1-16 0Z"/><path d="M16 11H9v3a6 6 0 0 0 7 6M32 11h7v3a6 6 0 0 1-7 6"/><path d="M24 26v8M17 40h14M19 34h10v6H19z"/>',
     play: '<path d="M15 9l25 15-25 15Z" fill="currentColor"/>',
@@ -565,19 +566,27 @@
       fly.appendChild(face);
       fly.hidden = false;
       if (fromEl) fromEl.classList.add('flying');
+      // La tarjeta se arma antes (escondida) y sus imágenes se preparan mientras la burbuja gira,
+      // así al abrirse no hay que hacer todo ese trabajo de golpe (eso daba tirones)
+      const card = createCard(spec);
+      card.el.classList.add('prep');
+      const ready = Promise.race([preloadImages(card.el), wait(1800)]);
       const T = (x, y, s, r = 0) => `perspective(1600px) translate(${x - D / 2}px, ${y - D / 2}px) scale(${s}) rotateY(${r}deg)`;
       // 1) al centro
       await fly.animate([{ transform: T(from.x, from.y, from.s) }, { transform: T(W / 2, H / 2 - 20, 1.3) }], { duration: 320, easing: 'cubic-bezier(.3,.7,.3,1)', fill: 'forwards' }).finished;
       root.classList.add('dim-home');
       // 2) dos vueltas
-      await fly.animate([{ transform: T(W / 2, H / 2 - 20, 1.3, 0) }, { transform: T(W / 2, H / 2 - 20, 1.3, 720) }], { duration: 900, easing: 'cubic-bezier(.45,.05,.35,1)', fill: 'forwards' }).finished;
+      await Promise.all([
+        fly.animate([{ transform: T(W / 2, H / 2 - 20, 1.3, 0) }, { transform: T(W / 2, H / 2 - 20, 1.3, 720) }], { duration: 900, easing: 'cubic-bezier(.45,.05,.35,1)', fill: 'forwards' }).finished,
+        ready,
+      ]);
       if (fromEl) fromEl.classList.remove('flying');
       // 3) se abre la tarjeta y la burbuja sube a colgar arriba
       if (cards.length >= MAX_CARDS) removeCard(0, false);
-      const card = createCard(spec);
       cards.push(card);
-      goTo(cards.length - 1, false);
       card.el.classList.add('opening');
+      card.el.classList.remove('prep');
+      goTo(cards.length - 1, false);
       const tagY = CARD_TOP + 14;
       const flyUp = fly.animate([{ transform: T(W / 2, H / 2 - 20, 1.3, 720) }, { transform: T(W / 2, tagY, TAG / D, 720) }], { duration: 420, easing: 'cubic-bezier(.3,.7,.3,1)', fill: 'forwards' });
       await card.el.animate(
@@ -593,6 +602,23 @@
       fly.innerHTML = '';
       root.classList.remove('dim-home');
       busy = false;
+    }
+
+    // Descarga y decodifica las imágenes de un elemento antes de mostrarlo
+    function preloadImages(el) {
+      const urls = new Set();
+      el.querySelectorAll('*').forEach((n) => {
+        const m = /url\("?([^")]+)"?\)/.exec((n.style && n.style.backgroundImage) || '');
+        if (m) urls.add(m[1]);
+        if (n.tagName === 'IMG' && n.src) urls.add(n.src);
+      });
+      return Promise.all(
+        [...urls].map((u) => {
+          const im = new Image();
+          im.src = u;
+          return im.decode().catch(() => {});
+        })
+      );
     }
 
     // ---------- Tarjetas ----------
@@ -875,7 +901,7 @@
     function partyStatusText() {
       switch (discord.status) {
         case 'no-config':
-          return { t: 'Conecta tu Discord', d: 'Para ver tu canal de voz, crea una aplicación en el portal de desarrolladores de Discord y pega sus datos en discord.txt. Los pasos están en el manual.', btns: [['discord', 'Abrir discord.txt'], ['discord-portal', 'Portal de Discord']] };
+          return { t: 'Conecta tu Discord', d: 'Para ver tu canal de voz y quiénes están contigo, conecta tu Discord. Se hace aquí mismo y toma unos 2 minutos.', btns: [['discord', 'Conectar Discord']] };
         case 'no-discord':
           return { t: 'Discord no está abierto', d: 'Abre la app de escritorio de Discord. NostalHub se conecta sola cuando la detecte.', btns: [['discord-app', 'Abrir Discord']] };
         case 'connecting':
@@ -885,7 +911,7 @@
         case 'authorizing':
           return { t: 'Acepta en Discord', d: 'Revisa la ventana que apareció en Discord y presiona Autorizar.', btns: [] };
         case 'error':
-          return { t: 'No se pudo conectar', d: discord.message || 'Revisa los datos de discord.txt.', btns: [['auth', 'Intentar de nuevo'], ['discord', 'Abrir discord.txt']] };
+          return { t: 'No se pudo conectar', d: discord.message || 'Revisa los datos de tu aplicación de Discord.', btns: [['auth', 'Intentar de nuevo'], ['discord', 'Conectar Discord']] };
         case 'off':
           return { t: 'Conectando con Discord…', d: '', btns: [] };
         default:
@@ -1128,7 +1154,7 @@
     }
 
     // --- Ajustes ---
-    const CAT_ICONS = { general: 'gear', games: 'pad', screen: 'screen', sound: 'speaker', files: 'folder' };
+    const CAT_ICONS = { general: 'gear', games: 'pad', screen: 'screen', sound: 'speaker', accounts: 'person', files: 'folder' };
     async function paintSettingsCard(card, main) {
       if (!menuModel.length) menuModel = (await call('getMenu')) || [];
       card.level = card.level || 'cats';

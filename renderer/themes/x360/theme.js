@@ -708,7 +708,7 @@
 
       if (res.status !== 'ok') {
         const texts = {
-          'no-key': 'Para ver tus logros, agrega tu clave de API de Steam.<br><small>Ajustes de esta consola → "Clave de Steam" (los pasos están en MANUAL.md).</small>',
+          'no-key': 'Para ver tus logros, conecta tu Steam.<br><small>settings → "Clave de Steam" (se hace aquí mismo, en 1 minuto).</small>',
           private: 'Steam no deja ver tus logros.<br><small>En Steam → tu perfil → Editar perfil → Privacidad, pon "Detalles de juegos" en Público.</small>',
           none: 'Este juego no tiene logros.',
           error: `No se pudieron cargar los logros.<br><small>${escapeHtml(res.message || 'Revisa tu conexión a internet.')}</small>`,
@@ -808,7 +808,7 @@
     // ---------- La Guía (ajustes) ----------
     // Las opciones vienen de main.js (las mismas del menú de la bandeja); aquí se dibujan como la Guía.
     const U = window.NostalHubUtil;
-    const TAB_ICONS = { general: 'gear', games: 'pad', screen: 'screen', sound: 'speaker', files: 'folder' };
+    const TAB_ICONS = { general: 'gear', games: 'pad', screen: 'screen', sound: 'speaker', accounts: 'person', files: 'folder' };
     let gModel = [];
     let gTab = 0;
     let gSel = 0;
@@ -938,7 +938,7 @@
     function partyStatus() {
       switch (discord.status) {
         case 'no-config':
-          return { t: 'Conecta tu Discord', d: 'Crea una aplicación en el portal de desarrolladores de Discord y pega sus datos en discord.txt. Los pasos están en el manual.', btns: [['discord', 'Abrir discord.txt'], ['discord-portal', 'Portal de Discord']] };
+          return { t: 'Conecta tu Discord', d: 'Para ver tu canal de voz y quiénes están contigo, conecta tu Discord. Se hace aquí mismo y toma unos 2 minutos.', btns: [['discord', 'Conectar Discord']] };
         case 'no-discord':
           return { t: 'Discord no está abierto', d: 'Abre la app de escritorio de Discord. NostalHub se conecta sola cuando la detecte.', btns: [['discord-app', 'Abrir Discord']] };
         case 'connecting':
@@ -949,7 +949,7 @@
         case 'authorizing':
           return { t: 'Acepta en Discord', d: 'Revisa la ventana que apareció en Discord y presiona Autorizar.', btns: [] };
         case 'error':
-          return { t: 'No se pudo conectar', d: discord.message || 'Revisa los datos de discord.txt.', btns: [['auth', 'Intentar de nuevo'], ['discord', 'Abrir discord.txt']] };
+          return { t: 'No se pudo conectar', d: discord.message || 'Revisa los datos de tu aplicación de Discord.', btns: [['auth', 'Intentar de nuevo'], ['discord', 'Conectar Discord']] };
         default:
           return null;
       }
