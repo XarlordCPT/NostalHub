@@ -22,6 +22,7 @@ contextBridge.exposeInMainWorld('nostalhub', {
   // Selector de consolas
   getConsoleAssets: (ids) => ipcRenderer.invoke('consoles:get', ids),
   selectConsole: (id) => ipcRenderer.invoke('console:select', id),
+  setModelTilt: (id, tilt) => ipcRenderer.invoke('consoles:model-tilt', id, tilt),
   onShowSelector: on('shell:selector'),
   onConsolesUpdated: on('consoles:updated'),
   getFreeSpace: () => ipcRenderer.invoke('system:free-space'),

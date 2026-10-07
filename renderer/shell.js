@@ -17,6 +17,7 @@
   let mode = 'selector'; // selector | entering | theme | leaving
   let theme = null; // { id, instance }
   let assets = {}; // { wii: { icon, background } }
+  let modelTilt = {}; // cómo se para cada modelo 3D (lo eliges con clic derecho sobre el modelo)
 
   // ---------- Escalado ----------
   let scale = 1;
@@ -66,6 +67,42 @@
       box.style.top = `${Math.round((maxH - h) / 2)}px`;
     }
   }
+
+  // Menú chico para girar el modelo 3D de una consola
+  const TILTS = [
+    ['x90', 'Pararlo (pantalla hacia adelante)'],
+    ['x-90', 'Pararlo (hacia el otro lado)'],
+    ['z90', 'Ponerlo de costado'],
+    ['x180', 'Darlo vuelta'],
+    ['0', 'Como venía el modelo'],
+  ];
+  let tiltMenu = null;
+  function closeTiltMenu() {
+    if (tiltMenu) tiltMenu.remove();
+    tiltMenu = null;
+  }
+  function openTiltMenu(e, current, onPick) {
+    closeTiltMenu();
+    const r = stage.getBoundingClientRect();
+    const x = ((e.clientX - r.left) * STAGE_W) / r.width;
+    const y = ((e.clientY - r.top) * STAGE_H) / r.height;
+    const m = document.createElement('div');
+    m.className = 'sel-tilt';
+    m.innerHTML = `<div class="sel-tilt-h">Girar el modelo 3D</div>${TILTS.map(([v, l]) => `<button data-t="${v}" class="${v === current ? 'on' : ''}">${l}</button>`).join('')}`;
+    m.style.left = `${Math.min(x, STAGE_W - 560)}px`;
+    m.style.top = `${Math.min(y, STAGE_H - 420)}px`;
+    ['pointerdown', 'click', 'mousedown'].forEach((t) => m.addEventListener(t, (ev) => ev.stopPropagation()));
+    m.querySelectorAll('button').forEach((b) =>
+      b.addEventListener('click', () => {
+        closeTiltMenu();
+        onPick(b.dataset.t);
+      })
+    );
+    selector.appendChild(m);
+    tiltMenu = m;
+  }
+  document.addEventListener('pointerdown', (e) => tiltMenu && !tiltMenu.contains(e.target) && closeTiltMenu(), true);
+  window.addEventListener('keydown', (e) => tiltMenu && e.key === 'Escape' && (e.stopImmediatePropagation(), closeTiltMenu()), true);
 
   function renderItems() {
     track.innerHTML = '';
@@ -129,8 +166,21 @@
         }
       };
       // Modelo 3D (consolas/<id>/modelo.glb): gira en vez de la imagen. Si no carga, vuelve la imagen.
-      if (a.model && window.ConsoleModel) window.ConsoleModel.attach(icon, a.model, showImage);
+      const tiltOf = () => modelTilt[c.id] || c.modelTilt || '0';
+      if (a.model && window.ConsoleModel) window.ConsoleModel.attach(icon, a.model, showImage, tiltOf());
       else showImage();
+      // Clic derecho sobre el modelo: pararlo o girarlo (para modelos que vienen acostados)
+      icon.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        if (!icon.classList.contains('has-model')) return;
+        if (tiltMenu === null) setTimeout(() => tiltMenu && tiltMenu.style.setProperty('--accent', (c.look || {}).accent || '#34bfed'));
+        openTiltMenu(e, tiltOf(), async (tilt) => {
+          if (api.setModelTilt) modelTilt = (await api.setModelTilt(c.id, tilt)) || modelTilt;
+          else modelTilt = { ...modelTilt, [c.id]: tilt };
+          icon.querySelectorAll('.sel-model').forEach((m) => m.remove());
+          window.ConsoleModel.attach(icon, a.model, showImage, tilt);
+        });
+      });
 
       item.append(info, icon);
       item.addEventListener('click', () => (i === index ? enter() : select(i)));
@@ -512,6 +562,7 @@
     if (!api.getConsoleAssets) return;
     const res = await api.getConsoleAssets(CONSOLES.map((c) => c.id));
     assets = (res && res.assets) || {};
+    modelTilt = (res && res.modelTilt) || {};
     return res;
   }
 

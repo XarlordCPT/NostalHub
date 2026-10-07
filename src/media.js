@@ -26,6 +26,7 @@ const CUSTOM_FILES = {
   description: { base: 'descripcion', ext: ['.txt'] },      // descripción propia del juego
   cover: { base: 'caratula', ext: IMAGE_EXT },              // carátula vertical (tema Xbox 360)
   bubble: { base: 'burbuja', ext: IMAGE_EXT },              // imagen de la burbuja redonda (tema PS Vita)
+  square: { base: 'cuadrado', ext: IMAGE_EXT },             // imagen cuadrada (tema Nintendo Switch)
 };
 
 function safeId(id) {

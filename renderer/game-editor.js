@@ -10,7 +10,7 @@
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
   const call = (fn, ...a) => (typeof api[fn] === 'function' ? api[fn](...a) : Promise.resolve(null));
 
-  const CONSOLE_NAMES = { wii: 'Wii', ps2: 'PS2', x360: 'Xbox 360', ps4: 'PS4', vita: 'PS Vita' };
+  const CONSOLE_NAMES = { wii: 'Wii', ps2: 'PS2', x360: 'Xbox 360', ps4: 'PS4', vita: 'PS Vita', switch: 'Switch' };
   // Qué imágenes se ven en cada consola (en orden)
   const BY_CONSOLE = {
     wii: ['tile', 'hero', 'logo', 'video'],
@@ -18,8 +18,9 @@
     x360: ['cover', 'hero', 'logo'],
     ps4: ['hero', 'logo'],
     vita: ['bubble', 'hero', 'logo'],
+    switch: ['square', 'hero', 'logo'],
   };
-  const ALL = ['tile', 'bubble', 'cover', 'hero', 'logo', 'video', 'model'];
+  const ALL = ['tile', 'square', 'bubble', 'cover', 'hero', 'logo', 'video', 'model'];
   // Algunas también se usan en otras consolas aunque no sean "suyas"
   const ALSO = { tile: ['ps4', 'vita'], cover: ['vita'] };
   const SLOTS = {
@@ -29,6 +30,7 @@
     video: { label: 'Video del canal', hint: 'La animación al entrar al canal (mp4, webm o gif; 10 a 20 segundos, sin audio).', shape: 'wide' },
     model: { label: 'Modelo 3D', hint: 'Ícono 3D animado (.glb o .gltf, por ejemplo de Blockbench).', shape: 'square' },
     cover: { label: 'Carátula', hint: 'La caja del juego, vertical (600×900).', shape: 'tall' },
+    square: { label: 'Imagen cuadrada', hint: 'El cuadro del juego en la Switch (ej. 1024×1024). Si no hay, se arma con el fondo y el logo.', shape: 'square' },
     bubble: { label: 'Burbuja', hint: 'Imagen cuadrada; se recorta en círculo (ej. 512×512). Si no hay, se usa la carátula.', shape: 'circle' },
   };
 
@@ -155,7 +157,7 @@
     else if (url && st.isVideo) prev = `<video src="${url}" muted loop autoplay playsinline></video>`;
     else if (url) prev = `<img src="${url}" alt="" draggable="false" />`;
     else prev = `<div class="ge-empty">${kind === 'video' ? 'Sin video' : 'Sin imagen'}</div>`;
-    const none = { video: 'Sin video', model: 'Sin modelo', bubble: 'Automática' }[kind] || 'Sin imagen';
+    const none = { video: 'Sin video', model: 'Sin modelo', bubble: 'Automática', square: 'Automática' }[kind] || 'Sin imagen';
     const state = st.custom ? (kind === 'model' ? 'Tu modelo' : kind === 'video' ? 'Tu video' : 'Tu imagen') : url ? (kind === 'bubble' ? 'La carátula' : 'La de Steam') : none;
     const clear = st.custom ? `<button class="ge-b" data-a="clear">${st.auto || kind === 'bubble' ? 'Volver a la automática' : 'Quitar'}</button>` : '';
     const used = ed.all ? `<div class="ge-used">Se ve en: ${esc(usedIn(kind).join(', '))}</div>` : '';

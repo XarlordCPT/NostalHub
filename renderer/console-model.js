@@ -56,7 +56,8 @@
     },
 
     // container: el cuadro del ícono. onFail: se llama si el modelo no carga (para mostrar la imagen)
-    async attach(container, url, onFail) {
+    // tilt: cómo pararlo, para modelos que vienen acostados ('0', 'x90', 'x-90', 'x180', 'z90', 'z-90')
+    async attach(container, url, onFail, tilt = '0') {
       await this.ready();
       const THREE = window.THREE;
       if (!this.ensureRenderer()) return onFail && onFail();
@@ -93,13 +94,19 @@
       camera.position.set(0, 1.1, 7.4);
       camera.lookAt(0, 0, 0);
 
-      // Centra y escala el modelo para que quepa, sea del tamaño que sea
+      // Lo para si viene acostado, y lo centra y escala para que quepa, sea del tamaño que sea
       const obj = window.THREE_ADDONS.SkeletonUtils.clone(gltf.scene);
-      const box = new THREE.Box3().setFromObject(obj);
+      const stand = new THREE.Group();
+      stand.add(obj);
+      const R = Math.PI / 2;
+      const TILTS = { 0: [0, 0, 0], x90: [R, 0, 0], 'x-90': [-R, 0, 0], x180: [2 * R, 0, 0], z90: [0, 0, R], 'z-90': [0, 0, -R] };
+      stand.rotation.set(...(TILTS[tilt] || TILTS[0]));
+      stand.updateMatrixWorld(true);
+      const box = new THREE.Box3().setFromObject(stand);
       const size = box.getSize(new THREE.Vector3());
-      obj.position.sub(box.getCenter(new THREE.Vector3()));
+      stand.position.sub(box.getCenter(new THREE.Vector3()));
       const holder = new THREE.Group();
-      holder.add(obj);
+      holder.add(stand);
       holder.scale.setScalar(2.9 / Math.max(size.x, size.y, size.z, 0.001));
       const pivot = new THREE.Group();
       pivot.rotation.x = 0.12;
@@ -166,5 +173,5 @@
     },
   };
 
-  window.ConsoleModel = { attach: (el, url, onFail) => M.attach(el, url, onFail) };
+  window.ConsoleModel = { attach: (el, url, onFail, tilt) => M.attach(el, url, onFail, tilt) };
 })();

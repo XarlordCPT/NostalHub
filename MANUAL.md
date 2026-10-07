@@ -37,7 +37,8 @@ Para abrirla: pega esa ruta en la barra del Explorador de Windows, o usa los ata
 │   ├── ps2\   (igual)
 │   ├── x360\  (igual)
 │   ├── ps4\   (igual)
-│   └── vita\  (igual)
+│   ├── vita\  (igual)
+│   └── switch\ (igual)
 └── personalizar\              ← una carpeta por juego
     └── Nombre del juego\
         ├── canal.png          (Wii)
@@ -47,6 +48,7 @@ Para abrirla: pega esa ruta en la barra del Explorador de Windows, o usa los ata
         ├── modelo.glb         (PS2)
         ├── caratula.jpg       (Xbox 360 y burbuja de la Vita)
         ├── burbuja.png        (PS Vita)
+        ├── cuadrado.png       (Switch)
         └── descripcion.txt    (todas)
 ```
 
@@ -56,7 +58,7 @@ Todos los archivos son **opcionales**. Si no pones nada, se usa lo que se descar
 
 ## 1. Selector de consolas — `consolas\<consola>\`
 
-Las carpetas se llaman `wii`, `ps2`, `x360`, `ps4` y `vita`.
+Las carpetas se llaman `wii`, `ps2`, `x360`, `ps4`, `vita` y `switch`.
 Para abrirlas: ajustes → Archivos → **Carpeta de consolas** (o en la Xbox: settings → **Íconos de consolas**).
 
 | Archivo | Qué hace | Recomendación |
@@ -70,6 +72,9 @@ Para abrirlas: ajustes → Archivos → **Carpeta de consolas** (o en la Xbox: s
 > del mismo color del fondo en un `.jpg`) y los agranda o achica para que todos ocupen más o menos la misma superficie.
 > Un logo ancho y uno casi cuadrado se ven parejos. Esto funciona con `.png` y `.jpg`; un `.gif`, `.webp` o `.svg` se usa tal cual.
 
+> **¿El modelo viene acostado?** Haz **clic derecho sobre el modelo** en el selector y elige *Pararlo*, *Ponerlo de
+> costado*, *Darlo vuelta* o *Como venía el modelo*. Se guarda y sigue girando sobre su propio eje. (La PS Vita viene
+> parada por defecto, porque casi todos sus modelos vienen acostados.)
 > Si el modelo no carga (archivo dañado o formato raro), se vuelve a mostrar `icono.png`.
 > Los modelos de Sketchfab traen sus texturas dentro del `.glb`. Muchos usan un tipo de material antiguo
 > ("specular-glossiness") que antes se veía blanco; NostalHub ya lo traduce solo.
@@ -124,6 +129,7 @@ Por dentro, la app guarda esos archivos en una carpeta por juego, con el nombre 
 | `modelo.glb` / `modelo.gltf` | PS2 | Ícono 3D animado (ver sección 4) |
 | `caratula.jpg` / `caratula.png` | Xbox 360, PS Vita | Carátula vertical de la caja (proporción 2:3, ej. 600×900). En la Vita se usa recortada en círculo para la burbuja |
 | `burbuja.png` / `burbuja.jpg` | PS Vita | La imagen de la **burbuja redonda** (cuadrada, ej. 512×512; se recorta en círculo). Si no está, se usa la carátula |
+| `cuadrado.png` / `cuadrado.jpg` | Nintendo Switch | El **cuadro del juego** en la Switch (cuadrado, ej. 1024×1024). Si no está, se arma con el fondo y el logo del juego |
 | `descripcion.txt` | Todas | La descripción del juego (reemplaza la de Steam) |
 
 Para volver al arte automático, **borra tu archivo**.
@@ -306,6 +312,7 @@ Las mismas opciones del menú del ícono junto al reloj, con el estilo de cada c
 | Xbox 360 | Flechas moverse · **Q / E** cambiar de pestaña · **G** la Guía · Enter seleccionar · Esc volver |
 | PS4 | ← → juegos · **↑** funciones · **↓** ficha del juego · Enter jugar · **P** menú rápido · Esc volver (en el menú principal: selector) |
 | Cualquier consola | **Clic derecho** sobre un juego, o la tecla **I** con el juego marcado: cambiar imágenes y descripción |
+| Nintendo Switch | ← → juegos · **↓** botones redondos · Enter iniciar · **O** opciones del juego · **S** ordenar (Todo el software) · Esc volver (en el inicio: selector). Tema claro u oscuro: **Ajustes → Tema** |
 | PS Vita | Flechas entre burbujas (↑ ↓ en los bordes, o la rueda / RePág / AvPág, cambian de página) · Enter abrir · **Q / E** cambiar de tarjeta · **Retroceso** cerrar la tarjeta · **P** menú rápido · **N** avisos · Esc inicio (en el inicio: selector) |
 
 ---

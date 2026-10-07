@@ -88,6 +88,7 @@ window.CONSOLES = [
     company: 'Sony',
     name: 'PS Vita',
     year: 2011,
+    modelTilt: 'x90', // los modelos de la Vita suelen venir acostados: se para (clic derecho sobre el modelo para cambiarlo)
     look: {
       background:
         'radial-gradient(ellipse 120% 22% at 50% 66%, rgba(255,255,255,0.55), rgba(255,255,255,0) 70%),' +
@@ -101,6 +102,25 @@ window.CONSOLES = [
       nameWeight: 800,
       nameShadow: '0 4px 20px rgba(0,20,90,0.5)',
       enterFlash: '#ffffff',
+    },
+  },
+  {
+    id: 'switch',
+    company: 'Nintendo',
+    name: 'Nintendo Switch',
+    year: 2017,
+    look: {
+      background:
+        'radial-gradient(ellipse 60% 55% at 72% 50%, rgba(230,0,18,0.35), rgba(230,0,18,0) 70%),' +
+        'linear-gradient(160deg, #3a3a3a 0%, #2d2d2d 55%, #1f1f1f 100%)',
+      base: '#2d2d2d',
+      text: '#ffffff',
+      subtext: '#ff8a8a',
+      accent: '#e60012',
+      font: "'Segoe UI', 'M PLUS Rounded 1c', sans-serif",
+      nameWeight: 600,
+      nameShadow: '0 4px 20px rgba(0,0,0,0.4)',
+      enterFlash: '#000000',
     },
   },
 ];

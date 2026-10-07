@@ -190,6 +190,7 @@ function gamesView() {
         appId: g.appId || null,
         cover: fileUrl(c.cover || m.cover), // carátula vertical (Xbox 360)
         bubble: fileUrl(c.bubble), // burbuja redonda propia (PS Vita)
+        square: fileUrl(c.square), // imagen cuadrada propia (Switch)
         lastPlayed: Math.max((g.appId && localStats[g.appId] && localStats[g.appId].lastPlayed) || 0, (config.data.launchLog || {})[g.id] || 0),
         playtimeMin: (g.appId && localStats[g.appId] && localStats[g.appId].playtimeMin) || 0,
       };
@@ -834,7 +835,13 @@ function createTray() {
 
 ipcMain.handle('state:get', () => ({ games: gamesView() }));
 
-ipcMain.handle('consoles:get', (_e, ids) => ({ assets: consoleAssets(ids), last: config.data.lastConsole || null }));
+ipcMain.handle('consoles:get', (_e, ids) => ({ assets: consoleAssets(ids), last: config.data.lastConsole || null, modelTilt: config.data.modelTilt || {} }));
+// Cómo se para el modelo 3D de cada consola en el selector (clic derecho sobre el modelo)
+ipcMain.handle('consoles:model-tilt', (_e, id, tilt) => {
+  config.data.modelTilt = { ...(config.data.modelTilt || {}), [String(id)]: String(tilt) };
+  config.save();
+  return config.data.modelTilt;
+});
 
 // Espacio libre del disco donde están la mayoría de tus juegos (para el tema PS2)
 ipcMain.handle('system:free-space', async () => {
@@ -920,7 +927,7 @@ async function clipboardImagePng() {
 
 // ---------- Cambiar imágenes y descripción de un juego desde la app (clic derecho) ----------
 // Las imágenes se guardan en personalizar/<Nombre del juego>/ con el nombre que corresponde (canal.png, burbuja.png…)
-const EDITABLE = ['tile', 'hero', 'logo', 'video', 'model', 'cover', 'bubble'];
+const EDITABLE = ['tile', 'hero', 'logo', 'video', 'model', 'cover', 'bubble', 'square'];
 function gameById(id) {
   return config.games.find((g) => g.id === id) || null;
 }
