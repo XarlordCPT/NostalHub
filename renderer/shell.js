@@ -49,6 +49,24 @@
   // ---------- Selector ----------
   const GAMEPAD_SVG = `<svg viewBox="0 0 120 80" aria-hidden="true"><path d="M30 14h60c14 0 24 10 27 26l2 14c2 12-10 20-19 12l-11-10H31L20 66c-9 8-21 0-19-12l2-14C6 24 16 14 30 14Z" fill="none" stroke="currentColor" stroke-width="5" stroke-linejoin="round"/><path d="M30 32v16M22 40h16" stroke="currentColor" stroke-width="5" stroke-linecap="round"/><circle cx="84" cy="34" r="4.5" fill="currentColor"/><circle cx="94" cy="44" r="4.5" fill="currentColor"/></svg>`;
 
+  // Ajusta el tamaño de una imagen para que cubra cierta superficie (área), sin pasarse del máximo.
+  // Así un logo ancho y uno cuadrado se ven parecidos de grandes.
+  function fitBox(box, img, area, maxW, maxH, center = false) {
+    const r = img.naturalWidth / img.naturalHeight;
+    if (!r || !isFinite(r)) return;
+    let h = Math.sqrt(area / r);
+    let w = h * r;
+    if (w > maxW) (w = maxW), (h = w / r);
+    if (h > maxH) (h = maxH), (w = h * r);
+    box.style.width = `${Math.round(w)}px`;
+    box.style.height = `${Math.round(h)}px`;
+    if (center) {
+      box.style.inset = 'auto';
+      box.style.left = `${Math.round((maxW - w) / 2)}px`;
+      box.style.top = `${Math.round((maxH - h) / 2)}px`;
+    }
+  }
+
   function renderItems() {
     track.innerHTML = '';
     CONSOLES.forEach((c, i) => {
@@ -83,6 +101,8 @@
         const img = document.createElement('img');
         img.src = a0.logo;
         img.alt = c.name;
+        // Todos los logos ocupan más o menos la misma superficie, sean anchos o cuadrados
+        img.onload = () => fitBox(name, img, 115000, 900, 330);
         img.onerror = () => {
           name.classList.remove('has-logo');
           name.textContent = c.name;
@@ -101,6 +121,7 @@
           const img = document.createElement('img');
           img.src = a.icon;
           img.alt = c.name;
+          img.onload = () => fitBox(img, img, 190000, 520, 520, true);
           icon.appendChild(img);
         } else {
           icon.classList.add('placeholder');

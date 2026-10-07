@@ -19,7 +19,7 @@ Para abrirla: pega esa ruta en la barra del Explorador de Windows, o usa los ata
 ```
 %APPDATA%\NostalHub
 ├── steam-api-key.txt          ← tu clave de Steam (logros, nombre y foto)
-├── discord.txt                ← datos de tu aplicación de Discord (Grupo de la PS4)
+├── discord.txt                ← datos de tu aplicación de Discord (Grupo de la PS4, la Vita y la Xbox)
 ├── config.json                ← lista de juegos y opciones
 ├── consolas\                  ← una carpeta por consola del selector
 │   ├── wii\
@@ -31,12 +31,13 @@ Para abrirla: pega esa ruta en la barra del Explorador de Windows, o usa los ata
 │   │   ├── mover.wav          ← sonido al moverte / pasar el mouse
 │   │   ├── elegir.wav         ← sonido al elegir
 │   │   ├── volver.wav         ← sonido al volver
-│   │   ├── pagina.wav         ← (Wii) sonido al pasar de página
+│   │   ├── pagina.wav         ← (Wii y PS Vita) sonido al pasar de página
 │   │   ├── inicio.wav         ← sonido al terminar de entrar (después del video)
 │   │   └── intro.mp4          ← video al entrar a la consola
 │   ├── ps2\   (igual)
 │   ├── x360\  (igual)
-│   └── ps4\   (igual)
+│   ├── ps4\   (igual)
+│   └── vita\  (igual)
 └── personalizar\              ← una carpeta por juego
     └── Nombre del juego\
         ├── canal.png          (Wii)
@@ -44,7 +45,8 @@ Para abrirla: pega esa ruta en la barra del Explorador de Windows, o usa los ata
         ├── logo.png           (Wii, PS2, Xbox y PS4)
         ├── video.mp4          (Wii)
         ├── modelo.glb         (PS2)
-        ├── caratula.jpg       (Xbox 360)
+        ├── caratula.jpg       (Xbox 360 y burbuja de la Vita)
+        ├── burbuja.png        (PS Vita)
         └── descripcion.txt    (todas)
 ```
 
@@ -54,7 +56,7 @@ Todos los archivos son **opcionales**. Si no pones nada, se usa lo que se descar
 
 ## 1. Selector de consolas — `consolas\<consola>\`
 
-Las carpetas se llaman `wii`, `ps2`, `x360` y `ps4`.
+Las carpetas se llaman `wii`, `ps2`, `x360`, `ps4` y `vita`.
 Para abrirlas: ajustes → Archivos → **Carpeta de consolas** (o en la Xbox: settings → **Íconos de consolas**).
 
 | Archivo | Qué hace | Recomendación |
@@ -63,6 +65,10 @@ Para abrirlas: ajustes → Archivos → **Carpeta de consolas** (o en la Xbox: s
 | `logo.png` | El logo con las letras de la consola, en vez del nombre escrito | PNG transparente, ancho (por ejemplo 1200×300) |
 | `fondo.jpg` | Fondo propio del selector cuando esa consola está marcada | 1920×1080 |
 | `modelo.glb` | **Modelo 3D** de la consola: gira en el selector en vez de `icono.png`. Puedes arrastrarlo con el mouse para girarlo a mano | Un `.glb` (o `.gltf`) descargado, por ejemplo de [Sketchfab](https://sketchfab.com) (filtra por "Downloadable" y descarga en formato glTF/GLB). Da igual el tamaño: la app lo centra y lo ajusta |
+
+> `icono.png` y `logo.png` no tienen que venir del mismo tamaño: la app les **recorta los bordes vacíos** (transparentes, o
+> del mismo color del fondo en un `.jpg`) y los agranda o achica para que todos ocupen más o menos la misma superficie.
+> Un logo ancho y uno casi cuadrado se ven parejos. Esto funciona con `.png` y `.jpg`; un `.gif`, `.webp` o `.svg` se usa tal cual.
 
 > Si el modelo no carga (archivo dañado o formato raro), se vuelve a mostrar `icono.png`.
 > Los modelos de Sketchfab traen sus texturas dentro del `.glb`. Muchos usan un tipo de material antiguo
@@ -77,7 +83,7 @@ Para abrirlas: ajustes → Archivos → **Carpeta de consolas** (o en la Xbox: s
 | `mover.wav` | Sonido al **pasar el mouse** por algo o **moverte con las flechas** |
 | `elegir.wav` | Sonido al **elegir** (clic o Enter) |
 | `volver.wav` | Sonido al **volver** (Esc) |
-| `pagina.wav` | **Solo Wii**: sonido al **pasar de página** en el menú de canales y en la Configuración (flechas, rueda del mouse o las flechas azules). Reemplaza al de mover en ese momento |
+| `pagina.wav` | **Wii y PS Vita**: sonido al **pasar de página** (Wii: menú de canales y Configuración; Vita: páginas de burbujas y al cambiar de tarjeta). Reemplaza al de mover en ese momento |
 | `inicio.wav` | Sonido al **terminar de entrar** a la consola: suena justo después del video de inicio (o al entrar, si no hay video). Pensado para la Wii, pero funciona en cualquier consola donde lo pongas |
 | `intro.mp4` | Video que se reproduce **cada vez que entras** a esa consola, por ejemplo el arranque de la Xbox 360 en `consolas\x360\intro.mp4`. Se salta con Enter, Esc, espacio o un clic. También sirven `.webm` y `.mov` |
 
@@ -108,7 +114,8 @@ La app crea una carpeta por juego, con el nombre del juego. Para abrirla: ajuste
 | `canal.png` / `canal.jpg` / `canal.mp4` | Wii | Reemplaza el **cuadrito completo** del menú, tal cual |
 | `video.mp4` / `video.webm` / `video.gif` | Wii | La animación al entrar al canal (10–20 s, sin audio) |
 | `modelo.glb` / `modelo.gltf` | PS2 | Ícono 3D animado (ver sección 4) |
-| `caratula.jpg` / `caratula.png` | Xbox 360 | Carátula vertical de la caja (proporción 2:3, ej. 600×900) |
+| `caratula.jpg` / `caratula.png` | Xbox 360, PS Vita | Carátula vertical de la caja (proporción 2:3, ej. 600×900). En la Vita se usa recortada en círculo para la burbuja |
+| `burbuja.png` / `burbuja.jpg` | PS Vita | La imagen de la **burbuja redonda** (cuadrada, ej. 512×512; se recorta en círculo). Si no está, se usa la carátula |
 | `descripcion.txt` | Todas | La descripción del juego (reemplaza la de Steam) |
 
 Para volver al arte automático, **borra tu archivo**.
@@ -117,6 +124,7 @@ Para volver al arte automático, **borra tu archivo**.
 - **Logos**: para `logo.png`.
 - **Heroes**: para `fondo.jpg`.
 - **Grids** en formato vertical (600×900): para `caratula.jpg`.
+- **Icons** (cuadrados): para `burbuja.png`.
 
 ---
 
@@ -169,7 +177,7 @@ No hay nada que configurar: usa la **app de escritorio de Spotify** de tu PC.
 
 ---
 
-## 6. PlayStation 4 y el Grupo (Discord)
+## 6. PlayStation 4, PS Vita y el Grupo (Discord)
 
 **Cómo se usa la PS4:**
 - **Menú principal**: tus 5 juegos más recientes y al final la **Biblioteca**. ← → para moverte, Enter para jugar.
@@ -204,6 +212,26 @@ Discord abierta** y estos pasos, una sola vez:
 > aplicación es tuya, debería funcionar directo. Si Discord muestra un error de permisos, revisa que la aplicación
 > la hayas creado con la misma cuenta que tienes abierta en Discord.
 > Si algo falla, el detalle queda en `%APPDATA%\NostalHub\cache\discord.log`.
+
+**PS Vita:** el Grupo es la burbuja naranja de la primera página (con un número rojo: cuántas personas hay en tu
+canal). Usa los mismos datos de `discord.txt`.
+
+### Cómo se usa la PS Vita
+
+- **Pantalla de bloqueo**: al entrar, despega la esquina de arriba a la derecha arrastrándola con el mouse, o
+  presiona Enter / haz clic.
+- **Inicio**: páginas de burbujas que se recorren **de arriba a abajo** (puntitos a la izquierda). La primera página
+  tiene las apps: Grupo (Discord), Música (Spotify), Tienda, Amigos y Perfil (abren Steam), Biblioteca, Juego al azar,
+  Trofeos, Ajustes y Consolas. Desde la segunda están tus juegos, los más recientes primero.
+- **Abrir**: la burbuja va al centro, gira y se abre como **tarjeta** (LiveArea). La de un juego tiene la puerta con
+  **Iniciar**, tu actividad, sus trofeos y la descripción.
+- **Tarjetas**: cada app que abres queda a la derecha del inicio (hasta 5; al abrir la sexta se cierra la más
+  antigua). Arriba, en la barra negra, salen sus burbujitas: clic para ir a una. Con el teclado, **Q / E** o ← → en
+  los bordes. Para **cerrar** una tarjeta, **despega su esquina** de arriba a la derecha (arrastrando o con un clic) o
+  presiona **Retroceso**.
+- **Menú rápido** (**P**): sube desde abajo con la música, el volumen (← →), música de fondo y sonidos, Cambiar de
+  consola, Ajustes y Energía.
+- **Avisos** (el círculo azul de la esquina, o **N**): juegos nuevos, cuando entras a un canal de voz y cuánto jugaste.
 
 ---
 
@@ -247,6 +275,7 @@ Las mismas opciones del menú del ícono junto al reloj, con el estilo de cada c
 | Xbox 360 | Mosaico **Ajustes** (home o settings) o la tecla **G** | **La Guía**: pestañas con íconos (Q / E o ← →), Enter cambia la opción |
 | PS2 | Botón **Configuración** (abajo a la derecha) o la tecla **C** | "Configuración del sistema": ↑ ↓ elegir, ← → cambiar, Enter aceptar |
 | PS4 | **Ajustes** en la fila de funciones (↑) o en el menú rápido (**P**) | Lista de categorías con íconos; las opciones con casilla se marcan con Enter y las de elegir abren una lista |
+| PS Vita | Burbuja **Ajustes** (primera página) o el menú rápido (**P**) | Se abre como tarjeta: lista clara de categorías → opciones; Esc vuelve a las categorías |
 
 "Salir de NostalHub" siempre pregunta antes de cerrar. El menú del ícono junto al reloj sigue estando, con las mismas opciones.
 
@@ -261,6 +290,7 @@ Las mismas opciones del menú del ícono junto al reloj, con el estilo de cada c
 | PS2 | Flechas moverse · Enter elegir · **C** configuración · Esc volver |
 | Xbox 360 | Flechas moverse · **Q / E** cambiar de pestaña · **G** la Guía · Enter seleccionar · Esc volver |
 | PS4 | ← → juegos · **↑** funciones · **↓** ficha del juego · Enter jugar · **P** menú rápido · Esc volver (en el menú principal: selector) |
+| PS Vita | Flechas entre burbujas (↑ ↓ en los bordes, o la rueda / RePág / AvPág, cambian de página) · Enter abrir · **Q / E** cambiar de tarjeta · **Retroceso** cerrar la tarjeta · **P** menú rápido · **N** avisos · Esc inicio (en el inicio: selector) |
 
 ---
 

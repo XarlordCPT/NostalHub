@@ -210,6 +210,7 @@ src/spotify-smtc.ps1       Ayudante de Windows para Spotify (canción, portada y
 src/discord.js             Canal de voz de Discord (conexión local con la app de Discord)
 renderer/console-model.js  Modelos 3D de las consolas en el selector
 renderer/themes/ps4/       El menú estilo PS4
+renderer/themes/vita/      El menú estilo PS Vita (burbujas, tarjetas LiveArea y esquina que se despega)
 renderer/common.js         Textos compartidos (horas jugadas, logros, valores de las opciones)
 renderer/models/           Modelos 3D para los íconos de la PS2 (Three.js)
 renderer/mock.js           Datos de prueba para abrir index.html en el navegador sin Electron

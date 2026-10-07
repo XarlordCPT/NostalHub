@@ -25,6 +25,7 @@ const CUSTOM_FILES = {
   model: { base: 'modelo', ext: ['.glb', '.gltf'] },        // modelo 3D (tema PS2)
   description: { base: 'descripcion', ext: ['.txt'] },      // descripción propia del juego
   cover: { base: 'caratula', ext: IMAGE_EXT },              // carátula vertical (tema Xbox 360)
+  bubble: { base: 'burbuja', ext: IMAGE_EXT },              // imagen de la burbuja redonda (tema PS Vita)
 };
 
 function safeId(id) {

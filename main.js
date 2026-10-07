@@ -189,6 +189,7 @@ function gamesView() {
         description: readDescription(c.description) || m.description || '',
         appId: g.appId || null,
         cover: fileUrl(c.cover || m.cover), // carátula vertical (Xbox 360)
+        bubble: fileUrl(c.bubble), // burbuja redonda propia (PS Vita)
         lastPlayed: Math.max((g.appId && localStats[g.appId] && localStats[g.appId].lastPlayed) || 0, (config.data.launchLog || {})[g.id] || 0),
         playtimeMin: (g.appId && localStats[g.appId] && localStats[g.appId].playtimeMin) || 0,
       };
@@ -233,6 +234,56 @@ const CONSOLE_FILES = {
   intro: { base: 'intro', ext: ['.mp4', '.webm', '.mov', '.m4v'] },
 };
 
+// Copia de la imagen sin los bordes vacíos (transparentes o del mismo color del fondo), guardada en cache.
+// Devuelve la ruta de la copia, o null si no se pudo (gif, svg, webp: se usan tal cual).
+function trimImage(src, key) {
+  try {
+    if (!['.png', '.jpg', '.jpeg'].includes(path.extname(src).toLowerCase())) return null;
+    const st = fs.statSync(src);
+    const dir = path.join(DATA_DIR, 'cache', 'consolas');
+    const name = `${key}-${Math.round(st.mtimeMs)}-${st.size}.png`;
+    const out = path.join(dir, name);
+    if (fs.existsSync(out)) return out;
+    const img = nativeImage.createFromPath(src);
+    if (img.isEmpty()) return null;
+    const { width: w, height: h } = img.getSize();
+    const px = img.toBitmap(); // BGRA, 4 bytes por punto
+    if (px.length < w * h * 4) return null;
+    const at = (x, y) => (y * w + x) * 4;
+    // ¿Tiene transparencia? Si no, el "vacío" es el color de la esquina
+    const c0 = at(0, 0);
+    const opaque = px[c0 + 3] > 250 && px[at(w - 1, h - 1) + 3] > 250;
+    const empty = opaque
+      ? (i) => Math.abs(px[i] - px[c0]) < 26 && Math.abs(px[i + 1] - px[c0 + 1]) < 26 && Math.abs(px[i + 2] - px[c0 + 2]) < 26
+      : (i) => px[i + 3] < 14;
+    let x0 = w;
+    let y0 = h;
+    let x1 = -1;
+    let y1 = -1;
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        if (empty(at(x, y))) continue;
+        if (x < x0) x0 = x;
+        if (x > x1) x1 = x;
+        if (y < y0) y0 = y;
+        if (y > y1) y1 = y;
+      }
+    }
+    if (x1 < 0) return null; // todo vacío
+    const m = 2;
+    const rect = { x: Math.max(0, x0 - m), y: Math.max(0, y0 - m) };
+    rect.width = Math.min(w, x1 + m + 1) - rect.x;
+    rect.height = Math.min(h, y1 + m + 1) - rect.y;
+    fs.mkdirSync(dir, { recursive: true });
+    // borra las copias viejas de esta misma imagen
+    for (const old of fs.readdirSync(dir)) if (old.startsWith(`${key}-`) && old !== name) fs.rmSync(path.join(dir, old), { force: true });
+    fs.writeFileSync(out, img.crop(rect).toPNG());
+    return out;
+  } catch {
+    return null;
+  }
+}
+
 function consoleAssets(ids) {
   fs.mkdirSync(CONSOLES_DIR, { recursive: true });
   const out = {};
@@ -250,7 +301,10 @@ function consoleAssets(ids) {
         const ext = path.extname(n).toLowerCase();
         return path.basename(n, path.extname(n)).toLowerCase() === spec.base && spec.ext.includes(ext);
       });
-      if (f) found[kind] = fileUrl(path.join(dir, f));
+      if (!f) continue;
+      const file = path.join(dir, f);
+      // El ícono y el logo se recortan solos (sin bordes vacíos) para que todos se vean del mismo tamaño
+      found[kind] = fileUrl((kind === 'icon' || kind === 'logo') && trimImage(file, `${safe}-${kind}`)) || fileUrl(file);
     }
     out[id] = found;
   }
@@ -269,7 +323,7 @@ function consoleAssets(ids) {
     '  volver.wav  -> sonido al volver (Esc)',
     '  intro.mp4   -> video que se reproduce al entrar a esa consola (Enter, Esc o clic para saltarlo)',
     '  inicio.wav  -> sonido al terminar de entrar a la consola (después del video, si hay)',
-    '  pagina.wav  -> (Wii) sonido al pasar de página',
+    '  pagina.wav  -> (Wii y PS Vita) sonido al pasar de página o de tarjeta',
     '',
     'Se aplica solo al guardar el archivo. Más detalles en MANUAL.md, en la carpeta del proyecto.',
     '',

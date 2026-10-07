@@ -83,4 +83,24 @@ window.CONSOLES = [
       enterFlash: '#000000',
     },
   },
+  {
+    id: 'vita',
+    company: 'Sony',
+    name: 'PS Vita',
+    year: 2011,
+    look: {
+      background:
+        'radial-gradient(ellipse 120% 22% at 50% 66%, rgba(255,255,255,0.55), rgba(255,255,255,0) 70%),' +
+        'radial-gradient(ellipse 60% 50% at 82% 10%, rgba(120,190,255,0.5), rgba(120,190,255,0) 70%),' +
+        'linear-gradient(178deg, #0d2f9e 0%, #1450d4 40%, #1c63ea 62%, #0e3cb4 100%)',
+      base: '#0e3cb4',
+      text: '#ffffff',
+      subtext: '#bcd8ff',
+      accent: '#5ac8ff',
+      font: "'M PLUS Rounded 1c', 'Segoe UI', sans-serif",
+      nameWeight: 800,
+      nameShadow: '0 4px 20px rgba(0,20,90,0.5)',
+      enterFlash: '#ffffff',
+    },
+  },
 ];
