@@ -1,0 +1,74 @@
+{
+  "name": "nostalhub",
+  "productName": "NostalHub",
+  "version": "0.1.0",
+  "description": "NostalHub: tus juegos con menús de consolas clásicas, para la segunda pantalla",
+  "main": "main.js",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev",
+    "dist": "electron-builder --win nsis --publish never",
+    "dist:portable": "electron-builder --win portable --publish never"
+  },
+  "dependencies": {
+    "@fontsource/m-plus-rounded-1c": "^5.2.0",
+    "hls.js": "^1.5.0",
+    "three": "^0.186.0"
+  },
+  "devDependencies": {
+    "electron": "^44.0.0",
+    "electron-builder": "^26.0.0"
+  },
+  "author": "Cristóbal Medina",
+  "build": {
+    "appId": "cl.xarlord.nostalhub",
+    "productName": "NostalHub",
+    "copyright": "Proyecto personal de Cristóbal Medina",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "package.json",
+      "MANUAL.md",
+      "src/**/*",
+      "renderer/**/*",
+      "assets/**/*",
+      "!node_modules/**/*.map",
+      "!node_modules/**/*.d.ts",
+      "!node_modules/**/*.md",
+      "!node_modules/three/src/**",
+      "!node_modules/hls.js/src/**",
+      "!node_modules/hls.js/dist/!(hls.light.min.js)"
+    ],
+    "asarUnpack": [
+      "src/spotify-smtc.ps1",
+      "MANUAL.md"
+    ],
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "icon": "assets/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "shortcutName": "NostalHub",
+      "artifactName": "NostalHub-Setup-${version}.${ext}"
+    },
+    "portable": {
+      "artifactName": "NostalHub-${version}-portable.${ext}"
+    },
+    "electronLanguages": [
+      "es",
+      "es-419",
+      "en-US"
+    ],
+    "publish": null
+  }
+}

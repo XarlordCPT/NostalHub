@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'none'; script-src file: 'self' 'sha256-hBC2NOlE3bji0rCf5UsAU7uPmHhq+X9gjlSqfkzrvKE='; style-src file: 'self' 'unsafe-inline'; font-src file: 'self' data:; img-src file: data: https: blob:; media-src file: blob: https: data:; connect-src https: file: blob:; worker-src blob:;" />
+  <title>NostalHub</title>
+  <link rel="stylesheet" href="../node_modules/@fontsource/m-plus-rounded-1c/400.css" />
+  <link rel="stylesheet" href="../node_modules/@fontsource/m-plus-rounded-1c/500.css" />
+  <link rel="stylesheet" href="../node_modules/@fontsource/m-plus-rounded-1c/700.css" />
+  <link rel="stylesheet" href="../node_modules/@fontsource/m-plus-rounded-1c/800.css" />
+  <link rel="stylesheet" href="shell.css" />
+  <!-- Rutas de la librería 3D. OJO: si cambias esta línea, hay que actualizar el 'sha256-...' de arriba -->
+  <script type="importmap">{ "imports": { "three": "../node_modules/three/build/three.module.js", "three/addons/": "../node_modules/three/examples/jsm/" } }</script>
+</head>
+<body>
+  <div id="stage">
+    <!-- ===== Selector de consola ===== -->
+    <section id="selector">
+      <div class="sel-bg" id="sel-bg-a"></div>
+      <div class="sel-bg" id="sel-bg-b"></div>
+      <button class="sel-arrow up" id="sel-up" aria-label="Consola anterior"></button>
+      <div id="sel-track"></div>
+      <button class="sel-arrow down" id="sel-down" aria-label="Consola siguiente"></button>
+    </section>
+
+    <!-- ===== Aquí se monta el menú de la consola elegida (themes/<id>/) ===== -->
+    <div id="theme-root" hidden></div>
+
+    <!-- ===== Confirmación para cerrar (Esc en el selector) ===== -->
+    <div id="quit-confirm" hidden>
+      <div class="qc-box">
+        <div class="qc-title">¿Cerrar NostalHub?</div>
+        <div class="qc-sub">Presiona Esc otra vez para cerrar</div>
+        <div class="qc-actions">
+          <button class="qc-btn" id="qc-yes">Cerrar</button>
+          <button class="qc-btn" id="qc-no">Cancelar</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="sel-flash"></div>
+    <div id="flash"></div>
+    <div id="toast"></div>
+  </div>
+
+  <script src="../node_modules/hls.js/dist/hls.light.min.js"></script>
+  <script src="mock.js"></script>
+  <script src="consoles.js"></script>
+  <script src="common.js"></script>
+  <!-- Modelos 3D (íconos de la PS2) -->
+  <script type="module" src="models/three-bridge.mjs"></script>
+  <script src="models/registry.js"></script>
+  <script src="models/bloque-neon.js"></script>
+  <script src="console-model.js"></script>
+  <!-- Un <script> por cada tema de consola -->
+  <script src="themes/wii/theme.js"></script>
+  <script src="themes/ps2/theme.js"></script>
+  <script src="themes/x360/theme.js"></script>
+  <script src="themes/ps4/theme.js"></script>
+  <script src="shell.js"></script>
+</body>
+</html>

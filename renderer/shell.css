@@ -1,0 +1,323 @@
+/* ============ Base ============ */
+:root {
+  --font: 'M PLUS Rounded 1c', 'Segoe UI', system-ui, sans-serif;
+  --ease: cubic-bezier(0.22, 0.8, 0.24, 1);
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: #ececec;
+  font-family: var(--font);
+  color: #4d4d4d;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+body { transition: background-color 0.6s ease; }
+
+button {
+  font: inherit;
+  color: inherit;
+  border: 0;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+  outline: none;
+}
+
+img, video { -webkit-user-drag: none; }
+
+/* Escenario fijo de 1920x1080 que se escala a la ventana */
+#stage {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 1920px;
+  height: 1080px;
+  transform-origin: center center;
+  overflow: hidden;
+}
+
+/* ============ Destello y avisos ============ */
+#flash {
+  position: absolute;
+  inset: 0;
+  background: #fff;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 40;
+}
+#flash.on { animation: flash 0.9s ease both; }
+@keyframes flash { 0% { opacity: 0; } 35% { opacity: 1; } 100% { opacity: 0; } }
+
+#toast {
+  position: absolute;
+  left: 50%;
+  top: 30px;
+  transform: translate(-50%, -220%);
+  visibility: hidden;
+  padding: 18px 40px;
+  border-radius: 40px;
+  background: rgba(255, 255, 255, 0.96);
+  border: 4px solid #5cc6ec;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  font-size: 34px;
+  font-weight: 500;
+  color: #4b4b4b;
+  z-index: 50;
+  transition: transform 0.4s var(--ease), visibility 0s linear 0.4s;
+  white-space: nowrap;
+}
+#toast.show { transform: translate(-50%, 0); visibility: visible; transition: transform 0.4s var(--ease); }
+
+
+/* ============ Selector de consola ============ */
+#selector {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+#selector[hidden],
+#theme-root[hidden] { display: none; }
+#theme-root { position: absolute; inset: 0; }
+
+.sel-bg {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 0.7s ease;
+}
+
+#sel-track {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+}
+
+.sel-item {
+  position: absolute;
+  left: 0;
+  top: 230px;
+  width: 1920px;
+  height: 620px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 200px 0 230px;
+  color: var(--text);
+  font-family: var(--font);
+  cursor: pointer;
+  transition: transform 0.6s var(--ease), opacity 0.5s ease;
+}
+
+.sel-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  max-width: 1000px;
+}
+.sel-company {
+  font-size: 50px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  color: var(--subtext);
+  margin-left: 8px;
+}
+.sel-name {
+  white-space: nowrap;
+  font-size: 250px;
+  font-weight: var(--weight);
+  line-height: 1;
+  letter-spacing: -2px;
+  margin-top: 6px;
+  text-shadow: var(--name-shadow, none);
+}
+.sel-name.has-logo {
+  width: 900px;
+  height: 260px;
+  margin: 18px 0 6px;
+  position: relative;
+}
+.sel-name.has-logo img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: left center;
+  filter: drop-shadow(0 6px 20px rgba(0, 0, 0, 0.25));
+}
+.sel-enter {
+  margin: 40px 0 0 6px;
+  padding: 18px 64px;
+  border-radius: 60px;
+  border: 5px solid var(--accent);
+  background: linear-gradient(to bottom, #fff 0%, #fff 40%, #eef1f3 41%, #e2e7ea 100%);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.1);
+  font-size: 48px;
+  font-weight: 500;
+  color: #4b4b4b;
+  opacity: 0;
+  transform: translateY(16px);
+  transition: opacity 0.35s ease, transform 0.35s var(--ease), box-shadow 0.2s ease;
+}
+.sel-item.active .sel-enter { opacity: 1; transform: none; transition-delay: 0.15s; }
+.sel-item.active:hover .sel-enter {
+  box-shadow: 0 0 0 7px color-mix(in srgb, var(--accent) 35%, transparent), 0 8px 18px rgba(0, 0, 0, 0.14);
+}
+
+.sel-icon {
+  width: 520px;
+  height: 520px;
+  display: grid;
+  place-items: center;
+  position: relative;
+}
+.sel-icon img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 18px 24px rgba(0, 0, 0, 0.22));
+}
+.sel-item.active .sel-icon { animation: float 5s ease-in-out infinite; }
+/* Modelo 3D de la consola (modelo.glb) */
+.sel-icon .sel-model {
+  position: absolute;
+  inset: -40px;
+  width: calc(100% + 80px);
+  height: calc(100% + 80px);
+  cursor: grab;
+  filter: drop-shadow(0 22px 26px rgba(0, 0, 0, 0.25));
+}
+.sel-icon .sel-model:active { cursor: grabbing; }
+@keyframes float {
+  0%, 100% { transform: translateY(-10px); }
+  50% { transform: translateY(10px); }
+}
+.sel-icon.placeholder {
+  width: 400px;
+  height: 400px;
+  border-radius: 64px;
+  background: linear-gradient(160deg, #ffffff, #eef2f4);
+  border: 6px solid var(--accent);
+  box-shadow: 0 0 0 10px color-mix(in srgb, var(--accent) 18%, transparent), 0 20px 40px rgba(0, 0, 0, 0.12);
+  color: var(--accent);
+}
+.sel-icon.placeholder svg { width: 62%; }
+
+/* Flechas arriba / abajo */
+.sel-arrow {
+  position: absolute;
+  left: 50%;
+  width: 120px;
+  height: 70px;
+  margin-left: -60px;
+  z-index: 3;
+  background: var(--sel-accent, #34bfed);
+  -webkit-mask: center / contain no-repeat url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 70'%3E%3Cpath d='M14 56 L60 14 L106 56' fill='none' stroke='black' stroke-width='12' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  transition: opacity 0.3s ease, transform 0.2s var(--ease);
+}
+.sel-arrow.up { top: 46px; animation: nudge-up 2.4s ease-in-out infinite; }
+.sel-arrow.down { bottom: 46px; transform: rotate(180deg); animation: nudge-down 2.4s ease-in-out infinite; }
+.sel-arrow.off { opacity: 0; pointer-events: none; }
+.sel-arrow:hover { opacity: 0.75; }
+@keyframes nudge-up { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+@keyframes nudge-down { 0%, 100% { transform: rotate(180deg) translateY(0); } 50% { transform: rotate(180deg) translateY(-8px); } }
+
+/* Entrada y salida */
+#selector.intro .sel-item.active .sel-info { animation: sel-in-left 0.8s var(--ease) both; }
+#selector.intro .sel-item.active .sel-icon { animation: sel-in-right 0.8s 0.1s var(--ease) both, float 5s 0.9s ease-in-out infinite; }
+@keyframes sel-in-left { from { opacity: 0; transform: translateX(-80px); } to { opacity: 1; transform: none; } }
+@keyframes sel-in-right { from { opacity: 0; transform: translateX(80px) scale(0.9); } to { opacity: 1; transform: none; } }
+
+#selector.entering .sel-item.active { transform: scale(1.08) !important; transition: transform 0.5s ease-in; }
+
+#sel-flash {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 45;
+  background: #fff;
+}
+
+/* ============ Confirmación para cerrar ============ */
+#quit-confirm {
+  position: absolute;
+  inset: 0;
+  z-index: 55;
+  display: grid;
+  place-items: center;
+  background: rgba(0, 0, 0, 0.45);
+  animation: qc-fade 0.2s ease both;
+}
+#quit-confirm[hidden] { display: none; }
+#quit-confirm.closing { animation: qc-fade 0.18s ease reverse both; }
+#quit-confirm.bye { animation: qc-bye 0.25s ease both; }
+.qc-box {
+  min-width: 820px;
+  padding: 56px 70px 60px;
+  border-radius: 40px;
+  background: linear-gradient(to bottom, #ffffff, #e9edf1);
+  border: 6px solid var(--sel-accent, #34bfed);
+  box-shadow: 0 30px 70px rgba(0, 0, 0, 0.4);
+  text-align: center;
+  color: #444;
+  animation: qc-pop 0.3s cubic-bezier(0.3, 1.4, 0.4, 1) both;
+}
+.qc-title { font-size: 74px; font-weight: 800; }
+.qc-sub { margin-top: 10px; font-size: 36px; font-weight: 500; color: #8a8f96; }
+.qc-actions { margin-top: 46px; display: flex; gap: 40px; justify-content: center; }
+.qc-btn {
+  min-width: 300px;
+  padding: 22px 40px;
+  border-radius: 60px;
+  border: 5px solid #c9ced4;
+  background: #fff;
+  font-size: 48px;
+  font-weight: 700;
+  color: #4b4b4b;
+  transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.qc-btn.on {
+  transform: scale(1.06);
+  border-color: var(--sel-accent, #34bfed);
+  box-shadow: 0 0 0 7px color-mix(in srgb, var(--sel-accent, #34bfed) 30%, transparent);
+}
+@keyframes qc-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes qc-pop { from { transform: scale(0.85); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes qc-bye { to { opacity: 0; } }
+
+/* ============ Video de inicio de una consola ============ */
+.intro-video {
+  position: absolute;
+  inset: 0;
+  z-index: 60;
+  background: #000;
+  cursor: pointer;
+}
+.intro-video video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+.intro-skip {
+  position: absolute;
+  right: 60px;
+  bottom: 46px;
+  padding: 10px 22px;
+  border-radius: 30px;
+  background: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 26px;
+  opacity: 0;
+  transition: opacity 0.6s ease;
+}
+.intro-skip.show { opacity: 1; }
