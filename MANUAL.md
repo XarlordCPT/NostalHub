@@ -38,7 +38,8 @@ Para abrirla: pega esa ruta en la barra del Explorador de Windows, o usa los ata
 │   ├── x360\  (igual)
 │   ├── ps4\   (igual)
 │   ├── vita\  (igual)
-│   └── switch\ (igual)
+│   ├── switch\ (igual)
+│   └── ps3\    (igual, y además gameboot.wav)
 └── personalizar\              ← una carpeta por juego
     └── Nombre del juego\
         ├── canal.png          (Wii)
@@ -49,6 +50,8 @@ Para abrirla: pega esa ruta en la barra del Explorador de Windows, o usa los ata
         ├── caratula.jpg       (Xbox 360 y burbuja de la Vita)
         ├── burbuja.png        (PS Vita)
         ├── cuadrado.png       (Switch)
+        ├── icono.png          (PS3)
+        ├── musica.mp3         (PS3)
         └── descripcion.txt    (todas)
 ```
 
@@ -90,6 +93,9 @@ Para abrirlas: ajustes → Archivos → **Carpeta de consolas** (o en la Xbox: s
 | `volver.wav` | Sonido al **volver** (Esc) |
 | `pagina.wav` | **Wii y PS Vita**: sonido al **pasar de página** (Wii: menú de canales y Configuración; Vita: páginas de burbujas y al cambiar de tarjeta). Reemplaza al de mover en ese momento |
 | `inicio.wav` | Sonido al **terminar de entrar** a la consola: suena justo después del video de inicio (o al entrar, si no hay video). Pensado para la Wii, pero funciona en cualquier consola donde lo pongas |
+| `gameboot.wav` | **PS3**: sonido al **abrir un juego** |
+| `opciones.wav` | **PS3**: sonido al abrir el **menú de opciones** (tecla O) |
+| `error.wav` | **PS3**: sonido cuando algo **no se pudo hacer** (por ejemplo, un juego que no abrió) |
 | `intro.mp4` | Video que se reproduce **cada vez que entras** a esa consola, por ejemplo el arranque de la Xbox 360 en `consolas\x360\intro.mp4`. Se salta con Enter, Esc, espacio o un clic. También sirven `.webm` y `.mov` |
 
 En los ajustes de cada consola (o en el menú del ícono junto al reloj de Windows) puedes:
@@ -101,6 +107,8 @@ Consejos:
 - Si sacas el audio de un video de YouTube, cualquier conversor a mp3 sirve. Para el sonido de mover, recórtalo
   para que empiece justo con el sonido, sin silencio al principio.
 - Se aplican solos al copiar el archivo. Si cambias la música mientras estás en esa consola, se reinicia sola.
+- La **PS3** trae sus propios sonidos hechos con código (el tic al moverse, el encendido y el gameboot). Si pones
+  `mover.wav`, `inicio.wav`, `gameboot.wav`, etc. en `consolas\ps3\`, se usan los tuyos en vez de esos.
 
 Ejemplos de lo que va aquí: el logo de letras de PlayStation 2 → `consolas\ps2\logo.png`;
 una foto de la Wii con fondo transparente → `consolas\wii\icono.png`.
@@ -130,6 +138,8 @@ Por dentro, la app guarda esos archivos en una carpeta por juego, con el nombre 
 | `caratula.jpg` / `caratula.png` | Xbox 360, PS Vita | Carátula vertical de la caja (proporción 2:3, ej. 600×900). En la Vita se usa recortada en círculo para la burbuja |
 | `burbuja.png` / `burbuja.jpg` | PS Vita | La imagen de la **burbuja redonda** (cuadrada, ej. 512×512; se recorta en círculo). Si no está, se usa la carátula |
 | `cuadrado.png` / `cuadrado.jpg` | Nintendo Switch | El **cuadro del juego** en la Switch (cuadrado, ej. 1024×1024). Si no está, se arma con el fondo y el logo del juego |
+| `icono.png` / `icono.jpg` | PS3 | El **icono del juego** en el menú de la PS3 (rectangular, **320×176**). Si no está, se usa la cabecera de Steam |
+| `musica.mp3` | PS3 | Música que **suena al quedarte sobre el juego** en la PS3 (como en la consola de verdad). También `.ogg`, `.m4a`, `.wav`. Ideal 30 a 60 segundos; se repite |
 | `descripcion.txt` | Todas | La descripción del juego (reemplaza la de Steam) |
 
 Para volver al arte automático, **borra tu archivo**.
@@ -139,6 +149,7 @@ Para volver al arte automático, **borra tu archivo**.
 - **Heroes**: para `fondo.jpg`.
 - **Grids** en formato vertical (600×900): para `caratula.jpg`.
 - **Icons** (cuadrados): para `burbuja.png`.
+- **Grids** en formato horizontal (460×215 o 920×430): sirven para `icono.png` de la PS3 (se recorta un poquito).
 
 ---
 
@@ -300,6 +311,18 @@ Las mismas opciones del menú del ícono junto al reloj, con el estilo de cada c
 
 "Salir de NostalHub" siempre pregunta antes de cerrar. El menú del ícono junto al reloj sigue estando, con las mismas opciones.
 
+### Cómo se usa la PS3
+
+- **Categorías** en fila: Usuarios, Ajustes, Música (Spotify), Juego, PlayStation Network (tienda y novedades de
+  Steam) y Amigos (Amigos de Steam y tu canal de voz de Discord). ← → para cambiar, ↑ ↓ para recorrer sus opciones.
+- **Juego**: arriba está la **Colección de trofeos** y después tus juegos (los más recientes primero). Si te quedas
+  un segundo sobre un juego, aparece su **fondo** a pantalla completa y suena su **música** (`musica.mp3`, si le pusiste).
+- **O** (el triángulo): **opciones** del juego: Iniciar, Información, Logros, Cambiar imágenes y **Ordenar**.
+- **Fondo**: el color cambia **cada mes** como en la PS3, y es más oscuro de noche. Para dejar un color fijo:
+  **Ajustes → Ajustes de tema → Color**. Ahí también puedes apagar el **Brillo según la hora**.
+- **Encendido**: al entrar aparece la ola con destellos (Enter o un clic lo salta). Si tienes `intro.mp4` en
+  `consolas\ps3\`, o apagaste los videos de inicio, entra directo.
+
 ---
 
 ## 9. Teclas
@@ -313,6 +336,7 @@ Las mismas opciones del menú del ícono junto al reloj, con el estilo de cada c
 | PS4 | ← → juegos · **↑** funciones · **↓** ficha del juego · Enter jugar · **P** menú rápido · Esc volver (en el menú principal: selector) |
 | Cualquier consola | **Clic derecho** sobre un juego, o la tecla **I** con el juego marcado: cambiar imágenes y descripción |
 | Nintendo Switch | ← → juegos · **↓** botones redondos · Enter iniciar · **O** opciones del juego · **S** ordenar (Todo el software) · Esc volver (en el inicio: selector). Tema claro u oscuro: **Ajustes → Tema** |
+| PS3 | ← → categorías · ↑ ↓ opciones · Enter elegir / iniciar · **O** opciones (el triángulo) · Esc volver (en la barra: selector). Color del fondo: **Ajustes → Ajustes de tema** |
 | PS Vita | Flechas entre burbujas (↑ ↓ en los bordes, o la rueda / RePág / AvPág, cambian de página) · Enter abrir · **Q / E** cambiar de tarjeta · **Retroceso** cerrar la tarjeta · **P** menú rápido · **N** avisos · Esc inicio (en el inicio: selector) |
 
 ---

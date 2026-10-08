@@ -10,7 +10,7 @@
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
   const call = (fn, ...a) => (typeof api[fn] === 'function' ? api[fn](...a) : Promise.resolve(null));
 
-  const CONSOLE_NAMES = { wii: 'Wii', ps2: 'PS2', x360: 'Xbox 360', ps4: 'PS4', vita: 'PS Vita', switch: 'Switch' };
+  const CONSOLE_NAMES = { wii: 'Wii', ps2: 'PS2', x360: 'Xbox 360', ps4: 'PS4', vita: 'PS Vita', switch: 'Switch', ps3: 'PS3' };
   // Qué imágenes se ven en cada consola (en orden)
   const BY_CONSOLE = {
     wii: ['tile', 'hero', 'logo', 'video'],
@@ -19,8 +19,9 @@
     ps4: ['hero', 'logo'],
     vita: ['bubble', 'hero', 'logo'],
     switch: ['square', 'hero', 'logo'],
+    ps3: ['icon0', 'hero', 'music'],
   };
-  const ALL = ['tile', 'square', 'bubble', 'cover', 'hero', 'logo', 'video', 'model'];
+  const ALL = ['tile', 'square', 'bubble', 'icon0', 'cover', 'hero', 'logo', 'video', 'model', 'music'];
   // Algunas también se usan en otras consolas aunque no sean "suyas"
   const ALSO = { tile: ['ps4', 'vita'], cover: ['vita'] };
   const SLOTS = {
@@ -31,6 +32,8 @@
     model: { label: 'Modelo 3D', hint: 'Ícono 3D animado (.glb o .gltf, por ejemplo de Blockbench).', shape: 'square' },
     cover: { label: 'Carátula', hint: 'La caja del juego, vertical (600×900).', shape: 'tall' },
     square: { label: 'Imagen cuadrada', hint: 'El cuadro del juego en la Switch (ej. 1024×1024). Si no hay, se arma con el fondo y el logo.', shape: 'square' },
+    icon0: { label: 'Icono PS3', hint: 'El icono del juego en el menú de la PS3 (320×176). Si no hay, se usa la cabecera de Steam.', shape: 'ps3' },
+    music: { label: 'Música', hint: 'Suena al quedarte sobre el juego en la PS3 (mp3, ogg, m4a o wav; 30 a 60 segundos).', shape: 'audio' },
     bubble: { label: 'Burbuja', hint: 'Imagen cuadrada; se recorta en círculo (ej. 512×512). Si no hay, se usa la carátula.', shape: 'circle' },
   };
 
@@ -154,11 +157,12 @@
     const url = st.custom || st.auto;
     let prev;
     if (kind === 'model') prev = st.custom ? `<div class="ge-file">${esc(st.customName)}</div>` : '<div class="ge-empty">Sin modelo</div>';
+    else if (kind === 'music') prev = st.custom ? `<div class="ge-file">${esc(st.customName)}</div><audio src="${st.custom}" controls preload="none"></audio>` : '<div class="ge-empty">Sin música</div>';
     else if (url && st.isVideo) prev = `<video src="${url}" muted loop autoplay playsinline></video>`;
     else if (url) prev = `<img src="${url}" alt="" draggable="false" />`;
     else prev = `<div class="ge-empty">${kind === 'video' ? 'Sin video' : 'Sin imagen'}</div>`;
-    const none = { video: 'Sin video', model: 'Sin modelo', bubble: 'Automática', square: 'Automática' }[kind] || 'Sin imagen';
-    const state = st.custom ? (kind === 'model' ? 'Tu modelo' : kind === 'video' ? 'Tu video' : 'Tu imagen') : url ? (kind === 'bubble' ? 'La carátula' : 'La de Steam') : none;
+    const none = { video: 'Sin video', model: 'Sin modelo', music: 'Sin música', bubble: 'Automática', square: 'Automática' }[kind] || 'Sin imagen';
+    const state = st.custom ? ({ model: 'Tu modelo', video: 'Tu video', music: 'Tu música' }[kind] || 'Tu imagen') : url ? (kind === 'bubble' ? 'La carátula' : 'La de Steam') : none;
     const clear = st.custom ? `<button class="ge-b" data-a="clear">${st.auto || kind === 'bubble' ? 'Volver a la automática' : 'Quitar'}</button>` : '';
     const used = ed.all ? `<div class="ge-used">Se ve en: ${esc(usedIn(kind).join(', '))}</div>` : '';
     return `<div class="ge-slot${st.custom ? ' is-custom' : ''}" data-kind="${kind}">
@@ -166,7 +170,7 @@
       <div class="ge-info">
         <div class="ge-name">${esc(s.label)}<span class="ge-state">${state}</span></div>
         <div class="ge-hint">${esc(s.hint)}</div>${used}
-        <div class="ge-btns"><button class="ge-b" data-a="pick">Elegir archivo</button>${kind === 'model' ? '' : '<button class="ge-b" data-a="paste">Pegar</button>'}${clear}</div>
+        <div class="ge-btns"><button class="ge-b" data-a="pick">Elegir archivo</button>${kind === 'model' || kind === 'music' ? '' : '<button class="ge-b" data-a="paste">Pegar</button>'}${clear}</div>
       </div>
     </div>`;
   }

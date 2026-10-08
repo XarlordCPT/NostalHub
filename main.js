@@ -152,6 +152,8 @@ function ensureCustomFolders() {
         '  canal.jpg / canal.png / canal.mp4   -> cuadrito del juego en el menú',
         '  modelo.glb / modelo.gltf            -> modelo 3D (tema PS2), por ejemplo exportado desde Blockbench',
         '  descripcion.txt                     -> descripción propia del juego (reemplaza la de Steam)',
+        '  icono.png                           -> icono del juego en la PS3 (320×176)',
+        '  musica.mp3                          -> música que suena al quedarte sobre el juego en la PS3',
         '',
         'Los cambios se aplican solos al guardar el archivo. Para volver al arte automático, borra el archivo.',
         '',
@@ -191,6 +193,9 @@ function gamesView() {
         cover: fileUrl(c.cover || m.cover), // carátula vertical (Xbox 360)
         bubble: fileUrl(c.bubble), // burbuja redonda propia (PS Vita)
         square: fileUrl(c.square), // imagen cuadrada propia (Switch)
+        icon0: fileUrl(c.icon0), // icono propio de la PS3 (320×176)
+        header: fileUrl(m.header), // cabecera horizontal de Steam (460×215)
+        music: fileUrl(c.music), // música propia del juego (PS3)
         lastPlayed: Math.max((g.appId && localStats[g.appId] && localStats[g.appId].lastPlayed) || 0, (config.data.launchLog || {})[g.id] || 0),
         playtimeMin: (g.appId && localStats[g.appId] && localStats[g.appId].playtimeMin) || 0,
       };
@@ -232,6 +237,9 @@ const CONSOLE_FILES = {
   back: { base: 'volver', ext: ['.wav', '.mp3', '.ogg', '.m4a'] },
   page: { base: 'pagina', ext: ['.wav', '.mp3', '.ogg', '.m4a'] },
   start: { base: 'inicio', ext: ['.wav', '.mp3', '.ogg', '.m4a'] },
+  gameboot: { base: 'gameboot', ext: ['.wav', '.mp3', '.ogg', '.m4a'] },
+  option: { base: 'opciones', ext: ['.wav', '.mp3', '.ogg', '.m4a'] },
+  error: { base: 'error', ext: ['.wav', '.mp3', '.ogg', '.m4a'] },
   intro: { base: 'intro', ext: ['.mp4', '.webm', '.mov', '.m4v'] },
 };
 
@@ -325,6 +333,9 @@ function consoleAssets(ids) {
     '  intro.mp4   -> video que se reproduce al entrar a esa consola (Enter, Esc o clic para saltarlo)',
     '  inicio.wav  -> sonido al terminar de entrar a la consola (después del video, si hay)',
     '  pagina.wav  -> (Wii y PS Vita) sonido al pasar de página o de tarjeta',
+    '  gameboot.wav -> (PS3) sonido al abrir un juego',
+    '  opciones.wav -> (PS3) sonido al abrir el menú de opciones (tecla O)',
+    '  error.wav    -> (PS3) sonido cuando algo no se pudo hacer',
     '',
     'Se aplica solo al guardar el archivo. Más detalles en MANUAL.md, en la carpeta del proyecto.',
     '',
@@ -927,7 +938,7 @@ async function clipboardImagePng() {
 
 // ---------- Cambiar imágenes y descripción de un juego desde la app (clic derecho) ----------
 // Las imágenes se guardan en personalizar/<Nombre del juego>/ con el nombre que corresponde (canal.png, burbuja.png…)
-const EDITABLE = ['tile', 'hero', 'logo', 'video', 'model', 'cover', 'bubble', 'square'];
+const EDITABLE = ['tile', 'hero', 'logo', 'video', 'model', 'cover', 'bubble', 'square', 'icon0', 'music'];
 function gameById(id) {
   return config.games.find((g) => g.id === id) || null;
 }
@@ -958,7 +969,7 @@ function customInfo(id) {
   if (!g) return null;
   const c = customFilesFor(g);
   const m = g.media || {};
-  const auto = { tile: m.tile, hero: m.hero, logo: m.logo, cover: m.cover, bubble: m.cover };
+  const auto = { tile: m.tile, hero: m.hero, logo: m.logo, cover: m.cover, bubble: m.cover, icon0: m.header };
   const slots = {};
   for (const kind of EDITABLE) {
     const file = c[kind] || null;
@@ -999,7 +1010,7 @@ ipcMain.handle('game:custom-pick', async (_e, id, kind) => {
   const g = gameById(id);
   const spec = media.CUSTOM_FILES[kind];
   if (!g || !spec) return { ok: false, message: 'No se encontró el juego.' };
-  const names = { tile: 'Imagen o video', video: 'Video', model: 'Modelo 3D' };
+  const names = { tile: 'Imagen o video', video: 'Video', model: 'Modelo 3D', music: 'Música' };
   const r = await dialog.showOpenDialog(win, {
     title: `Elegir archivo para ${g.name}`,
     properties: ['openFile'],

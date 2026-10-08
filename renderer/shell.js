@@ -254,7 +254,7 @@
     setThemeCss(c.id, true);
     themeRoot.className = `theme-${c.id}`;
     themeRoot.hidden = false;
-    theme = { id: c.id, instance: factory.mount(themeRoot, { api, stage, stageRect, toast, openSelector: leave, sound: (kind) => Sound.play(kind) }) };
+    theme = { id: c.id, instance: factory.mount(themeRoot, { api, stage, stageRect, toast, openSelector: leave, sound: (kind) => Sound.play(kind), duckMusic: (on) => Sound.duck(on), soundSettings: () => ({ ...settings }), hasAsset: (kind) => !!(assets[c.id] && assets[c.id][kind]) }) };
     selector.hidden = true;
     selector.classList.remove('entering');
     await wait(120);
@@ -323,6 +323,7 @@
 
     startMusic(id) {
       this.stopMusic(true);
+      this.ducked = false;
       const url = assets[id] && assets[id].music;
       this.musicId = id;
       if (!url || !settings.music) return;
@@ -355,6 +356,12 @@
       }, 40);
     },
 
+    // Baja la música de la consola mientras suena otra cosa (la música de un juego en la PS3)
+    duck(on) {
+      this.ducked = !!on;
+      if (this.music && !this.pausedForGame) this.fadeTo(on ? settings.musicVolume * 0.12 : settings.musicVolume, on ? 500 : 900);
+    },
+
     // Mientras juegas, la música se pausa; al volver, sigue donde quedó
     setGamePaused(paused) {
       if (!this.music || paused === this.pausedForGame) return;
@@ -362,7 +369,7 @@
       if (paused) this.fadeTo(0, 400, () => this.music && this.music.pause());
       else {
         this.music.play().catch(() => {});
-        this.fadeTo(settings.musicVolume, 1000);
+        this.fadeTo(this.ducked ? settings.musicVolume * 0.12 : settings.musicVolume, 1000);
       }
     },
 
@@ -383,7 +390,15 @@
       if (!settings.sounds) return;
       const id = consoleId || (theme && theme.id) || (CONSOLES[index] && CONSOLES[index].id);
       const url = assets[id] && assets[id][kind];
-      if (!url) return;
+      if (!url) {
+        // Sin archivo propio: algunos temas traen su sonido hecho con código (PS3)
+        const f = window.Themes && window.Themes[id];
+        if (f && f.synth && (kind !== 'move' || performance.now() - this.lastMove >= 45)) {
+          if (kind === 'move') this.lastMove = performance.now();
+          f.synth(kind, settings.sfxVolume);
+        }
+        return;
+      }
       if (kind === 'page' && this.pending) {
         clearTimeout(this.pending); // reemplaza al sonido de mover / elegir de esa misma tecla o clic
         this.pending = null;
@@ -402,7 +417,7 @@
       settings = { ...settings, ...(next || {}) };
       if (!settings.music) this.stopMusic();
       else if (!this.music && theme && mode === 'theme') this.startMusic(theme.id);
-      else if (this.music && !this.pausedForGame) this.fadeTo(settings.musicVolume, 300);
+      else if (this.music && !this.pausedForGame) this.fadeTo(this.ducked ? settings.musicVolume * 0.12 : settings.musicVolume, 300);
     },
   };
 

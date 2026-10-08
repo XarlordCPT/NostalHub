@@ -27,6 +27,8 @@ const CUSTOM_FILES = {
   cover: { base: 'caratula', ext: IMAGE_EXT },              // carátula vertical (tema Xbox 360)
   bubble: { base: 'burbuja', ext: IMAGE_EXT },              // imagen de la burbuja redonda (tema PS Vita)
   square: { base: 'cuadrado', ext: IMAGE_EXT },             // imagen cuadrada (tema Nintendo Switch)
+  icon0: { base: 'icono', ext: IMAGE_EXT },                 // icono rectangular 320×176 (tema PS3)
+  music: { base: 'musica', ext: ['.mp3', '.ogg', '.m4a', '.wav', '.opus', '.flac', '.webm'] }, // música del juego (tema PS3)
 };
 
 function safeId(id) {
@@ -107,12 +109,14 @@ async function ensureSteamMedia(game, mediaRoot, { force = false } = {}) {
   const needsTrailer = !m.trailer;
   const needsDescription = m.description === undefined;
   const needsCover = !fileOk(m.cover) && !m.coverTried; // carátula vertical (tema Xbox 360)
+  const needsHeader = !fileOk(m.header) && !m.headerTried; // cabecera horizontal de verdad (icono de la PS3)
 
-  if (!force && missing().length === 0 && !needsTrailer && !needsDescription && !needsCover) return false;
+  if (!force && missing().length === 0 && !needsTrailer && !needsDescription && !needsCover && !needsHeader) return false;
   if (
     !force &&
     !needsDescription &&
     !needsCover &&
+    !needsHeader &&
     game.mediaCheckedAt &&
     Date.now() - game.mediaCheckedAt < RETRY_AFTER_MS &&
     missing().length < 3
@@ -130,6 +134,7 @@ async function ensureSteamMedia(game, mediaRoot, { force = false } = {}) {
   if (!fileOk(m.hero) && local.hero) m.hero = copyLocal(local.hero, path.join(dir, 'hero'));
   if (!fileOk(m.logo) && local.logo) m.logo = copyLocal(local.logo, path.join(dir, 'logo'));
   if (!fileOk(m.cover) && local.capsule) m.cover = copyLocal(local.capsule, path.join(dir, 'cover'));
+  if (!fileOk(m.header) && local.header) m.header = copyLocal(local.header, path.join(dir, 'header'));
 
   // 2. Tienda de Steam (también trae el tráiler)
   let details = null;
@@ -138,6 +143,7 @@ async function ensureSteamMedia(game, mediaRoot, { force = false } = {}) {
   if (details) {
     m.description = cleanText(details.short_description || '');
     if (!fileOk(m.tile) && details.header_image) m.tile = await downloadImage(details.header_image, path.join(dir, 'tile'));
+    if (!fileOk(m.header) && details.header_image) m.header = await downloadImage(details.header_image, path.join(dir, 'header'));
     const movie = (details.movies || []).find((mv) => mv.highlight) || (details.movies || [])[0];
     if (movie) {
       m.trailer = movie.hls_h264 || null;
@@ -150,10 +156,12 @@ async function ensureSteamMedia(game, mediaRoot, { force = false } = {}) {
     if (!fileOk(m.hero)) m.hero = await downloadImage(`${base}/${game.appId}/library_hero.jpg`, path.join(dir, 'hero'));
     if (!fileOk(m.logo)) m.logo = await downloadImage(`${base}/${game.appId}/logo.png`, path.join(dir, 'logo'));
     if (!fileOk(m.tile)) m.tile = await downloadImage(`${base}/${game.appId}/header.jpg`, path.join(dir, 'tile'));
+    if (!fileOk(m.header)) m.header = await downloadImage(`${base}/${game.appId}/header.jpg`, path.join(dir, 'header'));
     if (!fileOk(m.cover)) m.cover = await downloadImage(`${base}/${game.appId}/library_600x900_2x.jpg`, path.join(dir, 'cover'));
     if (!fileOk(m.cover)) m.cover = await downloadImage(`${base}/${game.appId}/library_600x900.jpg`, path.join(dir, 'cover'));
   }
   m.coverTried = true;
+  m.headerTried = true;
 
   // 4. Si no hay "hero", usa una captura del juego o el fondo de la tienda
   if (!fileOk(m.hero) && details) {
@@ -162,7 +170,7 @@ async function ensureSteamMedia(game, mediaRoot, { force = false } = {}) {
     if (!fileOk(m.hero) && details.background_raw) m.hero = await downloadImage(details.background_raw, path.join(dir, 'hero'));
   }
 
-  for (const k of ['tile', 'hero', 'logo', 'cover']) if (!fileOk(m[k])) delete m[k];
+  for (const k of ['tile', 'hero', 'logo', 'cover', 'header']) if (!fileOk(m[k])) delete m[k];
   game.mediaCheckedAt = Date.now();
   return JSON.stringify(m) !== before;
 }

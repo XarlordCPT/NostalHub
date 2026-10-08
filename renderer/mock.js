@@ -77,6 +77,7 @@
     g.lastPlayed = i < 6 ? Date.now() - (i * 2 + 0.2) * DAY : 0;
     g.playtimeMin = i < 8 ? (15 - i) * 97 : 0;
     g.cover = i % 4 === 3 ? null : art(600, 900, palettes[i % palettes.length], '', 0);
+    g.header = g.tile;
   });
   function achIcon(i, gray) {
     const c = gray ? ['#999', '#666'] : palettes[i % palettes.length];
@@ -150,7 +151,7 @@
       const slot = (k, auto) => ({ custom: c[k] || null, customName: c[k] ? 'archivo.png' : null, auto: auto || null, isVideo: false });
       return {
         id, name: g.name, type: g.type,
-        slots: { tile: slot('tile', g.tile), hero: slot('hero', g.heroIsReal ? g.hero : null), logo: slot('logo', g.logo), video: slot('video'), model: slot('model'), cover: slot('cover', g.cover), bubble: slot('bubble', g.cover) },
+        slots: { tile: slot('tile', g.tile), hero: slot('hero', g.heroIsReal ? g.hero : null), logo: slot('logo', g.logo), video: slot('video'), model: slot('model'), cover: slot('cover', g.cover), bubble: slot('bubble', g.cover), square: slot('square'), icon0: slot('icon0', g.tile), music: slot('music') },
         description: { custom: c.desc || '', steam: g.description || '' },
       };
     },

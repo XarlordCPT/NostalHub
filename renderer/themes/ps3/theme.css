@@ -1,0 +1,235 @@
+/* Tema PS3 (XMB): todo queda dentro de #theme-root.theme-ps3
+   Letra: M PLUS 1p (licencia OFL, en fonts/), parecida a la Rodin de la PS3. */
+@font-face { font-family: 'P3 Rodin'; font-weight: 300; font-display: block; src: url(fonts/m-plus-1p-latin-300-normal.woff2) format('woff2'); }
+@font-face { font-family: 'P3 Rodin'; font-weight: 400; font-display: block; src: url(fonts/m-plus-1p-latin-400-normal.woff2) format('woff2'); }
+@font-face { font-family: 'P3 Rodin'; font-weight: 700; font-display: block; src: url(fonts/m-plus-1p-latin-700-normal.woff2) format('woff2'); }
+
+.theme-ps3 {
+  --p3-font: 'P3 Rodin', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+  --ease: cubic-bezier(0.25, 0.8, 0.25, 1);
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: var(--p3-c, #555);
+  color: #fff;
+  font-family: var(--p3-font);
+  font-weight: 400;
+  user-select: none;
+}
+.theme-ps3 [hidden] { display: none !important; }
+.theme-ps3 button { font-family: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+.p3-defs { position: absolute; width: 0; height: 0; }
+.p3-svg { display: block; width: 100%; height: 100%; overflow: visible; }
+
+/* ============ Fondo: la ola y el fondo del juego (PIC1) ============ */
+.p3-wave { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; display: block; }
+.theme-ps3.no-gl .p3-wave { display: none; }
+.theme-ps3.no-gl {
+  background:
+    radial-gradient(ellipse 120% 10% at 50% 62%, rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0) 70%),
+    linear-gradient(180deg, color-mix(in srgb, var(--p3-c, #555) 88%, #fff) 0%, var(--p3-c, #555) 40%, color-mix(in srgb, var(--p3-c, #555) 50%, #000) 100%);
+}
+.p3-pic1 { position: absolute; inset: 0; background: center / cover no-repeat; opacity: 0; transition: opacity 0.3s ease; }
+.p3-pic1::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, rgba(0, 0, 0, 0.5) 0%, rgba(0, 0, 0, 0.18) 55%, rgba(0, 0, 0, 0.3) 100%); }
+.p3-pic1.on { opacity: 1; transition: opacity 1.2s ease; }
+
+/* ============ Interfaz ============ */
+.p3-ui { position: absolute; inset: 0; transition: opacity 0.7s ease; }
+.theme-ps3.booting .p3-ui { opacity: 0; transition: none; }
+.theme-ps3.gameboot .p3-ui { opacity: 0; transition: opacity 0.4s ease; }
+.theme-ps3.is-playing .p3-ui, .theme-ps3.is-playing .p3-pic1 { opacity: 0; transition: none; }
+.p3-xmb { position: absolute; inset: 0; transition: transform 0.45s var(--ease); }
+.theme-ps3.booting .p3-xmb { transform: translateX(90px); transition: none; }
+.p3-clock { position: absolute; right: 96px; top: 56px; font-size: 30px; font-weight: 300; letter-spacing: 0.5px; white-space: pre; text-shadow: 0 1px 8px rgba(0, 0, 0, 0.35); }
+.p3-clock::after { content: ''; position: absolute; right: -14px; left: -260px; bottom: -10px; height: 1px; background: linear-gradient(90deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.55)); }
+
+/* --- Categorías (fila) --- */
+.p3-cats { position: absolute; inset: 0; pointer-events: none; transition: opacity 0.3s ease; }
+.p3-cat, .p3-ic, .p3-tx { pointer-events: auto; }
+.p3-cat { position: absolute; left: 0; top: 0; width: 128px; height: 128px; margin: -64px 0 0 -64px; opacity: 0.8; cursor: pointer; transition: transform 0.26s var(--ease), opacity 0.26s ease; }
+.p3-cat-ic { width: 128px; height: 128px; filter: drop-shadow(0 3px 5px rgba(0, 0, 0, 0.32)); }
+.p3-cat.sel { opacity: 1; }
+.p3-cat.sel .p3-cat-ic { filter: drop-shadow(0 0 12px rgba(255, 255, 255, 0.5)) drop-shadow(0 3px 5px rgba(0, 0, 0, 0.3)); }
+.p3-cat-l { position: absolute; top: 132px; left: 50%; transform: translateX(-50%); white-space: nowrap; font-size: 26px; opacity: 0; transition: opacity 0.2s ease; text-shadow: 0 1px 8px rgba(0, 0, 0, 0.5); pointer-events: none; }
+.p3-cat.sel .p3-cat-l { opacity: 1; }
+.p3-cats.still .p3-cat { transition: none; }
+
+/* --- Opciones de la categoría (columna) --- */
+.p3-items { position: absolute; inset: 0; pointer-events: none; }
+.p3-items.in-r { animation: p3-in-r 0.26s var(--ease) both; }
+.p3-items.in-l { animation: p3-in-l 0.26s var(--ease) both; }
+@keyframes p3-in-r { from { opacity: 0; transform: translateX(46px); } to { opacity: 1; transform: none; } }
+@keyframes p3-in-l { from { opacity: 0; transform: translateX(-46px); } to { opacity: 1; transform: none; } }
+.p3-it { transition: opacity 0.22s ease; }
+.p3-it.off { opacity: 0; }
+.p3-it.off > *, .theme-ps3.deep .p3-it:not(.sel) > * { pointer-events: none; }
+.p3-ic { position: absolute; left: 0; top: 0; transform-origin: 0 0; display: grid; place-items: center; cursor: pointer; transition: transform 0.22s var(--ease); }
+.p3-ic > * { grid-area: 1 / 1; min-width: 0; min-height: 0; }
+.p3-ic { grid-template: 100% / 100%; }
+.p3-it.is-game .p3-ic { overflow: hidden; }
+.p3-ic .p3-svg { filter: drop-shadow(0 3px 5px rgba(0, 0, 0, 0.32)); }
+.p3-ic img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.p3-ic img + .p3-svg { display: none; }
+.p3-it.round .p3-ic img { border-radius: 50%; box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.85), 0 4px 12px rgba(0, 0, 0, 0.35); }
+.p3-it.round.talking .p3-ic img { box-shadow: 0 0 0 6px #3fd06a, 0 4px 12px rgba(0, 0, 0, 0.35); }
+.p3-it.has-img:not(.round):not(.is-game) .p3-ic img { box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35); }
+.p3-it.is-game .p3-ic { background: rgba(0, 0, 0, 0.28); box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35); }
+.p3-noicon { padding: 10px 16px; font-size: 30px; line-height: 1.15; text-align: center; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; }
+.p3-ic img ~ .p3-noicon, .p3-comp ~ .p3-noicon { display: none; }
+.p3-ic img.fit { object-fit: contain; }
+.p3-comp { width: 100%; height: 100%; display: grid; place-items: center; background: center / cover no-repeat; }
+.p3-comp img { width: 78%; height: 70%; object-fit: contain; filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.5)); }
+.p3-it.sel .p3-ic .p3-svg { filter: drop-shadow(0 0 12px rgba(255, 255, 255, 0.45)) drop-shadow(0 3px 5px rgba(0, 0, 0, 0.3)); }
+.p3-it.sel.is-game .p3-ic { box-shadow: 0 0 22px rgba(255, 255, 255, 0.28), 0 6px 18px rgba(0, 0, 0, 0.4); }
+.p3-tx { position: absolute; left: 0; top: 0; max-width: 1180px; white-space: nowrap; cursor: pointer; transition: transform 0.22s var(--ease), opacity 0.2s ease; text-shadow: 0 1px 8px rgba(0, 0, 0, 0.45); }
+.p3-tx b { display: block; font-weight: 400; font-size: 27px; opacity: 0.86; overflow: hidden; text-overflow: ellipsis; }
+.p3-tx small { display: none; font-size: 22px; opacity: 0.85; margin-top: 6px; overflow: hidden; text-overflow: ellipsis; }
+.p3-it.sel .p3-tx b { font-size: 34px; opacity: 1; }
+.p3-it.sel .p3-tx small { display: block; }
+.p3-items.still .p3-ic, .p3-items.still .p3-tx { transition: none; }
+
+/* --- Dentro de una opción (listas anidadas): el XMB se corre a la izquierda --- */
+.theme-ps3.deep .p3-xmb { transform: translateX(-330px); }
+.theme-ps3.deep .p3-cats { opacity: 0; }
+.theme-ps3.deep .p3-it:not(.sel) { opacity: 0; }
+.theme-ps3.deep .p3-it.sel .p3-tx { opacity: 0; }
+.p3-sub { position: absolute; left: 420px; right: 110px; top: 160px; bottom: 110px; }
+.p3-sub.in { animation: p3-in-r 0.28s var(--ease) both; }
+.p3-sub-head { height: 96px; display: flex; align-items: center; gap: 22px; padding: 0 28px 10px; font-size: 34px; border-bottom: 1px solid rgba(255, 255, 255, 0.45); text-shadow: 0 1px 8px rgba(0, 0, 0, 0.4); }
+.p3-sub-head b { font-weight: 400; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.p3-sub-head em { margin-left: auto; font-style: normal; font-size: 26px; opacity: 0.88; white-space: nowrap; }
+.p3-head-av { width: 72px; height: 72px; flex: none; border-radius: 50%; background: rgba(255, 255, 255, 0.25) center / cover; box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.8); }
+.p3-head-ic { width: 131px; height: 72px; flex: none; background: rgba(0, 0, 0, 0.3) center / cover; box-shadow: 0 3px 10px rgba(0, 0, 0, 0.35); }
+.p3-sub-view { position: absolute; top: 128px; left: 0; right: 0; height: 652px; overflow: hidden; }
+.p3-sub-band { position: absolute; left: 0; right: 0; top: 0; height: 92px; pointer-events: none; transition: transform 0.18s var(--ease); background: linear-gradient(90deg, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0.1) 65%, rgba(255, 255, 255, 0.02)); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55), inset 0 -1px 0 rgba(255, 255, 255, 0.55), 0 0 26px rgba(255, 255, 255, 0.12); }
+.p3-sub-list { position: absolute; left: 0; right: 0; top: 0; transition: transform 0.18s var(--ease); }
+.p3-row { height: 92px; display: flex; align-items: center; gap: 24px; padding: 0 28px; cursor: pointer; text-shadow: 0 1px 8px rgba(0, 0, 0, 0.45); }
+.p3-sub.big .p3-row { height: 124px; }
+.p3-row.dim { opacity: 0.55; }
+.p3-row.dim.sel { opacity: 0.8; }
+.p3-r-ic { width: 64px; height: 64px; flex: none; display: grid; place-items: center; }
+.p3-sub.big .p3-r-ic { width: 96px; height: 96px; }
+.p3-sub .p3-r-ic.wide { width: 174px; height: 96px; background: rgba(0, 0, 0, 0.25); box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3); }
+.p3-r-ic img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.p3-r-ic .p3-svg { filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3)); }
+.p3-r-t { flex: 1; min-width: 0; }
+.p3-r-t b { display: block; font-size: 30px; font-weight: 400; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.p3-r-t small { display: block; font-size: 21px; opacity: 0.78; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.p3-sub:not(.big) .p3-row:not(.sel) small { display: none; }
+.p3-r-v { flex: none; max-width: 460px; font-size: 27px; opacity: 0.92; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.p3-row.on .p3-r-v { font-size: 20px; }
+.p3-bar { display: block; width: 380px; height: 8px; margin-top: 10px; border-radius: 4px; overflow: hidden; background: rgba(255, 255, 255, 0.22); }
+.p3-bar i { display: block; height: 100%; background: #fff; box-shadow: 0 0 8px rgba(255, 255, 255, 0.6); }
+.p3-empty { padding: 34px 28px; font-size: 28px; line-height: 1.45; opacity: 0.9; text-shadow: 0 1px 8px rgba(0, 0, 0, 0.45); }
+.p3-empty small { font-size: 23px; opacity: 0.85; }
+
+/* --- Pistas de teclas --- */
+.p3-hints { position: absolute; right: 96px; bottom: 50px; display: flex; gap: 30px; font-size: 22px; opacity: 0.72; text-shadow: 0 1px 6px rgba(0, 0, 0, 0.4); }
+.theme-ps3 kbd { display: inline-block; min-width: 34px; margin-right: 10px; padding: 1px 9px; border: 1.5px solid rgba(255, 255, 255, 0.75); border-radius: 6px; font: inherit; font-size: 19px; text-align: center; }
+
+/* ============ Menú de opciones (triángulo) ============ */
+.p3-opts { position: absolute; inset: 0; z-index: 5; }
+.p3-opts::before { content: ''; position: absolute; top: 0; bottom: 0; right: 0; width: 760px; background: linear-gradient(90deg, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.7) 24%, rgba(0, 0, 0, 0.82) 100%); }
+.p3-opts.in::before { animation: p3-fade 0.25s ease both; }
+.p3-opts-list { position: absolute; right: 0; width: 580px; top: 50%; transform: translateY(-50%); }
+.p3-opts.in .p3-opts-list { animation: p3-opts-in 0.25s var(--ease) both; }
+@keyframes p3-opts-in { from { opacity: 0; transform: translate(60px, -50%); } to { opacity: 1; transform: translate(0, -50%); } }
+@keyframes p3-fade { from { opacity: 0; } to { opacity: 1; } }
+.p3-opt { position: relative; height: 76px; display: flex; align-items: center; padding: 0 56px; font-size: 29px; cursor: pointer; white-space: nowrap; }
+.p3-opt.sel { background: linear-gradient(90deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.24)); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5), inset 0 -1px 0 rgba(255, 255, 255, 0.5); }
+.p3-opt.on::after { content: '●'; margin-left: auto; font-size: 18px; }
+
+/* ============ Información ============ */
+.p3-info { position: absolute; inset: 0; z-index: 6; display: grid; place-items: center; background: rgba(0, 0, 0, 0.5); animation: p3-fade 0.2s ease both; }
+.p3-inf-box { width: 1240px; padding: 44px 60px 34px; background: linear-gradient(180deg, rgb(26, 26, 30), rgb(8, 8, 10)); border: 1px solid rgba(255, 255, 255, 0.28); box-shadow: 0 30px 80px rgba(0, 0, 0, 0.5); }
+.p3-inf-head { display: flex; align-items: center; gap: 28px; padding-bottom: 22px; border-bottom: 1px solid rgba(255, 255, 255, 0.35); }
+.p3-inf-head b { font-weight: 400; font-size: 38px; }
+.p3-inf-ic { width: 218px; height: 120px; flex: none; background: rgba(255, 255, 255, 0.1) center / cover; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4); }
+.p3-inf-rows { margin: 14px 0; }
+.p3-inf-r { display: flex; gap: 30px; padding: 12px 6px; font-size: 27px; border-bottom: 1px solid rgba(255, 255, 255, 0.12); }
+.p3-inf-r span { width: 300px; flex: none; opacity: 0.7; }
+.p3-inf-r b { font-weight: 400; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.p3-inf-desc { font-size: 24px; line-height: 1.45; opacity: 0.86; max-height: 210px; overflow: hidden; padding: 6px; }
+.p3-inf-foot { display: flex; justify-content: flex-end; font-size: 22px; opacity: 0.75; margin-top: 18px; }
+
+/* ============ Pregunta Sí / No ============ */
+.p3-dlg { position: absolute; inset: 0; z-index: 7; display: grid; align-items: center; background: rgba(0, 0, 0, 0.35); animation: p3-fade 0.2s ease both; }
+.p3-dlg-box { padding: 64px 0 56px; text-align: center; background: linear-gradient(180deg, rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0.85) 50%, rgba(0, 0, 0, 0.55)); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), inset 0 -1px 0 rgba(255, 255, 255, 0.35); }
+.p3-dlg-msg { font-size: 36px; margin-bottom: 44px; }
+.p3-dlg-btns { display: flex; justify-content: center; gap: 40px; }
+.p3-dlg-b { width: 230px; height: 66px; font-size: 29px; border-radius: 8px !important; border: 2px solid rgba(255, 255, 255, 0.4) !important; background: rgba(255, 255, 255, 0.06) !important; transition: background 0.12s, box-shadow 0.12s; }
+.p3-dlg-b.sel { background: rgba(255, 255, 255, 0.24) !important; border-color: #fff !important; box-shadow: 0 0 18px rgba(255, 255, 255, 0.35); }
+
+/* ============ Gameboot (abrir un juego) ============ */
+.p3-gb { position: absolute; inset: 0; z-index: 8; pointer-events: none; }
+.p3-gb::before, .p3-gb::after { content: ''; position: absolute; inset: 0; opacity: 0; }
+.p3-gb::before { background: radial-gradient(ellipse 55% 30% at 50% 62%, rgba(255, 255, 255, 1), rgba(255, 255, 255, 0.45) 40%, rgba(255, 255, 255, 0) 72%); }
+.p3-gb::after { background: #000; }
+.p3-gb.go::before { animation: p3-flash 2.3s ease both; }
+.p3-gb.go::after { animation: p3-black 2.3s ease both; }
+@keyframes p3-flash { 0%, 40% { opacity: 0; transform: scale(0.5); } 52% { opacity: 1; transform: scale(1); } 78% { opacity: 0.55; transform: scale(1.6); } 100% { opacity: 0; transform: scale(2); } }
+@keyframes p3-black { 0%, 58% { opacity: 0; } 100% { opacity: 1; } }
+
+/* ============ Jugando a… ============ */
+.p3-playing { position: absolute; inset: 0; z-index: 9; display: grid; place-items: center; background: rgba(0, 0, 0, 0.25); animation: p3-fade 0.7s ease both; }
+.p3-playing.leave { animation: p3-fade 0.4s ease reverse both; }
+.p3-play-card { display: flex; flex-direction: column; align-items: center; text-align: center; text-shadow: 0 1px 10px rgba(0, 0, 0, 0.5); }
+.p3-play-icon { width: 480px; height: 264px; display: grid; place-items: center; padding: 20px; font-size: 40px; background: rgba(0, 0, 0, 0.3) center / cover; box-shadow: 0 0 30px rgba(255, 255, 255, 0.22), 0 10px 30px rgba(0, 0, 0, 0.45); }
+.p3-play-label { margin-top: 40px; font-size: 30px; opacity: 0.8; }
+.p3-play-name { max-width: 860px; font-size: 52px; line-height: 1.15; }
+.p3-play-time { font-size: 42px; font-weight: 300; margin: 12px 0 34px; font-variant-numeric: tabular-nums; }
+.theme-ps3 .p3-play-btn { height: 66px; padding: 0 44px; font-size: 28px; border: 2px solid #fff !important; border-radius: 8px !important; background: rgba(255, 255, 255, 0.2) !important; box-shadow: 0 0 18px rgba(255, 255, 255, 0.3); }
+.p3-playing .np-panel { position: absolute; top: 150px; bottom: 150px; width: 430px; display: flex; flex-direction: column; padding: 28px; background: linear-gradient(180deg, rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0.72)); border: 1px solid rgba(255, 255, 255, 0.25); color: #fff; font-family: var(--p3-font); }
+.p3-playing .np-music { left: 80px; }
+.p3-playing .np-party { right: 80px; }
+.p3-playing .np-ic { width: 32px; height: 32px; flex: none; }
+.p3-playing .np-head { display: flex; align-items: center; gap: 12px; font-size: 28px; padding-bottom: 12px; border-bottom: 1px solid rgba(255, 255, 255, 0.35); }
+.p3-playing .np-head em { margin-left: auto; font-style: normal; font-size: 21px; opacity: 0.75; }
+.p3-playing .np-cover { width: 250px; height: 250px; margin: 26px auto 18px; background: rgba(255, 255, 255, 0.1) center / cover no-repeat; display: grid; place-items: center; box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4); }
+.p3-playing .np-cover .np-ic { width: 90px; height: 90px; opacity: 0.7; }
+.p3-playing .np-title, .p3-playing .np-artist { text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.p3-playing .np-title { font-size: 32px; }
+.p3-playing .np-artist { font-size: 24px; opacity: 0.75; min-height: 30px; }
+.p3-playing .np-ctrl { margin-top: auto; display: flex; justify-content: center; gap: 16px; }
+.p3-playing .np-btn { width: 84px; height: 84px; border-radius: 50%; display: grid; place-items: center; border: 2px solid rgba(255, 255, 255, 0.45) !important; background: rgba(255, 255, 255, 0.08) !important; }
+.p3-playing .np-btn.big { width: 100px; height: 100px; }
+.p3-playing .np-btn.wide { width: 100%; height: 70px; border-radius: 8px; display: flex; justify-content: center; align-items: center; gap: 12px; font-size: 25px; }
+.p3-playing .np-btn:hover { background: rgba(255, 255, 255, 0.24) !important; border-color: #fff !important; }
+.p3-playing .np-chan { margin: 20px 0 14px; }
+.p3-playing .np-chan b { display: block; font-size: 34px; font-weight: 400; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.p3-playing .np-chan small { font-size: 22px; opacity: 0.75; }
+.p3-playing .np-list { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; }
+.p3-playing .np-m { display: flex; align-items: center; gap: 16px; height: 74px; padding: 0 8px; flex: none; border-bottom: 1px solid rgba(255, 255, 255, 0.15); }
+.p3-playing .np-av { width: 54px; height: 54px; border-radius: 50%; flex: none; background: #888 center / cover; box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.7); transition: box-shadow 0.15s; }
+.p3-playing .np-n { flex: 1; min-width: 0; font-size: 27px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.p3-playing .np-m .np-ic { width: 28px; height: 28px; color: #ff6b5a; }
+.p3-playing .np-m.talking .np-av { box-shadow: 0 0 0 4px #3fd06a; }
+.p3-playing .np-msg { flex: 1; display: grid; place-items: center; text-align: center; font-size: 25px; opacity: 0.8; }
+
+/* ============ Cambiar imágenes (clic derecho): estilo XMB ============ */
+.theme-ps3 .ge-wrap { background: rgba(0, 0, 0, 0.5); font-family: var(--p3-font); }
+.theme-ps3 .ge-panel { background: linear-gradient(180deg, rgba(24, 24, 28, 0.95), rgba(6, 6, 8, 0.96)); color: #fff; border: 1px solid rgba(255, 255, 255, 0.28); box-shadow: 0 30px 80px rgba(0, 0, 0, 0.55); animation: p3-fade 0.2s ease both; }
+.theme-ps3 .ge-head { padding: 30px 50px 20px; border-bottom: 1px solid rgba(255, 255, 255, 0.35); }
+.theme-ps3 .ge-title { font-size: 44px; font-weight: 400; }
+.theme-ps3 .ge-sub { font-size: 24px; opacity: 0.7; }
+.theme-ps3 .ge-body { padding: 26px 50px; }
+.theme-ps3 .ge-slot, .theme-ps3 .ge-desc { padding: 20px; background: rgba(255, 255, 255, 0.04); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14); }
+.theme-ps3 .ge-slot.on, .theme-ps3 .ge-desc.on { background: linear-gradient(90deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.05)); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55), inset 0 -1px 0 rgba(255, 255, 255, 0.55); }
+.theme-ps3 .ge-prev { background: rgba(0, 0, 0, 0.4); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35); color: rgba(255, 255, 255, 0.7); }
+.theme-ps3 .ge-name { font-size: 32px; }
+.theme-ps3 .ge-state { font-size: 19px; padding: 3px 12px; border-radius: 4px; border: 1px solid rgba(255, 255, 255, 0.4); }
+.theme-ps3 .is-custom .ge-state { background: #fff; color: #111; border-color: #fff; }
+.theme-ps3 .ge-hint, .theme-ps3 .ge-used { font-size: 21px; opacity: 0.72; line-height: 1.35; }
+.theme-ps3 .ge-b { height: 56px; padding: 0 26px; border-radius: 8px; border: 2px solid rgba(255, 255, 255, 0.35); background: rgba(255, 255, 255, 0.06); color: #fff; font-size: 23px; }
+.theme-ps3 .ge-b.kf, .theme-ps3 .ge-b:hover { background: rgba(255, 255, 255, 0.24); border-color: #fff; box-shadow: 0 0 14px rgba(255, 255, 255, 0.3); }
+.theme-ps3 .ge-b.main { background: rgba(255, 255, 255, 0.2); }
+.theme-ps3 .ge-text { border: 1px solid rgba(255, 255, 255, 0.35); padding: 14px 18px; font-size: 25px; color: #fff; background: rgba(0, 0, 0, 0.35); line-height: 1.4; }
+.theme-ps3 .ge-text.kf, .theme-ps3 .ge-text:focus { border-color: #fff; box-shadow: 0 0 14px rgba(255, 255, 255, 0.25); }
+.theme-ps3 .ge-msg { padding: 8px 50px; font-size: 25px; }
+.theme-ps3 .ge-msg.bad { color: #ff8a7a; }
+.theme-ps3 .ge-foot { padding: 18px 50px 28px; border-top: 1px solid rgba(255, 255, 255, 0.35); }
+.theme-ps3 .ge-drop { background: rgba(255, 255, 255, 0.85); color: #111; }
+.theme-ps3 .ge-ctx { padding: 10px 0; background: linear-gradient(90deg, rgba(0, 0, 0, 0.78), rgba(0, 0, 0, 0.9)); color: #fff; border: 1px solid rgba(255, 255, 255, 0.25); box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45); font-family: var(--p3-font); }
+.theme-ps3 .ge-ctx-title { font-size: 22px; opacity: 0.7; padding: 8px 28px 12px; border-bottom: 1px solid rgba(255, 255, 255, 0.3); }
+.theme-ps3 .ge-ci { height: 72px; padding: 0 28px; font-size: 28px; color: #fff; background: none; border: 0; }
+.theme-ps3 .ge-ci.kf { background: linear-gradient(90deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.24)); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5), inset 0 -1px 0 rgba(255, 255, 255, 0.5); }

@@ -123,4 +123,24 @@ window.CONSOLES = [
       enterFlash: '#000000',
     },
   },
+  {
+    id: 'ps3',
+    company: 'Sony',
+    name: 'PlayStation 3',
+    year: 2006,
+    look: {
+      background:
+        'radial-gradient(ellipse 120% 14% at 50% 64%, rgba(255,255,255,0.32), rgba(255,255,255,0) 70%),' +
+        'radial-gradient(ellipse 70% 50% at 35% 25%, rgba(255,255,255,0.14), rgba(255,255,255,0) 70%),' +
+        'linear-gradient(178deg, #4a4d55 0%, #2c2e33 55%, #121316 100%)',
+      base: '#2c2e33',
+      text: '#ffffff',
+      subtext: '#c4c8d0',
+      accent: '#e8ecf2',
+      font: "'Segoe UI', 'M PLUS Rounded 1c', sans-serif",
+      nameWeight: 300,
+      nameShadow: '0 4px 24px rgba(0,0,0,0.5)',
+      enterFlash: '#000000', // la PS3 enciende desde negro
+    },
+  },
 ];
