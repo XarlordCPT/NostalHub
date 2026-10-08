@@ -264,6 +264,7 @@
       });
     });
     function runBtn(id) {
+      ctx.sound('b-' + id); // cada botón con su sonido (boton-ajustes.wav, boton-tienda.wav…), si lo pusiste
       if (id === 'store' || id === 'friends') {
         call('open', id === 'store' ? 'steam-store' : 'steam-friends');
         ctx.toast('Se abrió en Steam');
@@ -813,7 +814,11 @@
     async function startGame(g) {
       if (!g || view === 'playing') return;
       const res = await api.launch(g.id);
-      if (!res || !res.ok) return ctx.toast(`No se pudo abrir: ${(res && res.error) || 'error desconocido'}`);
+      if (!res || !res.ok) {
+        ctx.sound('error');
+        return ctx.toast(`No se pudo abrir: ${(res && res.error) || 'error desconocido'}`);
+      }
+      ctx.sound('gameboot');
       root.dataset.prevView = view;
       view = 'playing';
       closePop();
@@ -877,14 +882,14 @@
       }
       if (view === 'home') {
         if (area === 'row') {
-          if (k === 'ArrowRight') setRow(rowSel + 1);
-          else if (k === 'ArrowLeft') setRow(rowSel - 1);
+          if (k === 'ArrowRight') rowSel >= rowItems.length - 1 ? ctx.sound('border') : setRow(rowSel + 1);
+          else if (k === 'ArrowLeft') rowSel <= 0 ? ctx.sound('border') : setRow(rowSel - 1);
           else if (k === 'ArrowDown') setRow(rowSel, 'btns');
           else if (k === 'Enter') activateRow();
           else if (k === 'Escape') ctx.openSelector();
         } else {
-          if (k === 'ArrowRight') (btnSel = Math.min(BTNS.length - 1, btnSel + 1)), setRow(rowSel, 'btns');
-          else if (k === 'ArrowLeft') (btnSel = Math.max(0, btnSel - 1)), setRow(rowSel, 'btns');
+          if (k === 'ArrowRight') btnSel >= BTNS.length - 1 ? ctx.sound('border') : ((btnSel += 1), setRow(rowSel, 'btns'));
+          else if (k === 'ArrowLeft') btnSel <= 0 ? ctx.sound('border') : ((btnSel -= 1), setRow(rowSel, 'btns'));
           else if (k === 'ArrowUp') setRow(rowSel, 'row');
           else if (k === 'Enter') runBtn(BTNS[btnSel].id);
           else if (k === 'Escape') setRow(rowSel, 'row');

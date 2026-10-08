@@ -44,6 +44,16 @@
     <div id="toast"></div>
   </div>
 
+  <!-- ===== Barra de la ventana (solo en modo ventana; baja al llevar el mouse arriba) ===== -->
+  <div id="winbar" aria-hidden="true">
+    <div class="wb-drag"><span class="wb-dot"></span><span class="wb-title">NostalHub</span><span class="wb-sub"></span></div>
+    <div class="wb-btns">
+      <button class="wb-b wb-min" data-w="minimize" title="Minimizar"><svg viewBox="0 0 20 20"><path d="M4 10.5h12"/></svg></button>
+      <button class="wb-b wb-max" data-w="maximize" title="Maximizar"><svg class="i-max" viewBox="0 0 20 20"><rect x="4.5" y="4.5" width="11" height="11" rx="1.5"/></svg><svg class="i-res" viewBox="0 0 20 20"><rect x="4" y="7" width="9" height="9" rx="1.5"/><path d="M7 7V5.5A1.5 1.5 0 0 1 8.5 4h6A1.5 1.5 0 0 1 16 5.5v6a1.5 1.5 0 0 1-1.5 1.5H13"/></svg></button>
+      <button class="wb-b wb-close" data-w="close" title="Cerrar NostalHub"><svg viewBox="0 0 20 20"><path d="M5 5l10 10M15 5 5 15"/></svg></button>
+    </div>
+  </div>
+
   <script src="../node_modules/hls.js/dist/hls.light.min.js"></script>
   <script src="mock.js"></script>
   <script src="consoles.js"></script>

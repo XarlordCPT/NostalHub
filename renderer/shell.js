@@ -34,6 +34,46 @@
     return { left: (r.left - s.left) / scale, top: (r.top - s.top) / scale, width: r.width / scale, height: r.height / scale };
   }
 
+  // ---------- Barra de la ventana (modo ventana) ----------
+  // Escondida; baja al llevar el mouse al borde de arriba. Minimizar, maximizar y cerrar con el estilo de cada consola.
+  const winbar = $('#winbar');
+  let winState = { mode: 'fullscreen', maximized: false };
+  let barTimer = null;
+  function applyWin(s) {
+    if (s) winState = s;
+    const windowed = winState.mode === 'window';
+    document.body.classList.toggle('windowed', windowed);
+    winbar.classList.toggle('max', !!winState.maximized);
+    winbar.querySelector('.wb-max').title = winState.maximized ? 'Restaurar' : 'Maximizar';
+    if (!windowed) showBar(false);
+  }
+  function showBar(on) {
+    clearTimeout(barTimer);
+    winbar.classList.toggle('show', on);
+  }
+  if (api.getWindowState) api.getWindowState().then(applyWin);
+  if (api.onWindowState) api.onWindowState(applyWin);
+  window.addEventListener('mousemove', (e) => {
+    if (winState.mode !== 'window') return;
+    if (e.clientY <= 8) showBar(true);
+    else if (e.clientY <= 60) clearTimeout(barTimer);
+    else if (winbar.classList.contains('show')) {
+      clearTimeout(barTimer);
+      barTimer = setTimeout(() => showBar(false), 300);
+    }
+  });
+  document.documentElement.addEventListener('mouseleave', () => {
+    if (winState.mode !== 'window' || !winbar.classList.contains('show')) return;
+    clearTimeout(barTimer);
+    barTimer = setTimeout(() => showBar(false), 900);
+  });
+  winbar.querySelectorAll('[data-w]').forEach((b) =>
+    b.addEventListener('click', () => {
+      showBar(false);
+      if (api.windowControl) api.windowControl(b.dataset.w).then((s) => s && applyWin(s));
+    })
+  );
+
   // ---------- Avisos ----------
   let toastTimer = null;
   function toast(msg) {
@@ -253,6 +293,8 @@
 
     setThemeCss(c.id, true);
     themeRoot.className = `theme-${c.id}`;
+    document.body.dataset.console = c.id; // la barra de la ventana toma el estilo de la consola
+    $('#winbar .wb-sub').textContent = c.name;
     themeRoot.hidden = false;
     theme = { id: c.id, instance: factory.mount(themeRoot, { api, stage, stageRect, toast, openSelector: leave, sound: (kind) => Sound.play(kind), duckMusic: (on) => Sound.duck(on), soundSettings: () => ({ ...settings }), hasAsset: (kind) => !!(assets[c.id] && assets[c.id][kind]) }) };
     selector.hidden = true;
@@ -274,6 +316,8 @@
     theme = null;
     themeRoot.hidden = true;
     themeRoot.className = '';
+    delete document.body.dataset.console;
+    $('#winbar .wb-sub').textContent = '';
     selector.hidden = false;
     paintBackground(false);
     layout(false);
@@ -399,8 +443,8 @@
         }
         return;
       }
-      if (kind === 'page' && this.pending) {
-        clearTimeout(this.pending); // reemplaza al sonido de mover / elegir de esa misma tecla o clic
+      if (!['move', 'select', 'back'].includes(kind) && this.pending) {
+        clearTimeout(this.pending); // un sonido más específico (página, botón, borde…) reemplaza al de mover / elegir de esa misma tecla o clic
         this.pending = null;
       }
       if (kind === 'move') {

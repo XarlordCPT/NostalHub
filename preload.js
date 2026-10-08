@@ -64,6 +64,10 @@ contextBridge.exposeInMainWorld('nostalhub', {
   readClipboard: () => ipcRenderer.invoke('clipboard:read'),
   writeClipboard: (text) => ipcRenderer.invoke('clipboard:write', text),
   onSetup: on('shell:setup'),
+  // Ventana (modo ventana: minimizar, maximizar, cerrar)
+  getWindowState: () => ipcRenderer.invoke('win:state'),
+  windowControl: (action) => ipcRenderer.invoke('win:control', action),
+  onWindowState: on('win:state'),
   // Sonido
   getSettings: () => ipcRenderer.invoke('settings:get'),
   onSettings: on('settings:changed'),

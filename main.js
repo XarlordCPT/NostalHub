@@ -240,6 +240,16 @@ const CONSOLE_FILES = {
   gameboot: { base: 'gameboot', ext: ['.wav', '.mp3', '.ogg', '.m4a'] },
   option: { base: 'opciones', ext: ['.wav', '.mp3', '.ogg', '.m4a'] },
   error: { base: 'error', ext: ['.wav', '.mp3', '.ogg', '.m4a'] },
+  border: { base: 'borde', ext: ['.wav', '.mp3', '.ogg', '.m4a'] },
+  // Switch: un sonido para cada botón redondo
+  'b-party': { base: 'boton-grupo', ext: ['.wav', '.mp3', '.ogg', '.m4a'] },
+  'b-music': { base: 'boton-musica', ext: ['.wav', '.mp3', '.ogg', '.m4a'] },
+  'b-store': { base: 'boton-tienda', ext: ['.wav', '.mp3', '.ogg', '.m4a'] },
+  'b-trophies': { base: 'boton-logros', ext: ['.wav', '.mp3', '.ogg', '.m4a'] },
+  'b-library': { base: 'boton-software', ext: ['.wav', '.mp3', '.ogg', '.m4a'] },
+  'b-friends': { base: 'boton-amigos', ext: ['.wav', '.mp3', '.ogg', '.m4a'] },
+  'b-settings': { base: 'boton-ajustes', ext: ['.wav', '.mp3', '.ogg', '.m4a'] },
+  'b-power': { base: 'boton-energia', ext: ['.wav', '.mp3', '.ogg', '.m4a'] },
   intro: { base: 'intro', ext: ['.mp4', '.webm', '.mov', '.m4v'] },
 };
 
@@ -335,7 +345,10 @@ function consoleAssets(ids) {
     '  pagina.wav  -> (Wii y PS Vita) sonido al pasar de página o de tarjeta',
     '  gameboot.wav -> (PS3) sonido al abrir un juego',
     '  opciones.wav -> (PS3) sonido al abrir el menú de opciones (tecla O)',
-    '  error.wav    -> (PS3) sonido cuando algo no se pudo hacer',
+    '  error.wav    -> sonido cuando algo no se pudo hacer (PS3 y Switch)',
+    '  borde.wav    -> (Switch) al llegar al final de la fila',
+    '  boton-grupo.wav, boton-musica.wav, boton-tienda.wav, boton-logros.wav, boton-software.wav,',
+    '  boton-amigos.wav, boton-ajustes.wav, boton-energia.wav -> (Switch) al abrir cada botón redondo',
     '',
     'Se aplica solo al guardar el archivo. Más detalles en MANUAL.md, en la carpeta del proyecto.',
     '',
@@ -506,8 +519,43 @@ function pickDisplay() {
   return right || others[others.length - 1];
 }
 
+const isWindowMode = () => config.data.windowMode === 'window';
+
+// Lo que la barra de arriba necesita saber (modo ventana y si está maximizada)
+function windowState() {
+  return { mode: isWindowMode() ? 'window' : 'fullscreen', maximized: !!win && !win.isDestroyed() && win.isMaximized() };
+}
+function sendWindowState() {
+  send('win:state', windowState());
+}
+
+// Modo ventana: vuelve a donde estaba (si esa posición sigue dentro de alguna pantalla) o 1280×720 al centro
+function placeAsWindow() {
+  win.setSkipTaskbar(false); // con barra de tareas, para poder minimizarla y volver
+  win.setResizable(true);
+  win.setMaximizable(true);
+  if (win.isMaximized()) return sendWindowState();
+  const b = config.data.windowBounds;
+  const fits = b && screen.getAllDisplays().some((d) => b.x < d.workArea.x + d.workArea.width - 80 && b.x + b.width > d.workArea.x + 80 && b.y >= d.workArea.y - 10 && b.y < d.workArea.y + d.workArea.height - 80);
+  if (fits) win.setBounds(b);
+  else {
+    const wa = (pickDisplay() || screen.getPrimaryDisplay()).workArea;
+    const w = Math.min(1280, wa.width - 80);
+    const h = Math.round((w * 9) / 16);
+    win.setBounds({ x: wa.x + Math.round((wa.width - w) / 2), y: wa.y + Math.round((wa.height - h) / 2), width: w, height: h });
+  }
+  if (config.data.windowMaximized) win.maximize();
+  sendWindowState();
+}
+
 function placeWindow() {
   if (!win) return;
+  if (isWindowMode()) return placeAsWindow();
+  if (win.isMaximized()) win.unmaximize();
+  win.setResizable(false);
+  win.setMaximizable(false);
+  win.setSkipTaskbar(true);
+  sendWindowState();
   const d = pickDisplay();
   if (!d) {
     // Solo hay una pantalla: ventana normal para no tapar todo.
@@ -531,6 +579,8 @@ function createWindow() {
     resizable: false,
     maximizable: false,
     fullscreenable: false,
+    minWidth: 640,
+    minHeight: 360,
     skipTaskbar: true,
     autoHideMenuBar: true,
     backgroundColor: '#ebebeb',
@@ -561,7 +611,38 @@ function createWindow() {
     if (!isQuitting) e.preventDefault();
   });
   win.on('closed', () => (win = null));
+  // Modo ventana: recuerda dónde la dejaste y su tamaño
+  let saveTimer = null;
+  const remember = () => {
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => {
+      if (!win || win.isDestroyed() || !isWindowMode() || win.isMinimized()) return;
+      config.data.windowMaximized = win.isMaximized();
+      if (!win.isMaximized()) config.data.windowBounds = win.getBounds();
+      config.save();
+    }, 500);
+  };
+  win.on('move', remember);
+  win.on('resize', remember);
+  win.on('maximize', () => (remember(), sendWindowState()));
+  win.on('unmaximize', () => (remember(), sendWindowState()));
 }
+
+// Botones de la barra de arriba (modo ventana)
+ipcMain.handle('win:state', () => windowState());
+ipcMain.handle('win:control', (_e, action) => {
+  if (!win || win.isDestroyed()) return null;
+  if (action === 'minimize') win.minimize();
+  else if (action === 'maximize') {
+    if (!isWindowMode()) return windowState();
+    if (win.isMaximized()) win.unmaximize();
+    else win.maximize();
+  } else if (action === 'close') {
+    isQuitting = true;
+    app.quit();
+  }
+  return windowState();
+});
 
 let isQuitting = false;
 app.on('before-quit', () => {
@@ -688,6 +769,18 @@ function menuSections() {
       title: 'Pantalla',
       items: [
         {
+          id: 'windowMode',
+          type: 'choice',
+          label: 'Modo',
+          desc: 'Pantalla completa, o una ventana que puedes mover, achicar y minimizar (los botones salen al llevar el mouse arriba).',
+          options: [
+            { value: 'fullscreen', label: 'Pantalla completa' },
+            { value: 'window', label: 'Ventana' },
+          ],
+          value: isWindowMode() ? 'window' : 'fullscreen',
+          set: (v) => (setOption('windowMode', v === 'window' ? 'window' : 'fullscreen'), placeWindow()),
+        },
+        {
           id: 'display',
           type: 'choice',
           label: 'Pantalla',
@@ -703,14 +796,18 @@ function menuSections() {
           value: config.data.display === 'auto' ? 'auto' : String(config.data.display),
           set: (v) => (setOption('display', v === 'auto' ? 'auto' : Number(v)), placeWindow()),
         },
-        {
-          id: 'fullscreen',
-          type: 'toggle',
-          label: 'Cubrir la barra de tareas',
-          desc: 'Desactívalo si la barra de Windows aparece encima del menú.',
-          value: !!config.data.fullscreen,
-          set: (v) => (setOption('fullscreen', v), placeWindow()),
-        },
+        ...(isWindowMode()
+          ? []
+          : [
+              {
+                id: 'fullscreen',
+                type: 'toggle',
+                label: 'Cubrir la barra de tareas',
+                desc: 'Desactívalo si quieres ver la barra de Windows abajo.',
+                value: !!config.data.fullscreen,
+                set: (v) => (setOption('fullscreen', v), placeWindow()),
+              },
+            ]),
         {
           id: 'autoStart',
           type: 'toggle',

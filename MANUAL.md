@@ -93,9 +93,11 @@ Para abrirlas: ajustes → Archivos → **Carpeta de consolas** (o en la Xbox: s
 | `volver.wav` | Sonido al **volver** (Esc) |
 | `pagina.wav` | **Wii y PS Vita**: sonido al **pasar de página** (Wii: menú de canales y Configuración; Vita: páginas de burbujas y al cambiar de tarjeta). Reemplaza al de mover en ese momento |
 | `inicio.wav` | Sonido al **terminar de entrar** a la consola: suena justo después del video de inicio (o al entrar, si no hay video). Pensado para la Wii, pero funciona en cualquier consola donde lo pongas |
-| `gameboot.wav` | **PS3**: sonido al **abrir un juego** |
+| `gameboot.wav` | **PS3 y Switch**: sonido al **abrir un juego** |
 | `opciones.wav` | **PS3**: sonido al abrir el **menú de opciones** (tecla O) |
-| `error.wav` | **PS3**: sonido cuando algo **no se pudo hacer** (por ejemplo, un juego que no abrió) |
+| `error.wav` | **PS3 y Switch**: sonido cuando algo **no se pudo hacer** (por ejemplo, un juego que no abrió) |
+| `borde.wav` | **Switch**: al chocar con el final de la fila |
+| `boton-grupo.wav`, `boton-musica.wav`, `boton-tienda.wav`, `boton-logros.wav`, `boton-software.wav`, `boton-amigos.wav`, `boton-ajustes.wav`, `boton-energia.wav` | **Switch**: el sonido de cada botón redondo al abrirlo (si falta uno, suena `elegir.wav`) |
 | `intro.mp4` | Video que se reproduce **cada vez que entras** a esa consola, por ejemplo el arranque de la Xbox 360 en `consolas\x360\intro.mp4`. Se salta con Enter, Esc, espacio o un clic. También sirven `.webm` y `.mov` |
 
 En los ajustes de cada consola (o en el menú del ícono junto al reloj de Windows) puedes:
@@ -310,6 +312,15 @@ Las mismas opciones del menú del ícono junto al reloj, con el estilo de cada c
 | PS Vita | Burbuja **Ajustes** (primera página) o el menú rápido (**P**) | Se abre como tarjeta: lista clara de categorías → opciones; Esc vuelve a las categorías |
 
 "Salir de NostalHub" siempre pregunta antes de cerrar. El menú del ícono junto al reloj sigue estando, con las mismas opciones.
+
+### Pantalla completa o ventana
+
+En **Ajustes → Pantalla → Modo**:
+- **Pantalla completa** (como siempre). Ahí mismo eliges si **cubre la barra de tareas** de Windows o no.
+- **Ventana**: se puede mover, cambiar de tamaño y minimizar, y recuerda dónde la dejaste. Arriba hay una barra
+  **escondida**: lleva el mouse al borde de arriba y baja con **minimizar, maximizar y cerrar**. La barra cambia de
+  estilo según dónde estés (selector o cada consola). Arrástrala para mover la ventana; doble clic la maximiza.
+  **Cerrar** sale de NostalHub.
 
 ### Cómo se usa la PS3
 

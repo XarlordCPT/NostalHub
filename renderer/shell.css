@@ -467,3 +467,91 @@ img, video { -webkit-user-drag: none; }
 .sel-tilt button { display: block; width: 100%; height: 66px; padding: 0 18px; border: 0; border-radius: 18px; background: none; text-align: left; font-family: inherit; font-size: 28px; color: #4b4b4b; cursor: pointer; }
 .sel-tilt button:hover { background: #eef7fb; }
 .sel-tilt button.on { color: #fff; background: var(--accent, #34bfed); }
+
+/* ============ Barra de la ventana (modo ventana) ============
+   Escondida arriba; baja al acercar el mouse. Cada consola le da su estilo (body[data-console=…]).
+   Solo se puede arrastrar mientras se ve (así no tapa los clics del menú). */
+#winbar {
+  --wb-h: 42px;
+  position: fixed; left: 0; right: 0; top: 0; z-index: 1000;
+  height: var(--wb-h); display: flex; align-items: stretch;
+  font: 500 14px/1 'Segoe UI', 'M PLUS Rounded 1c', sans-serif; color: #fff;
+  background: linear-gradient(180deg, rgba(18, 18, 22, 0.92), rgba(18, 18, 22, 0.78));
+  backdrop-filter: blur(12px);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.35);
+  transform: translateY(-110%); visibility: hidden;
+  transition: transform 0.22s var(--ease), visibility 0s linear 0.22s;
+}
+body.windowed #winbar.show { transform: none; visibility: visible; transition: transform 0.22s var(--ease), visibility 0s; }
+#winbar.show .wb-drag { -webkit-app-region: drag; }
+#winbar .wb-btns { -webkit-app-region: no-drag; }
+.wb-drag { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; padding: 0 16px; white-space: nowrap; overflow: hidden; }
+.wb-dot { width: 12px; height: 12px; border-radius: 50%; flex: none; background: conic-gradient(#34bfed, #e60012, #45b52a, #3d7bff, #34bfed); }
+.wb-title { font-weight: 700; letter-spacing: 0.3px; }
+.wb-sub { opacity: 0.65; }
+.wb-sub:not(:empty)::before { content: '·'; margin-right: 10px; }
+.wb-btns { display: flex; align-items: center; gap: 6px; padding: 0 8px; }
+.wb-b { width: 40px; height: 30px; display: grid; place-items: center; border-radius: 8px; color: inherit; background: transparent; transition: background 0.12s, box-shadow 0.12s, transform 0.12s; }
+.wb-b svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.wb-b .i-res, #winbar.max .wb-b .i-max { display: none; }
+#winbar.max .wb-b .i-res { display: block; }
+.wb-b:hover { background: rgba(255, 255, 255, 0.14); }
+.wb-close:hover { background: #e5484d; color: #fff; }
+.wb-b:active { transform: scale(0.94); }
+
+/* --- Wii: blanca, botones redondos con borde celeste --- */
+body[data-console='wii'] #winbar { font-family: 'M PLUS Rounded 1c', sans-serif; color: #5b5b5b; background: linear-gradient(180deg, #ffffff, #ececec); border-bottom: 3px solid #34bfed; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18); backdrop-filter: none; }
+body[data-console='wii'] .wb-dot { background: #34bfed; box-shadow: 0 0 0 3px #d6f2fb; }
+body[data-console='wii'] .wb-b { width: 34px; height: 34px; border-radius: 50%; background: linear-gradient(#fff, #f0f0f0); box-shadow: inset 0 0 0 2px #cfcfcf, 0 2px 4px rgba(0, 0, 0, 0.12); }
+body[data-console='wii'] .wb-b:hover { box-shadow: inset 0 0 0 3px #34bfed, 0 0 10px rgba(52, 191, 237, 0.6); color: #34bfed; background: #fff; }
+body[data-console='wii'] .wb-close:hover { color: #e5484d; box-shadow: inset 0 0 0 3px #e5484d, 0 0 10px rgba(229, 72, 77, 0.45); background: #fff; }
+body[data-console='wii'] .wb-b svg { stroke-width: 2.4; }
+
+/* --- PS2: negra con brillo azul --- */
+body[data-console='ps2'] #winbar { color: #cfdcff; background: linear-gradient(180deg, rgba(4, 8, 24, 0.95), rgba(8, 18, 54, 0.88)); border-bottom: 1px solid rgba(80, 130, 255, 0.45); box-shadow: 0 0 30px rgba(40, 90, 220, 0.35); }
+body[data-console='ps2'] .wb-dot { background: radial-gradient(circle, #9fc0ff, #3d7bff 60%, transparent 70%); box-shadow: 0 0 10px #3d7bff; }
+body[data-console='ps2'] .wb-title { font-weight: 300; letter-spacing: 2px; }
+body[data-console='ps2'] .wb-b { border-radius: 4px; }
+body[data-console='ps2'] .wb-b:hover { background: rgba(61, 123, 255, 0.25); box-shadow: 0 0 14px rgba(61, 123, 255, 0.7), inset 0 0 0 1px rgba(160, 190, 255, 0.6); color: #fff; }
+body[data-console='ps2'] .wb-close:hover { background: rgba(229, 72, 77, 0.35); box-shadow: 0 0 14px rgba(229, 72, 77, 0.7), inset 0 0 0 1px rgba(255, 150, 150, 0.6); }
+
+/* --- Xbox 360: plateada, botones como los del control (Y amarillo, X azul, B rojo) --- */
+body[data-console='x360'] #winbar { color: #3c3c3c; font-family: 'Segoe UI', sans-serif; background: linear-gradient(180deg, #f4f4f4, #c9c9c9); border-bottom: 2px solid #45b52a; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3); backdrop-filter: none; }
+body[data-console='x360'] .wb-dot { background: radial-gradient(circle at 35% 30%, #b7f08f, #45b52a 55%, #1f6e10); }
+body[data-console='x360'] .wb-b { width: 30px; height: 30px; border-radius: 50%; color: #fff; box-shadow: inset 0 -3px 6px rgba(0, 0, 0, 0.3), 0 1px 3px rgba(0, 0, 0, 0.35); }
+body[data-console='x360'] .wb-min { background: radial-gradient(circle at 35% 30%, #ffe680, #f2b705 60%, #a77d00); }
+body[data-console='x360'] .wb-max { background: radial-gradient(circle at 35% 30%, #8ec5ff, #1a6fe0 60%, #0b3f8c); }
+body[data-console='x360'] .wb-close { background: radial-gradient(circle at 35% 30%, #ff9a8f, #e0251b 60%, #8c1009); }
+body[data-console='x360'] .wb-b:hover { filter: brightness(1.15); box-shadow: inset 0 -3px 6px rgba(0, 0, 0, 0.3), 0 0 0 3px rgba(69, 181, 42, 0.6); }
+body[data-console='x360'] .wb-b svg { width: 15px; height: 15px; stroke-width: 2.6; }
+
+/* --- PS4: azul transparente, selección con brillo blanco --- */
+body[data-console='ps4'] #winbar { background: linear-gradient(180deg, rgba(8, 40, 120, 0.9), rgba(10, 47, 140, 0.75)); border-bottom: 1px solid rgba(255, 255, 255, 0.25); }
+body[data-console='ps4'] .wb-dot { background: #fff; box-shadow: 0 0 8px #fff; }
+body[data-console='ps4'] .wb-title { font-weight: 300; }
+body[data-console='ps4'] .wb-b { border-radius: 3px; }
+body[data-console='ps4'] .wb-b:hover { background: rgba(255, 255, 255, 0.9); color: #0b3aa3; box-shadow: 0 0 16px rgba(255, 255, 255, 0.6); }
+body[data-console='ps4'] .wb-close:hover { background: #fff; color: #d0021b; }
+
+/* --- PS Vita: negra como su barra de arriba, celeste al pasar --- */
+body[data-console='vita'] #winbar { font-family: 'M PLUS Rounded 1c', sans-serif; background: rgba(0, 0, 0, 0.88); box-shadow: 0 2px 12px rgba(0, 0, 0, 0.4); }
+body[data-console='vita'] .wb-dot { background: radial-gradient(circle at 35% 30%, #c8ecff, #5ac8ff 50%, #1a6fd8); }
+body[data-console='vita'] .wb-b { border-radius: 50%; width: 32px; height: 32px; }
+body[data-console='vita'] .wb-b:hover { background: radial-gradient(circle at 35% 30%, #c8ecff, #5ac8ff 55%, #1a6fd8); color: #fff; }
+body[data-console='vita'] .wb-close:hover { background: radial-gradient(circle at 35% 30%, #ffc2c2, #ff5a5a 55%, #c8102e); }
+
+/* --- Switch: gris oscuro (o claro con Básico blanco), borde celeste al pasar --- */
+body[data-console='switch'] #winbar { color: #fff; background: #2d2d2d; border-bottom: 2px solid #4a4a4a; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3); backdrop-filter: none; }
+body[data-console='switch']:has(#theme-root.light) #winbar { color: #2d2d2d; background: #ebebeb; border-bottom-color: #d6d6d6; }
+body[data-console='switch'] .wb-dot { background: #e60012; border-radius: 3px; }
+body[data-console='switch'] .wb-b { border-radius: 4px; background: rgba(128, 128, 128, 0.18); }
+body[data-console='switch'] .wb-b:hover, body[data-console='switch'] .wb-close:hover { background: rgba(128, 128, 128, 0.18); color: inherit; box-shadow: 0 0 0 2px #2d2d2d, 0 0 0 4px #00c3e3; }
+body[data-console='switch']:has(#theme-root.light) .wb-b:hover { box-shadow: 0 0 0 2px #ebebeb, 0 0 0 4px #0ab4e0; }
+
+/* --- PS3: transparente tipo XMB, banda de luz al pasar --- */
+body[data-console='ps3'] #winbar { font-family: 'P3 Rodin', 'Segoe UI', sans-serif; font-weight: 400; background: linear-gradient(180deg, rgba(0, 0, 0, 0.72), rgba(0, 0, 0, 0.45)); box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.35); }
+body[data-console='ps3'] .wb-dot { background: radial-gradient(circle, #fff, rgba(255, 255, 255, 0.2) 60%, transparent 70%); width: 16px; height: 16px; }
+body[data-console='ps3'] .wb-b { border-radius: 0; height: 100%; width: 46px; }
+body[data-console='ps3'] .wb-btns { gap: 0; padding: 0; }
+body[data-console='ps3'] .wb-b:hover { background: linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.28)); box-shadow: inset 0 -1px 0 #fff, 0 0 18px rgba(255, 255, 255, 0.25); }
+body[data-console='ps3'] .wb-close:hover { background: linear-gradient(180deg, rgba(229, 72, 77, 0.1), rgba(229, 72, 77, 0.55)); }

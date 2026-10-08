@@ -8,7 +8,10 @@ const DEFAULTS = {
   // "auto" = la pantalla secundaria (prefiere la de la derecha).
   // También puede ser el número que aparece en el menú "Pantalla" de la bandeja.
   display: 'auto',
-  fullscreen: true,
+  fullscreen: true, // en pantalla completa: true = cubre la barra de tareas
+  // 'fullscreen' (toda la pantalla) o 'window' (ventana que se mueve y cambia de tamaño)
+  windowMode: 'fullscreen',
+  windowBounds: null, // dónde quedó la ventana la última vez (modo ventana)
   autoStart: true,
   // Al abrir, agrega solo los juegos de Steam instalados que todavía no estén en la lista.
   importSteamAutomatically: true,
