@@ -784,3 +784,32 @@ body.playing .theme-ps2 .ps-big * { animation-play-state: running !important; }
 .theme-ps2 .ge-ctx-title { font-size: 22px; font-weight: 800; letter-spacing: 3px; text-transform: uppercase; color: rgba(140, 180, 255, 0.7); padding: 6px 16px 10px; }
 .theme-ps2 .ge-ci { height: 70px; padding: 0 22px; border-radius: 6px; font-size: 32px; font-weight: 500; color: rgba(225, 235, 255, 0.85); background: none; border: 0; }
 .theme-ps2 .ge-ci.kf { color: #fff; background: linear-gradient(to right, rgba(80, 140, 255, 0.55), rgba(80, 140, 255, 0)); box-shadow: inset 4px 0 0 #bfe0ff; text-shadow: 0 0 14px rgba(150, 200, 255, 0.95); }
+
+/* ============ Amigos (de Steam), con el estilo de Configuración del sistema ============ */
+.ps-fr-btn { position: relative; }
+.ps-fr-btn svg { animation: none; stroke-linejoin: round; }
+.ps-fr-n { position: absolute; right: -10px; top: -12px; min-width: 40px; height: 40px; padding: 0 8px; border-radius: 20px; background: #3a7bff; border: 3px solid #fff; font-size: 22px; font-style: normal; line-height: 34px; text-align: center; box-shadow: 0 0 14px rgba(120, 170, 255, 0.9); }
+.ps-fr-n[hidden] { display: none; }
+.pc-title small { font-size: 40px; color: #8fd0ff; margin-left: 24px; letter-spacing: 0; }
+.pf-viewport { overflow-y: auto; scrollbar-width: none; scroll-padding: 60px 0 60px; }
+.pf-viewport::-webkit-scrollbar { display: none; }
+.pf-list { padding: 20px 0 50px; }
+.pf-row { height: 92px; justify-content: flex-start; gap: 28px; padding: 0 40px 0 20px; text-align: left; }
+.pf-name { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pf-row.off .pf-name { opacity: 0.6; }
+.pf-row.game .pf-val { color: #9ff0ff; }
+.pf-row.off .pf-val { color: rgba(160, 180, 220, 0.6); }
+.pf-row.away .pf-val { color: #ffc56a; }
+.pf-row.busy .pf-val { color: #ff8a7a; }
+/* Imagen con esquinas redondeadas y un brillo del color de su estado */
+.pf-pic { position: relative; flex: none; width: 66px; height: 66px; border-radius: 14px; display: grid; place-items: center; background: rgba(40, 70, 160, 0.7); box-shadow: 0 0 0 2px rgba(160, 200, 255, 0.6), 0 0 14px rgba(80, 140, 255, 0.5); }
+.pf-pic img { width: 100%; height: 100%; object-fit: cover; display: block; border-radius: inherit; }
+.pf-pic b { font-size: 32px; font-weight: 800; color: #dbe9ff; }
+.pf-pic i { position: absolute; right: -5px; bottom: -5px; width: 18px; height: 18px; border-radius: 50%; background: #4dff8a; box-shadow: 0 0 10px #4dff8a, 0 0 0 2px #0a1640; }
+.pf-pic.away i { background: #ffc56a; box-shadow: 0 0 10px #ffc56a, 0 0 0 2px #0a1640; }
+.pf-pic.busy i { background: #ff6a5a; box-shadow: 0 0 10px #ff6a5a, 0 0 0 2px #0a1640; }
+.pf-pic.off i { display: none; }
+.pf-pic.off { opacity: 0.6; filter: grayscale(0.6); }
+.pf-empty { display: flex; flex-direction: column; align-items: center; gap: 22px; padding-top: 120px; text-align: center; }
+.pf-empty b { font-size: 52px; font-weight: 800; color: #eaf2ff; text-shadow: 0 0 14px rgba(150, 200, 255, 0.8); }
+.pf-empty span { font-size: 32px; color: rgba(200, 220, 255, 0.8); max-width: 1200px; line-height: 1.4; }

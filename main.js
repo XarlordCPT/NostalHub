@@ -13,7 +13,8 @@ const { Launcher } = require('./src/launcher');
 const { SteamWeb } = require('./src/steamweb');
 const { AchievementWatcher, gamerscore, trophyTier } = require('./src/achievements');
 const { Overlay } = require('./src/overlay');
-const { Spotify } = require('./src/spotify');
+const { Spotify, MUSIC_APPS } = require('./src/spotify');
+const { SpotifyWeb } = require('./src/spotify-web');
 
 const IS_DEV = process.argv.includes('--dev');
 
@@ -84,7 +85,19 @@ const launcher = new Launcher((gameId, reason) => {
 });
 const steamWeb = new SteamWeb(DATA_DIR);
 const { DiscordVoice } = require('./src/discord');
-const spotify = new Spotify((state) => send('spotify:update', state), path.join(DATA_DIR, 'cache', 'spotify.log'));
+// Conexión con la API de Spotify (opcional, Premium): cola, avance, aleatorio, repetir, me gusta, volumen, dispositivo
+const spotifyWeb = new SpotifyWeb({
+  dataDir: DATA_DIR,
+  onUpdate: () => {
+    if (typeof spotify !== 'undefined') spotify.emit();
+    send('spotify:web', spotifyWeb.peek());
+  },
+  log: (line) => spotify && spotify.log(`spotify (api): ${line}`),
+});
+const spotify = new Spotify((state) => send('spotify:update', state), path.join(DATA_DIR, 'cache', 'spotify.log'), {
+  getApp: () => config.data.musicApp || 'spotify', // Spotify, Apple Music, YouTube Music o automático
+  web: spotifyWeb,
+});
 const discord = new DiscordVoice({
   dataDir: DATA_DIR,
   onUpdate: (state) => send('discord:update', state),
@@ -720,6 +733,7 @@ app.on('before-quit', () => {
   overlay.destroy();
   isQuitting = true;
   spotify.dispose();
+  spotifyWeb.dispose();
   discord.dispose();
 });
 
@@ -950,6 +964,20 @@ function menuSections() {
           value: [0.3, 0.6, 1].find((v) => near(v, ss.sfxVolume)),
           set: (v) => sound('sfxVolume')(Number(v)),
         },
+        {
+          id: 'musicApp',
+          type: 'choice',
+          label: 'App de música',
+          desc: 'De qué app se muestra la canción en la sección Música y al jugar. Automático: la que esté sonando.',
+          options: [
+            { value: 'spotify', label: 'Spotify' },
+            { value: 'apple', label: 'Apple Music' },
+            { value: 'ytmusic', label: 'YouTube Music (en el navegador)', short: 'YouTube Music' },
+            { value: 'auto', label: 'Automático (la que esté sonando)', short: 'Automático' },
+          ],
+          value: MUSIC_APPS[config.data.musicApp] ? config.data.musicApp : 'spotify',
+          set: (v) => (setOption('musicApp', MUSIC_APPS[v] ? v : 'spotify'), spotify.poll(), spotify.emit()),
+        },
       ],
     },
     {
@@ -957,6 +985,7 @@ function menuSections() {
       title: 'Cuentas',
       items: [
         { id: 'setup-steam', type: 'action', label: 'Conectar Steam (logros)', desc: 'Pega tu clave de Steam aquí mismo para ver tus logros, tu nombre y tu foto.', closes: true, run: () => openSetup('steam') },
+        { id: 'setup-spotify', type: 'action', label: 'Conectar Spotify (debes tener Premium)', desc: 'Para ver la cola, el avance de la canción, aleatorio, repetir, me gusta, volumen y dispositivos.', closes: true, run: () => openSetup('spotify') },
         { id: 'setup-discord', type: 'action', label: 'Conectar Discord (grupo)', desc: 'Conecta tu Discord para ver tu canal de voz y quiénes están contigo.', closes: true, run: () => openSetup('discord') },
       ],
     },
@@ -1304,8 +1333,11 @@ ipcMain.handle('setup:get', async () => {
   return {
     steam: { hasKey: !!steamWeb.key, foundUser: !!steamUser, name: (web && web.name) || (steamUser && steamUser.name) || null },
     discord: (({ clientId, hasSecret }) => ({ clientId, hasSecret, state: discord.state }))(discord.peek()), // nunca se manda el secret
+    spotify: spotifyWeb.peek(), // sin tokens
   };
 });
+ipcMain.handle('setup:spotify', (_e, clientId) => spotifyWeb.authorize(String(clientId || '')));
+ipcMain.handle('setup:spotify-disconnect', () => (spotifyWeb.disconnect(), spotifyWeb.peek()));
 ipcMain.handle('setup:steam', async (_e, key) => {
   const res = await steamWeb.saveKey(String(key || ''), steamUser && steamUser.steamId);
   if (res.ok) {
@@ -1333,13 +1365,15 @@ ipcMain.handle('steam:profile', async () => {
   };
 });
 
+ipcMain.handle('steam:friends', () => steamWeb.friends(steamUser && steamUser.steamId));
 ipcMain.handle('steam:achievements', (_e, appId) => steamWeb.achievements(String(appId), steamUser && steamUser.steamId));
 
 ipcMain.handle('steam:summary', () => ({ ...steamWeb.summary(), hasKey: !!steamWeb.key }));
 
 // ---------- Spotify ----------
 ipcMain.handle('spotify:watch', (_e, on) => spotify.watch(!!on));
-ipcMain.handle('spotify:control', (_e, cmd) => spotify.control(String(cmd)));
+ipcMain.handle('spotify:control', (_e, cmd, arg) => spotify.control(String(cmd), arg && typeof arg === 'object' ? { value: Number(arg.value) } : Number.isFinite(Number(arg)) ? Number(arg) : arg != null ? String(arg) : undefined));
+ipcMain.handle('spotify:devices', () => spotifyWeb.devices());
 
 // ---------- Discord (canal de voz para la PS4) ----------
 ipcMain.handle('discord:watch', (_e, on) => discord.watch(!!on));
@@ -1366,6 +1400,10 @@ ipcMain.handle('app:open', (_e, what) => {
     case 'discord':
     case 'setup-discord':
       return openSetup('discord');
+    case 'setup-spotify':
+      return openSetup('spotify');
+    case 'spotify-dashboard':
+      return shell.openExternal('https://developer.spotify.com/dashboard');
     case 'apikey-file':
       return shell.openPath(steamWeb.ensureKeyFile());
     case 'discord-file':
@@ -1384,8 +1422,12 @@ ipcMain.handle('app:open', (_e, what) => {
       return shell.openExternal('steam://url/SteamIDControlPage');
     case 'steam-profile':
       return shell.openExternal(steamUser ? `steam://url/SteamIDPage/${steamUser.steamId}` : 'steam://open/main');
-    default:
-      return null;
+    default: {
+      // Perfil de un amigo: 'steam-user:<id de 17 números>'; chat con él: 'steam-chat:<id>'
+      const m = /^steam-(user|chat):(\d{17})$/.exec(String(what || ''));
+      if (!m) return null;
+      return shell.openExternal(m[1] === 'chat' ? `steam://friends/message/${m[2]}` : `steam://url/SteamIDPage/${m[2]}`);
+    }
   }
 });
 

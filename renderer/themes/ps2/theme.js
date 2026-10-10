@@ -46,12 +46,39 @@
   <div class="ps-caption"></div>
   <div class="ps-foot-right">
     <div class="ps-hints"></div>
+    <button class="ps-cfg-btn ps-fr-btn" title="Amigos de Steam (tecla A)">
+      <svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="18" cy="16" r="6"/><path d="M6 39c0-8 5-12 12-12s12 4 12 12"/><circle cx="33" cy="18" r="5"/><path d="M31 27c7 0 11 4 11 11"/></svg>
+      <span class="ps-key">A</span><span>Amigos</span><em class="ps-fr-n" hidden></em>
+    </button>
     <button class="ps-cfg-btn" title="Configuración del sistema (tecla C)">
       <svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="7"/><path d="M24 4v8M24 36v8M4 24h8M36 24h8M9.9 9.9l5.7 5.7M32.4 32.4l5.7 5.7M9.9 38.1l5.7-5.7M32.4 15.6l5.7-5.7"/></svg>
       <span class="ps-key">C</span><span>Configuración</span>
     </button>
   </div>
 </footer>
+
+<!-- Amigos de Steam (con el estilo de Configuración del sistema) -->
+<section class="ps-cfg ps-fr" hidden>
+  <div class="pc-glow a"></div>
+  <div class="pc-glow b"></div>
+  <div class="pc-title">Amigos <small class="pf-count"></small></div>
+  <div class="pc-viewport pf-viewport"><div class="pf-list"></div></div>
+  <div class="pc-desc pf-desc"></div>
+  <div class="pc-hints">
+    <span class="ps-key">↑ ↓</span><span class="pc-hint">Elegir</span>
+    <span class="ps-key">Enter</span><span class="pc-hint">Opciones</span>
+    <span class="ps-key">Esc</span><span class="pc-hint">Volver</span>
+  </div>
+  <div class="pc-confirm pf-ask" hidden>
+    <div class="pc-confirm-box">
+      <div class="pc-confirm-text pf-ask-name"></div>
+      <div class="pc-confirm-actions">
+        <button class="ps-btn" data-a="profile">Ver perfil</button>
+        <button class="ps-btn" data-a="chat">Mensaje</button>
+      </div>
+    </div>
+  </div>
+</section>
 
 <!-- Configuración del sistema (las mismas opciones del menú de la bandeja) -->
 <section class="ps-cfg" hidden>
@@ -358,7 +385,7 @@
     const gridView = $('.ps-grid-view');
     const grid = $('.ps-grid');
     const detail = $('.ps-detail');
-    const nowPlaying = window.NostalHubUtil.nowPlaying(detail, api);
+    const nowPlaying = window.NostalHubUtil.nowPlaying(detail, api, ctx.toast);
     const big = $('.ps-big');
     const caption = $('.ps-caption');
     const hints = $('.ps-hints');
@@ -696,7 +723,7 @@
 
     // ---------- Configuración del sistema ----------
     // Las opciones vienen de main.js (las mismas del menú de la bandeja); aquí se dibujan al estilo PS2.
-    const cfg = $('.ps-cfg');
+    const cfg = $('.ps-cfg:not(.ps-fr)'); // (la de Amigos usa el mismo estilo)
     const cfgList = $('.pc-list');
     let cfgModel = [];
     let cfgRows = []; // [{ it, el }] solo las filas elegibles (sin los títulos de sección)
@@ -757,7 +784,7 @@
       cfgSel = (i + cfgRows.length) % cfgRows.length;
       cfgRows.forEach((r, j) => r.el.classList.toggle('sel', j === cfgSel));
       const r = cfgRows[cfgSel];
-      $('.pc-desc').textContent = r.it.desc || '';
+      cfg.querySelector('.pc-desc').textContent = r.it.desc || '';
       if (scroll) {
         // mantiene la fila elegida a la vista
         const top = r.el.offsetTop;
@@ -795,13 +822,13 @@
     function showConfirm(on) {
       cfgConfirm = on;
       cfgConfirmYes = false;
-      $('.pc-confirm').hidden = !on;
+      cfg.querySelector('.pc-confirm').hidden = !on;
       paintConfirm();
     }
     function paintConfirm() {
-      root.querySelectorAll('.pc-confirm .ps-btn').forEach((b) => b.classList.toggle('on', (b.dataset.c === 'yes') === cfgConfirmYes));
+      cfg.querySelectorAll('.pc-confirm .ps-btn').forEach((b) => b.classList.toggle('on', (b.dataset.c === 'yes') === cfgConfirmYes));
     }
-    root.querySelectorAll('.pc-confirm .ps-btn').forEach((b) => {
+    cfg.querySelectorAll('.pc-confirm .ps-btn').forEach((b) => {
       b.addEventListener('mouseenter', () => {
         cfgConfirmYes = b.dataset.c === 'yes';
         paintConfirm();
@@ -828,17 +855,149 @@
       else if (e.key === 'Escape' || e.key === 'Backspace') closeConfig();
     }
 
-    $('.ps-cfg-btn').addEventListener('click', () => openConfig());
+    $('.ps-cfg-btn:not(.ps-fr-btn)').addEventListener('click', () => openConfig());
     cfg.addEventListener('wheel', (e) => {
       if (view !== 'config' || cfgConfirm || Math.abs(e.deltaY) < 10) return;
       setCfg(cfgSel + (e.deltaY > 0 ? 1 : -1));
     });
+
+    // ---------- Amigos (de Steam) ----------
+    const feed = U.friendsFeed(api);
+    const pf = $('.ps-fr');
+    let pfSel = 0;
+    let pfId = null;
+    let pfAsk = null; // { f, btn } con la ventanita abierta
+    function pfBadge() {
+      const n = feed.online.length;
+      const el = $('.ps-fr-n');
+      el.hidden = !n;
+      el.textContent = String(n);
+    }
+    feed.onChange(() => {
+      pfBadge();
+      if (view === 'friends') paintPf();
+    });
+    feed.load(); // para el número de conectados en el botón
+    function openFriends() {
+      if (view !== 'grid') return;
+      view = 'friends';
+      pfSel = 0;
+      pfId = null;
+      pfAsk = null;
+      $('.pf-ask').hidden = true;
+      pf.hidden = false;
+      pf.classList.remove('leave');
+      paintPf();
+      $('.pf-viewport').scrollTop = 0;
+      feed.watch(true);
+    }
+    async function closeFriends() {
+      if (view !== 'friends') return;
+      feed.watch(false);
+      pf.classList.add('leave');
+      await wait(300);
+      pf.hidden = true;
+      pf.classList.remove('leave');
+      view = 'grid';
+    }
+    function paintPf() {
+      const d = feed.data;
+      const rows = feed.list;
+      const list = $('.pf-list');
+      $('.pf-count').textContent = d.status === 'ok' ? `${feed.online.length} en línea` : '';
+      if (d.status !== 'ok' || !rows.length) {
+        const m = U.friendsMessage(d.status);
+        list.innerHTML = `<div class="pf-empty"><b>${U.escapeHtml(m.t)}</b><span>${U.escapeHtml(m.d)}</span>${m.btn ? `<button class="ps-btn on" data-pb="${m.btn[0]}">${m.btn[1]}</button>` : ''}</div>`;
+        const b = list.querySelector('[data-pb]');
+        if (b) b.addEventListener('click', () => api.open(b.dataset.pb));
+        $('.pf-desc').textContent = '';
+        return;
+      }
+      list.innerHTML = U.friendsGrouped(rows)
+        .map(
+          (g) =>
+            `<div class="pc-head">${g.title}</div>` +
+            g.items
+              .map(([f, i]) => `<button class="pc-row pf-row ${U.friendClass(f)}" data-i="${i}"><span class="pf-pic ${U.friendClass(f)}">${f.avatar ? `<img src="${U.escapeHtml(f.avatar)}" alt="" />` : `<b>${U.escapeHtml((f.name || '?').trim().charAt(0).toUpperCase())}</b>`}<i></i></span><span class="pc-label pf-name">${U.escapeHtml(f.name)}</span><span class="pc-val pf-val">${U.escapeHtml(f.state === 0 ? 'Desconectado' : f.game ? 'Jugando' : U.friendStatus(f))}</span></button>`)
+              .join('')
+        )
+        .join('');
+      list.querySelectorAll('.pf-row').forEach((r) => {
+        r.addEventListener('mouseenter', () => setPf(Number(r.dataset.i), false));
+        r.addEventListener('click', () => openPfAsk(rows[Number(r.dataset.i)]));
+      });
+      const keep = pfId ? rows.findIndex((f) => f.id === pfId) : -1;
+      setPf(keep >= 0 ? keep : Math.min(pfSel, rows.length - 1), keep < 0);
+    }
+    function setPf(i, scroll = true) {
+      const rows = feed.list;
+      if (!rows.length) return;
+      pfSel = Math.max(0, Math.min(rows.length - 1, i));
+      const f = rows[pfSel];
+      pfId = f.id;
+      let el = null;
+      pf.querySelectorAll('.pf-row').forEach((r) => {
+        const on = Number(r.dataset.i) === pfSel;
+        r.classList.toggle('sel', on);
+        if (on) el = r;
+      });
+      if (scroll && el) el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      $('.pf-desc').textContent = U.friendStatus(f);
+    }
+    function openPfAsk(f) {
+      if (!f) return;
+      pfAsk = { f, btn: 0 };
+      $('.pf-ask-name').textContent = f.name;
+      $('.pf-ask').hidden = false;
+      paintPfAsk();
+    }
+    function paintPfAsk() {
+      pf.querySelectorAll('.pf-ask .ps-btn').forEach((b, i) => b.classList.toggle('on', pfAsk && i === pfAsk.btn));
+    }
+    function runPfAsk(which) {
+      const f = pfAsk && pfAsk.f;
+      pfAsk = null;
+      $('.pf-ask').hidden = true;
+      if (!f) return;
+      if (which === 'chat') {
+        feed.chat(f);
+        ctx.toast(`Se abrió el chat con ${f.name} en Steam`);
+      } else {
+        feed.profile(f);
+        ctx.toast(`Se abrió el perfil de ${f.name} en Steam`);
+      }
+    }
+    pf.querySelectorAll('.pf-ask .ps-btn').forEach((b, i) => {
+      b.addEventListener('mouseenter', () => pfAsk && ((pfAsk.btn = i), paintPfAsk()));
+      b.addEventListener('click', () => runPfAsk(b.dataset.a));
+    });
+    $('.pf-ask').addEventListener('pointerdown', (e) => e.target === e.currentTarget && ((pfAsk = null), ($('.pf-ask').hidden = true)));
+    function friendsKey(e) {
+      const k = e.key;
+      if (pfAsk) {
+        if (k === 'ArrowLeft' || k === 'ArrowRight') (pfAsk.btn = pfAsk.btn ? 0 : 1), paintPfAsk();
+        else if (k === 'Enter') runPfAsk(pfAsk.btn ? 'chat' : 'profile');
+        else if (k === 'Escape' || k === 'Backspace') (pfAsk = null), ($('.pf-ask').hidden = true);
+        return;
+      }
+      if (k === 'Escape' || k === 'Backspace') return closeFriends();
+      if (feed.data.status !== 'ok' || !feed.list.length) {
+        const b = pf.querySelector('[data-pb]');
+        if (k === 'Enter' && b) b.click();
+        return;
+      }
+      if (k === 'ArrowDown') setPf(pfSel + 1);
+      else if (k === 'ArrowUp') setPf(pfSel - 1);
+      else if (k === 'Enter') openPfAsk(feed.list[pfSel]);
+    }
+    $('.ps-fr-btn').addEventListener('click', () => openFriends());
 
     // ---------- Teclado ----------
     function onKey(e) {
       // Enter/espacio no deben "apretar" además el último botón clickeado con el mouse
       if (e.key === 'Enter' || e.key === ' ') e.preventDefault();
       if (view === 'config') return configKey(e);
+      if (view === 'friends') return friendsKey(e);
       if (view === 'ach') {
         if (e.key === 'Escape' || e.key === 'Backspace' || e.key === 'Enter') closeAch();
         else if (e.key === 'ArrowLeft') setAch(achSel - 1);
@@ -854,6 +1013,7 @@
         else if (e.key === 'ArrowUp') setSel(sel - COLS);
         else if (e.key === 'Enter') openDetail(sel);
         else if (e.key === 'c' || e.key === 'C') openConfig();
+        else if (e.key === 'a' || e.key === 'A') openFriends();
         else if (e.key === 'Escape') ctx.openSelector();
       } else if (view === 'detail' || view === 'playing') {
         if (e.key === 'ArrowRight' || e.key === 'ArrowDown') setAction(action + 1);
@@ -890,6 +1050,7 @@
     return {
       unmount() {
         nowPlaying.dispose();
+        feed.dispose();
         clearInterval(freeTimer);
         clearInterval(playTimer);
         Models.disposeAll();

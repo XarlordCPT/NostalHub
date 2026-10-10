@@ -33,6 +33,10 @@
     <button class="round-btn left" id="btn-settings" aria-label="Ajustes" title="Ajustes">
       <svg viewBox="0 0 48 48" aria-hidden="true"><path fill-rule="evenodd" stroke="none" d="M39.07 20.38 L43.82 21.34 L43.82 26.66 L39.07 27.62 L37.22 32.10 L39.90 36.13 L36.13 39.90 L32.10 37.22 L27.62 39.07 L26.66 43.82 L21.34 43.82 L20.38 39.07 L15.90 37.22 L11.87 39.90 L8.10 36.13 L10.78 32.10 L8.93 27.62 L4.18 26.66 L4.18 21.34 L8.93 20.38 L10.78 15.90 L8.10 11.87 L11.87 8.10 L15.90 10.78 L20.38 8.93 L21.34 4.18 L26.66 4.18 L27.62 8.93 L32.10 10.78 L36.13 8.10 L39.90 11.87 L37.22 15.90 Z M30.5 24 A6.5 6.5 0 1 0 17.5 24 A6.5 6.5 0 1 0 30.5 24 Z"/></svg>
     </button>
+    <button class="round-btn right small" id="btn-friends" aria-label="Amigos" title="Amigos">
+      <svg viewBox="0 0 48 48" aria-hidden="true" fill="none" stroke-width="3.2" stroke-linejoin="round"><rect x="7" y="12" width="34" height="24" rx="4"/><path d="M8 14l16 12 16-12"/></svg>
+      <em class="wf-badge" hidden></em>
+    </button>
     <button class="round-btn right" id="btn-random" aria-label="Juego al azar" title="Juego al azar">
       <svg viewBox="0 0 48 48" aria-hidden="true"><rect x="8" y="8" width="32" height="32" rx="8" fill="none" stroke-width="3.2"/><circle cx="17" cy="17" r="3"/><circle cx="31" cy="17" r="3"/><circle cx="24" cy="24" r="3"/><circle cx="17" cy="31" r="3"/><circle cx="31" cy="31" r="3"/></svg>
     </button>
@@ -77,6 +81,25 @@
   </div>
   <div class="ch-bottom wa-bottom">
     <button class="pill" id="wa-back">Volver</button>
+  </div>
+</section>
+
+<!-- ===== Amigos (de Steam), como una carta del Tablón de mensajes ===== -->
+<section id="wii-fr" hidden>
+  <div class="wa-box wf-box">
+    <div class="wa-head">
+      <span class="wa-title">Amigos</span>
+      <span class="wa-game wf-sub">Steam</span>
+      <span class="wa-count wf-count"></span>
+    </div>
+    <div class="wf-body">
+      <div class="wf-list"></div>
+      <div class="wf-card"></div>
+    </div>
+    <div class="wa-msg wf-msg" hidden></div>
+  </div>
+  <div class="ch-bottom wa-bottom">
+    <button class="pill" id="wf-back">Volver</button>
   </div>
 </section>
 
@@ -148,7 +171,7 @@
     const chMedia = channel.querySelector('.ch-media');
     const chTitle = channel.querySelector('.ch-title');
     const playing = $('#playing');
-    const nowPlaying = window.NostalHubUtil.nowPlaying(playing, ctx.api);
+    const nowPlaying = window.NostalHubUtil.nowPlaying(playing, ctx.api, ctx.toast);
 
     let games = [];
     let page = 0;
@@ -667,6 +690,127 @@
     $('#wa-back').addEventListener('click', closeAch);
 
 
+    // ---------- Amigos (de Steam) ----------
+    // Botón del sobre (abajo a la derecha): lista a la izquierda y la carta del amigo marcado a la derecha.
+    const feed = U.friendsFeed(api);
+    const wf = $('#wii-fr');
+    let wfSel = 0;
+    let wfBtn = 0;
+    let wfId = null;
+    function wfBadge() {
+      const n = feed.online.length;
+      const b = $('.wf-badge');
+      b.hidden = !n;
+      b.textContent = String(n);
+    }
+    feed.onChange(() => {
+      wfBadge();
+      if (view === 'friends') paintWf();
+    });
+    feed.load(); // para el número de amigos conectados en el sobre
+    function wfPic(f, cls = '') {
+      return `<span class="wf-pic ${cls} ${U.friendClass(f)}">${f.avatar ? `<img src="${U.escapeHtml(f.avatar)}" alt="" />` : `<b>${U.escapeHtml((f.name || '?').trim().charAt(0).toUpperCase())}</b>`}<i></i></span>`;
+    }
+    function openFriends() {
+      if (view !== 'menu') return;
+      view = 'friends';
+      menu.classList.add('dimmed');
+      wf.hidden = false;
+      wf.classList.remove('leave');
+      wfSel = 0;
+      wfBtn = 0;
+      wfId = null;
+      paintWf();
+      $('.wf-list').scrollTop = 0;
+      feed.watch(true);
+    }
+    async function closeFriends() {
+      if (view !== 'friends') return;
+      feed.watch(false);
+      wf.classList.add('leave');
+      await wait(220);
+      wf.hidden = true;
+      wf.classList.remove('leave');
+      menu.classList.remove('dimmed');
+      view = 'menu';
+    }
+    function paintWf() {
+      const d = feed.data;
+      const rows = feed.list;
+      const msg = $('.wf-msg');
+      $('.wf-count').textContent = d.status === 'ok' ? `${feed.online.length} en línea` : '';
+      if (d.status !== 'ok' || !rows.length) {
+        const m = U.friendsMessage(d.status);
+        $('.wf-list').innerHTML = '';
+        $('.wf-card').innerHTML = '';
+        msg.hidden = false;
+        msg.innerHTML = `${d.status === 'loading' ? '<div class="wa-spinner"></div>' : ''}<b>${U.escapeHtml(m.t)}</b><br />${U.escapeHtml(m.d)}${m.btn ? `<br /><button class="pill wf-pill" data-wb="${m.btn[0]}">${m.btn[1]}</button>` : ''}`;
+        const b = msg.querySelector('[data-wb]');
+        if (b) b.addEventListener('click', () => api.open(b.dataset.wb));
+        return;
+      }
+      msg.hidden = true;
+      $('.wf-list').innerHTML = U.friendsGrouped(rows)
+        .map((g) => `<div class="wf-head">${g.title}</div>` + g.items.map(([f, i]) => `<button class="wf-row ${U.friendClass(f)}" data-i="${i}">${wfPic(f)}<span class="wf-tx"><span class="wf-n">${U.escapeHtml(f.name)}</span><span class="wf-s">${U.escapeHtml(U.friendStatus(f))}</span></span></button>`).join(''))
+        .join('');
+      wf.querySelectorAll('.wf-row').forEach((r) => {
+        r.addEventListener('mouseenter', () => setWf(Number(r.dataset.i), false));
+        r.addEventListener('click', () => wfOpen(0, rows[Number(r.dataset.i)]));
+      });
+      const keep = wfId ? rows.findIndex((f) => f.id === wfId) : -1;
+      setWf(keep >= 0 ? keep : Math.min(wfSel, rows.length - 1), keep < 0);
+    }
+    function setWf(i, scroll = true) {
+      const rows = feed.list;
+      if (!rows.length) return;
+      wfSel = Math.max(0, Math.min(rows.length - 1, i));
+      const f = rows[wfSel];
+      wfId = f.id;
+      let el = null;
+      wf.querySelectorAll('.wf-row').forEach((r) => {
+        const on = Number(r.dataset.i) === wfSel;
+        r.classList.toggle('sel', on);
+        if (on) el = r;
+      });
+      if (scroll && el) el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      $('.wf-card').innerHTML = `${wfPic(f, 'big')}<div class="wf-cn">${U.escapeHtml(f.name)}</div><div class="wf-cs ${U.friendClass(f)}">${U.escapeHtml(U.friendStatus(f))}</div>
+        <div class="wf-btns"><button class="wf-btn${wfBtn === 0 ? ' kfocus' : ''}" data-fb="0">Ver perfil</button><button class="wf-btn${wfBtn === 1 ? ' kfocus' : ''}" data-fb="1">Mensaje</button></div>`;
+      wf.querySelectorAll('.wf-card [data-fb]').forEach((b) => {
+        b.addEventListener('mouseenter', () => setWfBtn(Number(b.dataset.fb)));
+        b.addEventListener('click', () => wfOpen(Number(b.dataset.fb), f));
+      });
+    }
+    function setWfBtn(i) {
+      wfBtn = i ? 1 : 0;
+      wf.querySelectorAll('.wf-card [data-fb]').forEach((b) => b.classList.toggle('kfocus', Number(b.dataset.fb) === wfBtn));
+    }
+    function wfOpen(btn, f) {
+      if (!f) return;
+      if (btn) {
+        feed.chat(f);
+        toast(`Se abrió el chat con ${f.name} en Steam`);
+      } else {
+        feed.profile(f);
+        toast(`Se abrió el perfil de ${f.name} en Steam`);
+      }
+    }
+    function friendsKey(e) {
+      const k = e.key;
+      if (k === 'Escape' || k === 'Backspace') return closeFriends();
+      if (feed.data.status !== 'ok' || !feed.list.length) {
+        const b = wf.querySelector('[data-wb]');
+        if (k === 'Enter' && b) b.click();
+        return;
+      }
+      if (k === 'ArrowDown') setWf(wfSel + 1);
+      else if (k === 'ArrowUp') setWf(wfSel - 1);
+      else if (k === 'ArrowLeft') setWfBtn(0);
+      else if (k === 'ArrowRight') setWfBtn(1);
+      else if (k === 'Enter') wfOpen(wfBtn, feed.list[wfSel]);
+    }
+    $('#btn-friends').addEventListener('click', openFriends);
+    $('#wf-back').addEventListener('click', closeFriends);
+
     // ---------- Configuración (engranaje) ----------
     // Las opciones vienen de main.js (las mismas del menú de la bandeja); aquí solo se dibujan al estilo Wii.
     const ws = $('#wii-set');
@@ -876,6 +1020,7 @@
       // Enter/espacio no deben "apretar" además el último botón clickeado con el mouse
       if (e.key === 'Enter' || e.key === ' ') e.preventDefault();
       if (view === 'settings') return settingsKey(e);
+      if (view === 'friends') return friendsKey(e);
       if (view === 'ach') {
         if (e.key === 'Escape' || e.key === 'Backspace' || e.key === 'Enter') closeAch();
         else if (e.key === 'ArrowLeft') setAch(achSel - 1);
@@ -894,6 +1039,7 @@
         if (e.key === 'ArrowLeft' || e.key === 'PageUp') setPage(page - 1);
         else if (e.key === 'ArrowRight' || e.key === 'PageDown') setPage(page + 1);
         else if (e.key === 'Escape') ctx.openSelector();
+        else if (e.key === 'a' || e.key === 'A') openFriends(); // el sobre: amigos
       }
     }
     window.addEventListener('keydown', onKey);
@@ -936,6 +1082,7 @@
     return {
       unmount() {
         nowPlaying.dispose();
+        feed.dispose();
         stopVideo();
         clearInterval(tickTimer);
         clearInterval(playTimer);

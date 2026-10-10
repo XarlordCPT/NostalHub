@@ -420,7 +420,7 @@
 /* ---------- Grupo (Discord) ---------- */
 .p4p-body { position: absolute; left: 95px; right: 95px; top: 220px; bottom: 80px; }
 .p4p-empty { display: flex; flex-direction: column; align-items: center; text-align: center; padding-top: 70px; }
-.p4p-empty .p4p-big { width: 170px; height: 170px; opacity: 0.9; }
+.p4p-empty .p4p-big, .p4f-msg .p4p-big { width: 170px; height: 170px; opacity: 0.9; }
 .p4p-t { font-size: 54px; font-weight: 300; margin-top: 24px; }
 .p4p-d { font-size: 30px; opacity: 0.82; max-width: 1150px; margin: 18px auto 44px; line-height: 1.4; }
 .p4p-btns { display: flex; gap: 24px; justify-content: center; }
@@ -671,3 +671,70 @@ body.playing .theme-ps4 .p4-spin { animation-play-state: paused; }
 .theme-ps4 .ge-ctx-title { font-size: 22px; opacity: 0.7; padding: 6px 26px 10px; }
 .theme-ps4 .ge-ci { height: 70px; padding: 0 26px; font-size: 30px; font-weight: 300; color: #fff; background: none; border: 0; }
 .theme-ps4 .ge-ci.kf { background: rgba(255, 255, 255, 0.95); color: #0b3aa3; }
+
+/* ---------- Amigos (de Steam) ---------- */
+.p4f-count { position: absolute; right: 95px; top: 104px; font-size: 30px; opacity: 0.85; }
+.p4f-count b { font-weight: 600; color: #7dff8a; }
+.p4f-viewport { position: absolute; left: 95px; width: 1080px; top: 200px; bottom: 70px; overflow-y: auto; scrollbar-width: none; scroll-padding: 20px 0 50px; padding: 6px 8px 40px 0; box-sizing: border-box;
+  -webkit-mask: linear-gradient(180deg, transparent 0, #000 14px, #000 calc(100% - 40px), transparent); mask: linear-gradient(180deg, transparent 0, #000 14px, #000 calc(100% - 40px), transparent); }
+.p4f-viewport::-webkit-scrollbar { display: none; }
+.p4f-head { font-size: 26px; opacity: 0.75; margin: 22px 0 10px 4px; }
+.p4f-head:first-child { margin-top: 8px; }
+.p4f-head span { margin-left: 8px; font-weight: 600; }
+.p4f-row { width: 100%; height: 104px; margin-bottom: 6px; padding: 0 22px; display: flex; align-items: center; gap: 24px; border: none; background: rgba(20, 62, 175, 0.45); color: #fff; text-align: left; font: inherit; }
+.p4f-row.off { background: rgba(10, 30, 90, 0.4); }
+.p4f-row.sel { outline: 4px solid #fff; outline-offset: -4px; background: rgba(50, 100, 220, 0.65); }
+.p4f-row.off .p4f-n { opacity: 0.7; }
+.p4f-tx { min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.p4f-n { font-size: 32px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.p4f-s { font-size: 24px; opacity: 0.85; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.p4f-row.game .p4f-s, .p4f-ds.game, .p4f-qs.game { color: #9fe8ff; opacity: 1; }
+.p4f-row.off .p4f-s { opacity: 0.6; }
+
+/* Avatar con el puntito de estado (verde en línea, naranjo ausente, rojo ocupado) */
+.p4f-av { position: relative; flex: none; width: 76px; height: 76px; display: grid; place-items: center; background: #2b4c9a; border-radius: 12px; }
+.p4f-av img { width: 100%; height: 100%; object-fit: cover; display: block; border-radius: inherit; }
+.p4f-av b { font-size: 36px; font-weight: 600; }
+.p4f-av i { position: absolute; right: -6px; bottom: -6px; width: 22px; height: 22px; border-radius: 50%; border: 3px solid #0d2f8a; background: #46d160; }
+.p4f-av.away i { background: #f0a63a; }
+.p4f-av.busy i { background: #e5484d; }
+.p4f-av.off i { display: none; }
+.p4f-av.off img { filter: grayscale(0.6) brightness(0.8); }
+.p4f-av.small { width: 50px; height: 50px; border-radius: 9px; }
+.p4f-av.small b { font-size: 24px; }
+.p4f-av.small i { width: 16px; height: 16px; right: -4px; bottom: -4px; border-width: 2px; }
+.p4f-av.big { width: 260px; height: 260px; border-radius: 30px; box-shadow: 0 14px 40px rgba(0, 0, 0, 0.35); }
+.p4f-av.big b { font-size: 120px; }
+.p4f-av.big i { width: 46px; height: 46px; right: -12px; bottom: -12px; border-width: 5px; }
+
+/* Detalle del amigo marcado (a la derecha) */
+.p4f-detail { position: absolute; left: 1260px; right: 95px; top: 230px; display: flex; flex-direction: column; align-items: center; text-align: center; }
+.p4f-dn { margin-top: 36px; font-size: 52px; font-weight: 300; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.p4f-ds { margin-top: 10px; font-size: 28px; opacity: 0.85; }
+.p4f-ds.off { opacity: 0.6; }
+.p4f-btns { margin-top: 44px; display: flex; flex-direction: column; gap: 18px; align-items: center; }
+.p4f-btns .p4-btn { min-width: 400px; }
+.p4f-msg { position: absolute; left: 95px; right: 95px; top: 300px; display: flex; flex-direction: column; align-items: center; text-align: center; }
+.p4f-msg[hidden] { display: none; }
+
+/* Menú rápido → Amigos */
+.p4-qm-sb.p4f-qrow { height: 80px; }
+.p4f-qtx { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.p4f-qn { font-size: 28px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.p4f-qs { font-size: 21px; opacity: 0.8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ---------- Menú rápido → Música (barra, siguiente, aleatorio, repetir, me gusta, volumen…) ---------- */
+.p4-qm-sub { max-height: 860px; overflow-y: auto; scrollbar-width: none; }
+.p4-qm-sub::-webkit-scrollbar { display: none; }
+.p4-qm-stx { flex: 1; min-width: 0; }
+.p4-qm-app { font-size: 22px; opacity: 0.7; margin-bottom: 2px; }
+.p4-qm-prog { margin-top: 12px; font-size: 20px; }
+.p4-qm-next { margin: -8px 20px 14px; padding: 10px 16px; background: rgba(255, 255, 255, 0.08); font-size: 24px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.p4-qm-next small { display: block; font-size: 18px; opacity: 0.65; }
+.p4-qm-btnrow { display: flex; align-items: center; justify-content: center; gap: 16px; margin: 4px 0; }
+.p4-qm-btnrow .p4-qm-sb.round { width: 76px; height: 76px; padding: 0; justify-content: center; border-radius: 50%; }
+.p4-qm-btnrow .p4-qm-sb.round.big { width: 92px; height: 92px; }
+.p4-qm-vol { flex: 1; text-align: center; font-size: 26px; opacity: 0.85; }
+.p4-qm-sb .np-ic { width: 36px; height: 36px; flex: none; }
+.p4-qm-sb.on .np-ic { color: #7dff8a; }
+.p4-qm-sb .p4s-l { flex: 1; }

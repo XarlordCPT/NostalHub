@@ -233,3 +233,20 @@
 .theme-ps3 .ge-ctx-title { font-size: 22px; opacity: 0.7; padding: 8px 28px 12px; border-bottom: 1px solid rgba(255, 255, 255, 0.3); }
 .theme-ps3 .ge-ci { height: 72px; padding: 0 28px; font-size: 28px; color: #fff; background: none; border: 0; }
 .theme-ps3 .ge-ci.kf { background: linear-gradient(90deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.24)); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5), inset 0 -1px 0 rgba(255, 255, 255, 0.5); }
+
+/* Amigos de Steam: imagen con esquinas redondeadas y puntito de estado */
+.p3-it.rsq .p3-ic img { border-radius: 14px; box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.8), 0 4px 12px rgba(0, 0, 0, 0.35); }
+.p3-fdot { position: absolute; right: 6px; bottom: 6px; width: 22px; height: 22px; border-radius: 50%; background: #3fd06a; box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.45), 0 0 10px rgba(63, 208, 106, 0.7); }
+.p3-fdot.game { background: #3fd06a; }
+.p3-fdot.away { background: #f5a623; box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.45), 0 0 10px rgba(245, 166, 35, 0.6); }
+.p3-fdot.busy { background: #e2402a; box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.45), 0 0 10px rgba(226, 64, 42, 0.6); }
+.p3-fdot.off { display: none; }
+
+/* Música: barra de avance y los íconos de aleatorio, repetir, me gusta, volumen… */
+.p3-it.np .p3-ic { color: #fff; }
+.p3-it.np .p3-ic .np-ic { width: 72%; height: 72%; filter: drop-shadow(0 3px 5px rgba(0, 0, 0, 0.32)); }
+.p3-it.np.on .p3-ic .np-ic { color: #fff; filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.8)); }
+.p3-it.np:not(.on) .p3-ic .np-ic { opacity: 0.72; }
+.p3-prog { display: none; width: 520px; margin-top: 12px; }
+.p3-it.sel .p3-prog { display: flex; }
+.p3-prog .mp-bar { height: 4px; }

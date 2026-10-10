@@ -5,6 +5,7 @@
   // ---------- Íconos (dibujos propios, trazo blanco) ----------
   const I = {
     bag: '<path d="M9 16h30l-3 25H12Z"/><path d="M17 16v-3a7 7 0 0 1 14 0v3"/>',
+    chat: '<path d="M8 10h32v20H22l-9 8v-8H8Z"/><path d="M15 18h18M15 23h12"/>',
     people: '<circle cx="18" cy="16" r="6"/><path d="M6 39c0-8 5-12 12-12s12 4 12 12"/><circle cx="33" cy="18" r="5"/><path d="M31 27c7 0 11 4 11 11"/>',
     headset: '<path d="M8 30v-6a16 16 0 0 1 32 0v6"/><rect x="6" y="28" width="8" height="12" rx="3"/><rect x="34" y="28" width="8" height="12" rx="3"/><path d="M40 40c0 4-5 6-12 6"/>',
     person: '<circle cx="24" cy="15" r="7"/><path d="M10 41c0-9 6-14 14-14s14 5 14 14"/>',
@@ -136,6 +137,15 @@
   <div class="p4p-body"></div>
 </section>
 
+<!-- Amigos (de Steam) -->
+<section class="p4-screen p4-friends" hidden>
+  <div class="p4-title">Amigos</div>
+  <div class="p4f-count"></div>
+  <div class="p4f-viewport"><div class="p4f-list"></div></div>
+  <div class="p4f-detail"></div>
+  <div class="p4f-msg" hidden></div>
+</section>
+
 <!-- Ajustes -->
 <section class="p4-screen p4-set" hidden>
   <div class="p4-title">Ajustes</div>
@@ -214,7 +224,7 @@
     let menuModel = [];
     let playTimer = null;
     const offs = [];
-    const nowPlaying = window.NostalHubUtil.nowPlaying($('.p4-playing'), api);
+    const nowPlaying = window.NostalHubUtil.nowPlaying($('.p4-playing'), api, ctx.toast);
 
     // ---------- Arte del juego de fondo (se cruza suavemente) ----------
     const artImgs = $$('.p4-art-img');
@@ -399,7 +409,7 @@
     }
     function runFunc(id) {
       if (id === 'store') call('open', 'steam-store');
-      else if (id === 'friends') call('open', 'steam-friends');
+      else if (id === 'friends') openFriends();
       else if (id === 'profile') call('open', 'steam-profile');
       else if (id === 'party') openParty();
       else if (id === 'trophies') openTrophies();
@@ -839,6 +849,129 @@
       }
     }
 
+    // ---------- Amigos (de Steam) ----------
+    // La lista se pide a Steam al abrir y cada 30 segundos mientras está a la vista.
+    let friends = { status: 'loading', list: [] };
+    let friendsAt = 0;
+    let fSel = 0;
+    let fTimer = null;
+    const friendClass = U.friendClass;
+    const friendStatus = U.friendStatus;
+    function friendAvatar(f, size = '') {
+      return `<span class="p4f-av ${size} ${friendClass(f)}">${f.avatar ? `<img src="${esc(f.avatar)}" alt="" />` : `<b>${esc((f.name || '?').trim().charAt(0).toUpperCase())}</b>`}<i></i></span>`;
+    }
+    const friendsMessage = () => U.friendsMessage(friends.status);
+    async function loadFriends() {
+      friendsAt = Date.now();
+      const res = (await call('getFriends')) || { status: 'error', list: [] };
+      friendsAt = Date.now();
+      // Si falla una actualización, se queda la última lista buena
+      if (res.status === 'ok' || friends.status !== 'ok' || res.status !== 'error') friends = res;
+      if (view === 'friends') paintFriends();
+      if (qmOpen && QM[qmSel] && QM[qmSel].id === 'friends') renderQmSub();
+    }
+    function openFriends() {
+      showScreen('friends');
+      setArt(null);
+      fSel = 0;
+      fBtn = 0;
+      $('.p4f-viewport').scrollTop = 0;
+      paintFriends();
+      if (Date.now() - friendsAt > 5000) loadFriends();
+      clearInterval(fTimer);
+      fTimer = setInterval(() => (view === 'friends' ? loadFriends() : clearInterval(fTimer)), 30000);
+    }
+    function paintFriends() {
+      const list = $('.p4f-list');
+      const msg = $('.p4f-msg');
+      const rows = friends.list || [];
+      const online = rows.filter((f) => f.state !== 0).length;
+      $('.p4f-count').innerHTML = friends.status === 'ok' ? `<b>${online}</b> en línea · ${rows.length} ${rows.length === 1 ? 'amigo' : 'amigos'}` : '';
+      if (friends.status !== 'ok' || !rows.length) {
+        const m = friendsMessage();
+        list.innerHTML = '';
+        $('.p4f-detail').innerHTML = '';
+        msg.hidden = false;
+        msg.innerHTML = `${friends.status === 'loading' ? '<div class="p4-spin"></div>' : icon('people', 'p4p-big')}<div class="p4p-t">${esc(m.t)}</div><div class="p4p-d">${esc(m.d)}</div>${m.btn ? `<div class="p4p-btns"><button class="p4-btn sel" data-fb="${m.btn[0]}"><span>${m.btn[1]}</span></button></div>` : ''}`;
+        const b = msg.querySelector('[data-fb]');
+        if (b) b.addEventListener('click', () => call('open', b.dataset.fb));
+        return;
+      }
+      msg.hidden = true;
+      const selId = list.querySelector('.p4f-row.sel') && list.querySelector('.p4f-row.sel').dataset.id;
+      let html = '';
+      for (const [g, title] of U.FRIEND_GROUPS) {
+        const items = rows.map((f, i) => [f, i]).filter(([f]) => U.friendGroup(f) === g);
+        if (!items.length) continue;
+        html += `<div class="p4f-head">${title} <span>${items.length}</span></div>`;
+        html += items.map(([f, i]) => `<button class="p4f-row ${friendClass(f)}" data-i="${i}" data-id="${esc(f.id)}">${friendAvatar(f)}<span class="p4f-tx"><span class="p4f-n">${esc(f.name)}</span><span class="p4f-s">${esc(friendStatus(f))}</span></span></button>`).join('');
+      }
+      list.innerHTML = html;
+      list.querySelectorAll('.p4f-row').forEach((r) => {
+        r.addEventListener('mouseenter', () => setFriend(Number(r.dataset.i), false));
+        r.addEventListener('click', () => openFriendProfile(rows[Number(r.dataset.i)]));
+      });
+      // Mantiene marcado al mismo amigo aunque la lista se reordene
+      const keep = selId ? rows.findIndex((f) => f.id === selId) : -1;
+      setFriend(keep >= 0 ? keep : Math.min(fSel, rows.length - 1), keep < 0);
+    }
+    function setFriend(i, scroll = true) {
+      const rows = friends.list || [];
+      if (!rows.length) return;
+      fSel = Math.max(0, Math.min(rows.length - 1, i));
+      let selEl = null;
+      $$('.p4f-row').forEach((r) => {
+        const on = Number(r.dataset.i) === fSel;
+        r.classList.toggle('sel', on);
+        if (on) selEl = r;
+      });
+      if (scroll && selEl) selEl.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      const f = rows[fSel];
+      $('.p4f-detail').innerHTML = `${friendAvatar(f, 'big')}<div class="p4f-dn">${esc(f.name)}</div><div class="p4f-ds ${friendClass(f)}">${esc(friendStatus(f))}</div>
+        <div class="p4f-btns"><button class="p4-btn${fBtn === 0 ? ' sel' : ''}" data-fp="0">${icon('person')}<span>Ver perfil</span></button>
+        <button class="p4-btn${fBtn === 1 ? ' sel' : ''}" data-fp="1">${icon('chat')}<span>Enviar mensaje</span></button></div>`;
+      $$('.p4f-detail [data-fp]').forEach((b) => {
+        b.addEventListener('mouseenter', () => setFBtn(Number(b.dataset.fp)));
+        b.addEventListener('click', () => (b.dataset.fp === '1' ? openFriendChat(f) : openFriendProfile(f)));
+      });
+    }
+    // El orden de la pantalla (los grupos) es el mismo de la lista, así que ↑ ↓ siguen el índice
+    function openFriendProfile(f) {
+      if (!f || !f.id) return;
+      call('open', `steam-user:${f.id}`);
+      ctx.toast(`Se abrió el perfil de ${f.name} en Steam`);
+    }
+    function openFriendChat(f) {
+      if (!f || !f.id) return;
+      call('open', `steam-chat:${f.id}`);
+      ctx.toast(`Se abrió el chat con ${f.name} en Steam`);
+    }
+    // Botón marcado a la derecha: 0 = Ver perfil, 1 = Enviar mensaje (← → para cambiar)
+    let fBtn = 0;
+    function setFBtn(i) {
+      fBtn = i ? 1 : 0;
+      $$('.p4f-detail [data-fp]').forEach((b) => b.classList.toggle('sel', Number(b.dataset.fp) === fBtn));
+    }
+    function friendsKey(k) {
+      const rows = friends.list || [];
+      if (k === 'ArrowDown') setFriend(fSel + 1);
+      else if (k === 'ArrowUp') setFriend(fSel - 1);
+      else if (k === 'PageDown') setFriend(fSel + 6);
+      else if (k === 'PageUp') setFriend(fSel - 6);
+      else if (k === 'ArrowRight') setFBtn(1);
+      else if (k === 'ArrowLeft') setFBtn(0);
+      else if (k === 'Enter') {
+        if (rows.length && friends.status === 'ok') (fBtn ? openFriendChat : openFriendProfile)(rows[fSel]);
+        else {
+          const b = $('.p4f-msg [data-fb]');
+          if (b) b.click();
+        }
+      } else if (k === 'Escape' || k === 'Backspace') {
+        clearInterval(fTimer);
+        back();
+      }
+    }
+
     // ---------- Grupo (Discord) ----------
     function openParty() {
       showScreen('party');
@@ -1066,6 +1199,7 @@
       { id: 'sound', label: 'Sonido', icon: 'speaker' },
       { id: 'music', label: 'Música', icon: 'music' },
       { id: 'party', label: 'Grupo', icon: 'headset' },
+      { id: 'friends', label: 'Amigos', icon: 'people' },
       { sep: true },
       { id: 'random', label: 'Juego al azar', icon: 'dice' },
       { id: 'library', label: 'Biblioteca', icon: 'grid' },
@@ -1087,6 +1221,7 @@
       qm.classList.remove('leave');
       qmCol = 'list';
       renderQm();
+      if (Date.now() - friendsAt > 20000) loadFriends();
     }
     async function closeQm() {
       if (!qmOpen) return;
@@ -1164,22 +1299,50 @@
           addBtn(`<span class="p4s-l">${esc(it.label)}</span>${val}`, () => runOption(it, U.optionNextValue(it, 1)));
         });
       } else if (q.id === 'music') {
-        const st = spotify || {};
+        // Música: la canción con su barra, lo que viene y (con Spotify conectado) aleatorio, repetir, me gusta…
+        const v = U.spotifyView(spotify);
         const info = document.createElement('div');
         info.className = 'p4-qm-song';
-        const title = st.supported === false ? 'Spotify' : !st.running ? 'Spotify está cerrado' : st.title || (st.playing ? 'Reproduciendo' : 'En pausa');
-        const artist = st.supported === false ? 'Disponible en Windows' : !st.running ? 'Ábrelo para controlar tu música' : st.artist || '';
-        info.innerHTML = `<div class="p4-qm-cover"${st.running && st.cover ? ` style="background-image:url('${st.cover}')"` : ''}>${st.running && st.cover ? '' : icon('music')}</div><div><div class="p4-qm-st">${esc(title)}</div><div class="p4-qm-sa">${esc(artist)}</div></div>`;
+        info.innerHTML = `<div class="p4-qm-cover"${v.cover ? ` style="background-image:url('${v.cover}')"` : ''}>${v.cover ? '' : icon('music')}</div><div class="p4-qm-stx"><div class="p4-qm-app">${esc(v.app)}</div><div class="p4-qm-st">${esc(v.title)}</div><div class="p4-qm-sa">${esc(v.artist)}</div>${U.progressHtml(v, 'p4-qm-prog')}</div>`;
         box.appendChild(info);
-        if (st.running) {
-          addBtn(`${icon('prev')}<span>Anterior</span>`, () => call('spotifyControl', 'prev'));
-          addBtn(`${icon(st.playing ? 'pause' : 'play')}<span>${st.playing ? 'Pausar' : 'Reproducir'}</span>`, () => {
+        if (v.next) {
+          const nx = document.createElement('div');
+          nx.className = 'p4-qm-next';
+          nx.innerHTML = `<small>Siguiente</small><span>${esc(U.nextText(v))}</span>`;
+          box.appendChild(nx);
+        }
+        const row = (n) => {
+          const r = document.createElement('div');
+          r.className = 'p4-qm-btnrow';
+          [...box.children].slice(-n).forEach((b) => r.appendChild(b));
+          box.appendChild(r);
+          return r;
+        };
+        if (v.on) {
+          addBtn(`${icon('prev')}`, () => call('spotifyControl', 'prev'), 'round');
+          addBtn(`${icon(v.playing ? 'pause' : 'play')}`, () => {
             call('spotifyControl', 'toggle');
             if (spotify) renderSpotify({ ...spotify, playing: !spotify.playing });
-          });
-          addBtn(`${icon('next')}<span>Siguiente</span>`, () => call('spotifyControl', 'next'));
+          }, 'round big');
+          addBtn(`${icon('next')}`, () => call('spotifyControl', 'next'), 'round');
+          row(3);
         }
-        addBtn(`${icon('music')}<span>Abrir Spotify</span>`, () => call('spotifyControl', 'open'));
+        const acts = U.musicActions(v);
+        acts.forEach((a) => {
+          if (a.id === 'voldown' || a.id === 'volup') return;
+          addBtn(`${U.npIcon(a.icon)}<span class="p4s-l">${esc(a.label)}</span>${a.value && a.id !== 'like' ? `<span class="p4s-v">${esc(a.value)}</span>` : ''}`, () => U.musicRun(api, a.id, v, ctx.toast), a.on ? 'on' : '');
+          if (a.id === 'like' && acts.some((x) => x.id === 'volup')) {
+            addBtn(`${U.npIcon('volDown')}`, () => U.musicRun(api, 'voldown', v, ctx.toast), 'round');
+            addBtn(`${U.npIcon('volUp')}`, () => U.musicRun(api, 'volup', v, ctx.toast), 'round');
+            const r = row(2);
+            const lbl = document.createElement('span');
+            lbl.className = 'p4-qm-vol';
+            lbl.textContent = `Volumen ${v.volume} %`;
+            r.insertBefore(lbl, r.lastChild);
+          }
+        });
+        if (v.appId !== 'auto') addBtn(`${icon('music')}<span>Abrir ${esc(v.app)}</span>`, () => call('spotifyControl', 'open'));
+        if (!v.api && v.appId === 'spotify') addBtn(`${U.npIcon('queue')}<span>Conectar Spotify para ver la cola</span>`, () => (closeQm(), call('open', 'setup-spotify')));
       } else if (q.id === 'party') {
         const head = document.createElement('div');
         head.className = 'p4-qm-party';
@@ -1194,6 +1357,21 @@
           closeQm();
           openParty();
         });
+      } else if (q.id === 'friends') {
+        // Solo los conectados (los que juegan primero), como en el menú rápido de la PS4
+        const online = (friends.list || []).filter((f) => f.state !== 0);
+        if (friends.status !== 'ok' || !online.length) {
+          const info = document.createElement('div');
+          info.className = 'p4-qm-party';
+          info.innerHTML = `<div class="p4-qm-st">${friends.status === 'loading' ? 'Cargando amigos…' : friends.status === 'ok' ? 'No hay amigos en línea' : esc(friendsMessage().t)}</div>`;
+          box.appendChild(info);
+        }
+        online.slice(0, 8).forEach((f) => addBtn(`${friendAvatar(f, 'small')}<span class="p4f-qtx"><span class="p4f-qn">${esc(f.name)}</span><span class="p4f-qs ${friendClass(f)}">${esc(friendStatus(f))}</span></span>`, () => openFriendProfile(f), 'p4f-qrow'));
+        addBtn(`${icon('people')}<span>${online.length > 8 ? `Ver todos (${online.length} en línea)` : 'Ver todos los amigos'}</span>`, () => {
+          closeQm();
+          goFromQm(openFriends);
+        });
+        if (friends.status !== 'loading' && Date.now() - friendsAt > 20000) loadFriends();
       } else if (q.id === 'power') {
         addBtn(`${icon('swap')}<span>Cambiar de consola</span>`, () => ctx.openSelector());
         addBtn(`${icon('restart')}<span>Reiniciar NostalHub</span>`, () => call('runMenu', 'reload'));
@@ -1205,13 +1383,14 @@
       if (!qmSubItems.length) return;
       qmSubSel = (i + qmSubItems.length) % qmSubItems.length;
       qmSubItems.forEach((s, j) => s.el.classList.toggle('sel', qmCol === 'sub' && j === qmSubSel));
+      if (qmCol === 'sub' && qmSubItems[qmSubSel]) qmSubItems[qmSubSel].el.scrollIntoView({ block: 'nearest' });
       $$('.p4-qm-it').forEach((b) => b.classList.toggle('sel', qmCol === 'list' && Number(b.dataset.i) === qmSel));
     }
     function qmActivate(i) {
       const q = QM[i];
       if (!q) return;
       qmSel = i;
-      if (['sound', 'music', 'party', 'power'].includes(q.id)) {
+      if (['sound', 'music', 'party', 'friends', 'power'].includes(q.id)) {
         qmCol = 'sub';
         setQmSub(0);
         return;
@@ -1363,6 +1542,9 @@
         case 'party':
           partyKey(k);
           break;
+        case 'friends':
+          friendsKey(k);
+          break;
         case 'settings':
           settingsKey(k);
           break;
@@ -1422,6 +1604,7 @@
         clearInterval(clockTimer);
         clearInterval(playTimer);
         window.removeEventListener('keydown', onKey);
+        clearInterval(fTimer);
         offs.forEach((off) => off && off());
         call('spotifyWatch', false);
         call('discordWatch', false);

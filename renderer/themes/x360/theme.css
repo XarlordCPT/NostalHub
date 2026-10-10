@@ -984,3 +984,65 @@ body.playing .theme-x360 .sp-eq i { animation-play-state: paused !important; }
 .theme-x360 .ge-ctx-title { font-size: 24px; color: rgba(255, 255, 255, 0.55); padding: 6px 14px 10px; }
 .theme-x360 .ge-ci { height: 68px; padding: 0 20px; border-radius: 6px; font-size: 30px; color: #fff; background: none; border: 0; }
 .theme-x360 .ge-ci.kf { background: linear-gradient(var(--green-hi), var(--green)); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3); }
+
+/* ---------- Amigos (de Steam) ---------- */
+.xb-friends-tile .xb-friends-sub { position: absolute; left: 16px; right: 12px; bottom: 48px; font-size: 21px; opacity: 0.85; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: left; }
+.xb-fr-body { flex-direction: row; gap: 34px; padding: 26px 34px 26px 40px; }
+.xb-fr-list { flex: 1; min-width: 0; overflow-y: auto; scroll-padding: 12px 0; padding: 4px 10px 12px 4px; }
+.xb-fr-list::-webkit-scrollbar { width: 10px; }
+.xb-fr-list::-webkit-scrollbar-thumb { background: rgba(0, 0, 0, 0.3); }
+.xb-fr-head { font-size: 25px; color: #555; margin: 16px 0 8px 4px; }
+.xb-fr-head:first-child { margin-top: 0; }
+.xb-fr-row { width: 100%; height: 96px; margin-bottom: 8px; padding: 0 22px 0 12px; display: flex; align-items: center; gap: 20px; border: none; color: #222; text-align: left; font: inherit; font-family: var(--xb-font);
+  background: linear-gradient(to bottom, #fafafa, #e4e4e4); box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18); transition: background 0.12s ease; }
+.xb-fr-row.sel { background: linear-gradient(160deg, #57c457 0%, var(--green-hi) 35%, var(--green) 100%); color: #fff; box-shadow: 0 0 0 3px #fff, 0 4px 14px rgba(0, 0, 0, 0.3); }
+.xb-fr-row.off:not(.sel) { background: linear-gradient(to bottom, #ececec, #d8d8d8); }
+.xb-fr-row.off:not(.sel) .xb-fr-n { color: #666; }
+.xb-fr-tx { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.xb-fr-n { font-size: 32px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.xb-fr-s { font-size: 23px; opacity: 0.75; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.xb-fr-row.game:not(.sel) .xb-fr-s { color: #0a6d0a; opacity: 1; }
+/* Puntito de estado: verde en línea, naranjo ausente, rojo ocupado, gris desconectado */
+.xb-fr-dot { flex: none; width: 20px; height: 20px; border-radius: 50%; background: var(--green-hi); box-shadow: inset 0 -2px 3px rgba(0, 0, 0, 0.25), 0 0 0 2px rgba(255, 255, 255, 0.8); }
+.away > .xb-fr-dot, .xb-fr-cstate.away .xb-fr-dot { background: #f0a63a; }
+.busy > .xb-fr-dot, .xb-fr-cstate.busy .xb-fr-dot { background: #e5484d; }
+.off > .xb-fr-dot, .xb-fr-cstate.off .xb-fr-dot { background: #9a9a9a; }
+/* Imagen de jugador con esquinas redondeadas */
+.xb-fr-pic { flex: none; width: 72px; height: 72px; border-radius: 10px; overflow: hidden; display: grid; place-items: center; background: linear-gradient(160deg, #8c8c8c, #5e5e5e); color: #fff; box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3); }
+.xb-fr-pic img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.xb-fr-pic b { font-size: 34px; font-weight: 600; }
+.xb-fr-pic.off img { filter: grayscale(0.6); }
+.xb-fr-pic.big { width: 190px; height: 190px; border-radius: 18px; }
+.xb-fr-pic.big b { font-size: 90px; }
+/* Tarjeta de jugador a la derecha */
+.xb-fr-card { width: 470px; flex: none; display: flex; flex-direction: column; background: linear-gradient(to bottom, #fafafa, #dcdcdc); box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25); align-self: flex-start; }
+.xb-fr-card:empty { display: none; }
+.xb-fr-cardtop { padding: 16px 24px; background: linear-gradient(to bottom, #3b3b3b, #262626); color: #fff; }
+.xb-fr-cname { font-size: 34px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.xb-fr-cardmid { display: flex; gap: 22px; padding: 24px; align-items: center; }
+.xb-fr-cinfo { min-width: 0; }
+.xb-fr-cstate { display: flex; align-items: center; gap: 10px; font-size: 28px; color: #222; }
+.xb-fr-cgame { margin-top: 8px; font-size: 24px; color: #555; line-height: 1.3; }
+.xb-fr-btns { display: flex; gap: 12px; margin: 0 24px 24px; }
+.xb-fr-card .xb-fr-btn { position: relative; flex: 1; width: auto; height: 130px; }
+.xb-fr-card .xb-fr-btn svg { width: 54px; height: 54px; }
+.xb-fr-card .xb-fr-btn .xb-label { font-size: 26px; }
+.xb-fr-msg { position: absolute; inset: 0; display: flex; }
+.xb-fr-msg[hidden] { display: none; }
+
+/* Spotify: barra de avance, lo que viene y botones a la derecha (con Spotify conectado) */
+.sp-prog { margin-top: 10px; color: #fff; }
+.sp-prog .mp-prog { font-size: 20px; }
+.sp-prog .mp-bar i { background: #1db954; }
+.sp-next { margin-top: 6px; font-size: 22px; color: #b3b3b3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sp-next small { color: #1db954; font-size: 18px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; margin-right: 10px; }
+.xb-spotify.has-api .sp-title { font-size: 46px; -webkit-line-clamp: 1; }
+.xb-spotify.has-api .sp-info { right: 104px; }
+.xb-spotify.has-api .sp-artist { font-size: 30px; }
+.sp-extra { position: absolute; right: 22px; top: 18px; bottom: 18px; width: 60px; display: flex; flex-direction: column; justify-content: center; gap: 6px; }
+.sp-x { width: 54px; height: 46px; border-radius: 23px; display: grid; place-items: center; color: #b3b3b3; background: rgba(255, 255, 255, 0.06); transition: transform 0.15s, background 0.15s, color 0.15s; }
+.sp-x[hidden] { display: none; }
+.sp-x .np-ic { width: 28px; height: 28px; }
+.sp-x.on { color: #1db954; }
+.sp-x.focus, .sp-x:hover { transform: scale(1.12); background: rgba(255, 255, 255, 0.18); color: #fff; }
+.sp-x.on.focus, .sp-x.on:hover { color: #1ed760; }

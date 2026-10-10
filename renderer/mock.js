@@ -95,7 +95,20 @@
     unlockTime: i < 13 ? Date.now() - i * 5 * DAY : null,
     percent: 60 - i * 3.1,
   }));
-  let spState = { supported: true, running: true, playing: true, artist: 'Banda de Prueba', title: 'Canción para el menú', cover: art(300, 300, ['#f72585', '#4361ee'], '♪', 120) };
+  // Spotify de prueba, como si estuviera conectado con su API (cola, avance, aleatorio…)
+  const mockQueue = [
+    ['Luces de Neón', 'Los Pixeles', ['#06d6a0', '#118ab2']],
+    ['Domingo en la Plaza', 'Ana Soler', ['#ffd166', '#ef476f']],
+    ['Cassette', 'Banda de Prueba', ['#8338ec', '#3a86ff']],
+    ['Ruta 68', 'Los Kilómetros', ['#fb5607', '#ffbe0b']],
+    ['Noche de Arcade', 'Chiptune Club', ['#3a0ca3', '#4cc9f0']],
+    ['Lluvia en Ñuñoa', 'Valentina Ríos', ['#2a9d8f', '#264653']],
+  ].map(([title, artist, c]) => ({ uri: `spotify:track:${title}`, title, artist, cover: art(64, 64, c, '♪', 30), durationMs: 200000 }));
+  let spState = {
+    supported: true, running: true, playing: true, app: 'spotify', appName: 'Spotify', artist: 'Banda de Prueba', title: 'Canción para el menú', cover: art(300, 300, ['#f72585', '#4361ee'], '♪', 120),
+    hasApi: true, progressMs: 71000, durationMs: 214000, at: Date.now(), shuffle: true, smartShuffle: false, repeat: 'context', liked: true,
+    device: { id: 'pc', name: 'MI-PC', type: 'Computer', volume: 70, canVolume: true }, queue: mockQueue,
+  };
   const spCbs = new Set();
   const winState = { mode: 'fullscreen', maximized: false };
   const winCbs = new Set();
@@ -176,16 +189,51 @@
     writeClipboard: async () => {},
     onSetup: noop,
     getSteamProfile: async () => ({ name: 'Cristóbal', avatar: art(184, 184, ['#6ab04c', '#30336b'], 'CM', 70), hasKey: true }),
+    getFriends: async () => {
+      const h = 3600 * 1000;
+      const list = [
+        { name: 'Borealis', state: 1, game: "Baldur's Gate 3" },
+        { name: 'Agnt-P', state: 1 },
+        { name: 'DonShelo', state: 1 },
+        { name: 'eldiablo', state: 1 },
+        { name: 'Javitoire!', state: 2 },
+        { name: 'Xetumori', state: 1 },
+        { name: 'Schoom', state: 3 },
+        { name: 'Tito Calderon', state: 4 },
+        { name: 'LuSu', state: 0, lastSeen: Date.now() - 2 * h },
+        { name: 'Nati', state: 0, lastSeen: Date.now() - 26 * h },
+        { name: 'Saonida', state: 0, lastSeen: Date.now() - 9 * 24 * h },
+        { name: 'SPUB20', state: 0, lastSeen: Date.now() - 40 * 24 * h },
+      ].map((f, i) => ({ id: String(76561198000000000 + i), avatar: null, game: null, lastSeen: null, url: null, ...f }));
+      return { status: 'ok', list };
+    },
     getAchievements: async (appId) => (appId === '1003' ? { status: 'none', list: [] } : { status: 'ok', list: fakeAch, done: 13, total: 18 }),
     getAchievementSummary: async () => ({ done: 213, total: 488, hasKey: true, perGame: { 1000: { done: 13, total: 18 }, 1001: { done: 40, total: 52 }, 1002: { done: 3, total: 30 }, 1005: { done: 22, total: 22 }, 1007: { done: 9, total: 41 } } }),
     onSteamSummary: noop,
     onSteamChanged: noop,
     spotifyWatch: async () => spState,
-    spotifyControl: async (c) => {
-      if (c === 'toggle') spState = { ...spState, playing: !spState.playing };
-      if (c === 'next') spState = { ...spState, title: 'Siguiente canción', playing: true };
+    spotifyControl: async (c, arg) => {
+      const now = Date.now();
+      const pos = spState.progressMs + (spState.playing ? now - spState.at : 0);
+      if (c === 'toggle') spState = { ...spState, playing: !spState.playing, progressMs: pos, at: now };
+      if (c === 'next' || c === 'skipto') {
+        const n = c === 'skipto' ? Number(arg) || 0 : 0;
+        const t = spState.queue[n] || { title: 'Siguiente canción', artist: 'Banda de Prueba' };
+        spState = { ...spState, title: t.title, artist: t.artist, cover: t.cover || spState.cover, playing: true, progressMs: 0, at: now, queue: spState.queue.slice(n + 1), liked: false };
+      }
+      if (c === 'shuffle') spState = { ...spState, shuffle: !spState.shuffle, smartShuffle: false };
+      if (c === 'repeat') spState = { ...spState, repeat: { off: 'context', context: 'track', track: 'off' }[spState.repeat] };
+      if (c === 'like') spState = { ...spState, liked: !spState.liked };
+      if (c === 'volume') spState = { ...spState, device: { ...spState.device, volume: Math.max(0, Math.min(100, spState.device.volume + Number(arg))) } };
+      if (c === 'device') spState = { ...spState, device: { ...spState.device, id: arg, name: arg === 'phone' ? 'iPhone de Cristóbal' : 'MI-PC', type: arg === 'phone' ? 'Smartphone' : 'Computer' } };
       setTimeout(() => spCbs.forEach((cb) => cb(spState)), 200);
+      return { ok: true };
     },
+    spotifyDevices: async () => [
+      { id: 'pc', name: 'MI-PC', type: 'Computer', active: spState.device.id === 'pc', volume: 70 },
+      { id: 'phone', name: 'iPhone de Cristóbal', type: 'Smartphone', active: spState.device.id === 'phone', volume: 50 },
+      { id: 'tv', name: 'Living', type: 'Speaker', active: false, volume: 40 },
+    ],
     onSpotify: (cb) => (spCbs.add(cb), () => spCbs.delete(cb)),
     discordWatch: async () => dcState,
     discordAuthorize: async () => dcState,

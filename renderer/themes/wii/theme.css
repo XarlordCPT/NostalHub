@@ -996,3 +996,47 @@ body.playing .theme-wii .ch-media .hero { animation-play-state: paused; }
 .theme-wii .ge-ctx-title { font-size: 25px; font-weight: 700; color: var(--text-soft); padding: 6px 18px 10px; }
 .theme-wii .ge-ci { height: 76px; padding: 0 24px; border-radius: 22px; font-size: 32px; color: var(--text); background: none; border: 4px solid transparent; }
 .theme-wii .ge-ci.kf { border-color: var(--cyan); background: #eefaff; }
+
+/* ============ Amigos (de Steam) ============ */
+.round-btn.small { width: 112px; height: 112px; top: 132px; right: 300px; }
+.round-btn.small svg { width: 54px; height: 54px; fill: none; }
+.round-btn.small:hover svg { fill: none; }
+.wf-badge { position: absolute; right: -6px; top: -6px; min-width: 40px; height: 40px; padding: 0 8px; border-radius: 20px; background: var(--cyan); color: #fff; font-size: 24px; font-weight: 800; line-height: 40px; font-style: normal; text-align: center; box-shadow: 0 0 0 4px #fff; }
+.wf-badge[hidden] { display: none; }
+#wii-fr { position: absolute; inset: 0; z-index: 30; }
+#wii-fr[hidden] { display: none; }
+#wii-fr.leave .wa-box { opacity: 0; transition: opacity 0.2s ease; }
+.wf-body { flex: 1; min-height: 0; display: flex; gap: 40px; margin-top: 20px; }
+.wf-list { flex: 1; min-width: 0; overflow-y: auto; scrollbar-width: none; padding: 6px 12px 20px 6px; scroll-padding: 10px 0 20px; }
+.wf-list::-webkit-scrollbar { display: none; }
+.wf-head { font-size: 26px; font-weight: 800; color: #9a9a9a; margin: 14px 0 8px 10px; }
+.wf-head:first-child { margin-top: 0; }
+.wf-row { width: 100%; height: 96px; margin-bottom: 10px; display: flex; align-items: center; gap: 20px; padding: 0 26px 0 12px; border-radius: 48px; border: 4px solid #dfe5e8; background: linear-gradient(to bottom, #ffffff 0%, #ffffff 40%, #f0f3f5 41%, #e7ecef 100%); text-align: left; color: #4b4b4b; font: inherit; transition: transform 0.15s var(--ease), border-color 0.15s, box-shadow 0.15s; }
+.wf-row.sel { border-color: var(--cyan); box-shadow: 0 0 0 6px var(--cyan-soft); transform: scale(1.01); }
+.wf-row.off .wf-n { color: #9a9a9a; }
+.wf-tx { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.wf-n { font-size: 32px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.wf-s { font-size: 23px; font-weight: 600; color: #8a8a8a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.wf-row.game .wf-s, .wf-row.on .wf-s { color: #3aa9d3; }
+/* Imagen con esquinas redondeadas y su puntito */
+.wf-pic { position: relative; flex: none; width: 72px; height: 72px; border-radius: 16px; display: grid; place-items: center; background: #cfeefb; color: #3aa9d3; box-shadow: 0 0 0 3px #fff, 0 2px 6px rgba(0, 0, 0, 0.15); }
+.wf-pic img { width: 100%; height: 100%; object-fit: cover; display: block; border-radius: inherit; }
+.wf-pic b { font-size: 34px; font-weight: 800; }
+.wf-pic i { position: absolute; right: -6px; bottom: -6px; width: 22px; height: 22px; border-radius: 50%; border: 3px solid #fff; background: #4cd25e; }
+.wf-pic.away i { background: #f5a623; }
+.wf-pic.busy i { background: #e2402a; }
+.wf-pic.off i { display: none; }
+.wf-pic.off img { filter: grayscale(0.7); }
+.wf-pic.big { width: 230px; height: 230px; border-radius: 40px; box-shadow: 0 0 0 6px #fff, 0 0 0 10px #5cc6ec, 0 10px 24px rgba(0, 0, 0, 0.15); }
+.wf-pic.big b { font-size: 100px; }
+.wf-pic.big i { width: 46px; height: 46px; border-width: 6px; right: -14px; bottom: -14px; }
+/* La "carta" del amigo marcado */
+.wf-card { width: 470px; flex: none; display: flex; flex-direction: column; align-items: center; text-align: center; padding: 26px 20px; border-radius: 30px; background: #eef7fb; box-shadow: inset 0 0 0 3px #d8eef7; }
+.wf-card:empty { display: none; }
+.wf-cn { margin-top: 26px; font-size: 44px; font-weight: 800; color: #4b4b4b; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.wf-cs { margin-top: 4px; font-size: 26px; font-weight: 700; color: #8a8a8a; }
+.wf-cs.on, .wf-cs.game { color: #3aa9d3; }
+.wf-btns { margin-top: auto; display: flex; gap: 16px; }
+.wf-btn { width: 200px; height: 86px; border-radius: 43px; border: 4px solid #5cc6ec; background: linear-gradient(to bottom, #ffffff 0%, #ffffff 30%, #eef1f3 31%, #e2e7ea 100%); font: inherit; font-size: 30px; font-weight: 700; color: #4b4b4b; transition: transform 0.15s var(--ease), box-shadow 0.15s; }
+.wf-btn.kfocus, .wf-btn:hover { transform: scale(1.05); border-color: #23b2ea; box-shadow: 0 0 0 7px var(--cyan-soft); }
+.wf-msg .pill.wf-pill { margin-top: 30px; width: 460px; height: 110px; font-size: 40px; }

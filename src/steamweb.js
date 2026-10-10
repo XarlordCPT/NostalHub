@@ -1,4 +1,4 @@
-// Datos de Steam por internet (necesita tu clave de API): perfil y logros.
+// Datos de Steam por internet (necesita tu clave de API): perfil, logros y amigos.
 // La clave va en %APPDATA%\NostalHub\steam-api-key.txt (ver MANUAL.md).
 
 const fs = require('fs');
@@ -99,6 +99,46 @@ class SteamWeb {
     } catch {
       return null;
     }
+  }
+
+  // ---------- Amigos ----------
+  // Devuelve { status: 'ok'|'no-key'|'private'|'error', list: [{ id, name, avatar, state, game, lastSeen, url }] }
+  // ordenados como en Steam: jugando, en línea, ausentes y al final los desconectados.
+  // state: 0 desconectado, 1 en línea, 2 ocupado, 3 ausente, 4 dormido, 5 y 6 en línea
+  async friends(steamId) {
+    const key = this.key;
+    if (!key) return { status: 'no-key', list: [] };
+    if (!steamId) return { status: 'error', message: 'No se encontró tu usuario de Steam', list: [] };
+    let ids = [];
+    try {
+      const d = await this.get(`${API}/ISteamUser/GetFriendList/v1/?key=${key}&steamid=${steamId}&relationship=friend`, 10 * 60 * 1000);
+      ids = ((d && d.friendslist && d.friendslist.friends) || []).map((f) => f.steamid);
+    } catch (e) {
+      // Steam responde 401 cuando tu lista de amigos es privada
+      return { status: e.status === 401 || e.status === 403 ? 'private' : 'error', list: [] };
+    }
+    const list = [];
+    try {
+      for (let i = 0; i < ids.length; i += 100) {
+        const d = await this.get(`${API}/ISteamUser/GetPlayerSummaries/v2/?key=${key}&steamids=${ids.slice(i, i + 100).join(',')}`, 20 * 1000);
+        for (const p of (d && d.response && d.response.players) || []) {
+          list.push({
+            id: p.steamid,
+            name: p.personaname || '?',
+            avatar: p.avatarfull || p.avatarmedium || p.avatar || null,
+            state: Number(p.personastate) || 0,
+            game: p.gameextrainfo || (p.gameid ? 'Un juego' : null),
+            lastSeen: p.lastlogoff ? p.lastlogoff * 1000 : null,
+            url: p.profileurl || null,
+          });
+        }
+      }
+    } catch {
+      if (!list.length) return { status: 'error', list: [] };
+    }
+    const rank = (f) => (f.state === 0 ? 3 : f.game ? 0 : f.state === 3 || f.state === 4 ? 2 : 1);
+    list.sort((a, b) => rank(a) - rank(b) || a.name.localeCompare(b.name, 'es', { sensitivity: 'base' }));
+    return { status: 'ok', list };
   }
 
   // ---------- Logros de un juego ----------

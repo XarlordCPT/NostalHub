@@ -24,6 +24,7 @@
     screen: '<rect x="5" y="8" width="38" height="25" rx="2"/><path d="M18 41h12M24 33v8"/>',
     speaker: '<path d="M8 19h8l10-8v26l-10-8H8Z"/><path d="M32 18a8 8 0 0 1 0 12M36 13a14 14 0 0 1 0 22"/>',
     folder: '<path d="M5 13h14l4 4h20v22H5Z"/><path d="M5 21h38"/>',
+    chat: '<path d="M8 10h32v20H22l-9 8v-8H8Z"/><path d="M15 18h18M15 23h12"/>',
     person: '<circle cx="24" cy="15" r="7"/><path d="M10 41c0-9 6-14 14-14s14 5 14 14"/>',
     palette: '<path d="M24 6a18 18 0 1 0 0 36c3 0 4-2 3-4s0-5 3-5h5a7 7 0 0 0 7-7c0-11-8-20-18-20Z"/><circle cx="15" cy="20" r="2.5" fill="currentColor"/><circle cx="22" cy="13" r="2.5" fill="currentColor"/><circle cx="31" cy="14" r="2.5" fill="currentColor"/>',
     image: '<rect x="6" y="9" width="36" height="30" rx="3"/><circle cx="17" cy="19" r="4"/><path d="M6 34l11-10 9 8 6-5 10 9"/>',
@@ -87,6 +88,11 @@
   <div class="sw-party-body"></div>
 </section>
 
+<section class="sw-screen sw-friends" hidden>
+  <div class="sw-sh">${icon('people')}<span>Lista de amigos</span><span class="sw-sh-r sw-fr-count"></span></div>
+  <div class="sw-two"><div class="sw-side sw-fr-side"></div><div class="sw-main"><div class="sw-fr-view"><div class="sw-fr-grid"></div></div></div></div>
+</section>
+
 <section class="sw-screen sw-music" hidden>
   <div class="sw-sh">${icon('music')}<span>Música</span><span class="sw-sh-r">Spotify</span></div>
   <div class="sw-music-body"></div>
@@ -121,6 +127,7 @@
     root.innerHTML = MARKUP;
     const api = ctx.api;
     const U = window.NostalHubUtil;
+    const feed = U.friendsFeed(api); // amigos de Steam
     const esc = U.escapeHtml;
     const $ = (s, el = root) => el.querySelector(s);
     const $$ = (s, el = root) => [...el.querySelectorAll(s)];
@@ -139,7 +146,7 @@
     let menuModel = [];
     let playTimer = null;
     const offs = [];
-    const nowPlaying = U.nowPlaying($('.sw-playing'), api);
+    const nowPlaying = U.nowPlaying($('.sw-playing'), api, ctx.toast);
 
     // ---------- Tema claro u oscuro (Ajustes → Tema) ----------
     let light = false;
@@ -265,10 +272,11 @@
     });
     function runBtn(id) {
       ctx.sound('b-' + id); // cada botón con su sonido (boton-ajustes.wav, boton-tienda.wav…), si lo pusiste
-      if (id === 'store' || id === 'friends') {
-        call('open', id === 'store' ? 'steam-store' : 'steam-friends');
+      if (id === 'store') {
+        call('open', 'steam-store');
         ctx.toast('Se abrió en Steam');
-      } else if (id === 'party') openScreen('party');
+      } else if (id === 'friends') openFriends();
+      else if (id === 'party') openScreen('party');
       else if (id === 'music') openScreen('music');
       else if (id === 'trophies') openTrophies();
       else if (id === 'library') openLibrary();
@@ -277,7 +285,7 @@
     }
 
     // ---------- Pantallas ----------
-    const SCREEN = { game: '.sw-game', library: '.sw-lib', trophies: '.sw-ach', party: '.sw-party', music: '.sw-music', settings: '.sw-set' };
+    const SCREEN = { friends: '.sw-friends', game: '.sw-game', library: '.sw-lib', trophies: '.sw-ach', party: '.sw-party', music: '.sw-music', settings: '.sw-set' };
     function openScreen(name) {
       view = name;
       root.classList.add('in-screen');
@@ -299,6 +307,7 @@
         return setLib(libSel);
       }
       view = 'home';
+      feed.watch(false);
       root.classList.remove('in-screen');
       $$('.sw-screen').forEach((s) => (s.hidden = true));
       setRow(rowSel, area);
@@ -630,35 +639,141 @@
       else call('open', id);
     }
 
+    // --- Lista de amigos (de Steam) ---
+    // Cuadros grandes con su imagen (como la lista de amigos de la Switch); el marcado se ve a la izquierda.
+    const FR_COLS = 5;
+    let frSel = 0;
+    let frId = null;
+    feed.onChange(() => view === 'friends' && paintFriends());
+    function friendPic(f, cls = '') {
+      return `<span class="sw-fr-pic ${cls} ${U.friendClass(f)}">${f.avatar ? `<img src="${esc(f.avatar)}" alt="" />` : `<b>${esc((f.name || '?').trim().charAt(0).toUpperCase())}</b>`}<i></i></span>`;
+    }
+    function openFriends() {
+      openScreen('friends');
+      frSel = 0;
+      frId = null;
+      $('.sw-fr-view').scrollTop = 0;
+      paintFriends();
+      feed.watch(true);
+    }
+    function paintFriends() {
+      const d = feed.data;
+      const rows = feed.list;
+      $('.sw-fr-count').textContent = d.status === 'ok' ? `${feed.online.length} en línea · ${rows.length} ${rows.length === 1 ? 'amigo' : 'amigos'}` : '';
+      const grid = $('.sw-fr-grid');
+      const side = $('.sw-fr-side');
+      if (d.status !== 'ok' || !rows.length) {
+        const m = U.friendsMessage(d.status);
+        side.innerHTML = '';
+        grid.innerHTML = `<div class="sw-center sw-fr-empty"><div class="sw-big-ic">${icon('people')}</div><div class="sw-ct">${esc(m.t)}</div><div class="sw-cd">${esc(m.d)}</div>
+          ${m.btn ? `<div class="sw-btnrow"><button class="sw-pill sel" data-fb="${m.btn[0]}">${m.btn[1]}</button></div>` : ''}</div>`;
+        const b = grid.querySelector('[data-fb]');
+        if (b) b.addEventListener('click', () => call('open', b.dataset.fb));
+        return;
+      }
+      grid.innerHTML = rows
+        .map((f, i) => `<button class="sw-fr-cell ${U.friendClass(f)}" data-i="${i}">${friendPic(f)}<span class="sw-fr-n">${esc(f.name)}</span><span class="sw-fr-s">${esc(f.state === 0 ? 'Desconectado' : U.friendStatus(f))}</span></button>`)
+        .join('');
+      $$('.sw-fr-cell', grid).forEach((c) => {
+        c.addEventListener('mouseenter', () => setFriend(Number(c.dataset.i), false));
+        c.addEventListener('click', () => (Number(c.dataset.i) === frSel ? friendOptions(rows[frSel]) : setFriend(Number(c.dataset.i))));
+      });
+      const keep = frId ? rows.findIndex((f) => f.id === frId) : -1;
+      setFriend(keep >= 0 ? keep : Math.min(frSel, rows.length - 1), keep < 0);
+    }
+    function setFriend(i, scroll = true) {
+      const rows = feed.list;
+      if (!rows.length) return;
+      frSel = Math.max(0, Math.min(rows.length - 1, i));
+      const f = rows[frSel];
+      frId = f.id;
+      let el = null;
+      $$('.sw-fr-cell').forEach((c) => {
+        const on = Number(c.dataset.i) === frSel;
+        c.classList.toggle('sel', on);
+        if (on) el = c;
+      });
+      if (scroll && el) el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      $('.sw-fr-side').innerHTML = `${friendPic(f, 'big')}<div class="sw-fr-dn">${esc(f.name)}</div><div class="sw-fr-ds ${U.friendClass(f)}">${esc(U.friendStatus(f))}</div>
+        <div class="sw-fr-hint"><b>Enter</b> Ver perfil o enviar mensaje</div>`;
+    }
+    function friendOptions(f) {
+      if (!f) return;
+      openPop(f.name, U.friendStatus(f), [
+        { icon: 'person', label: 'Ver perfil', run: () => (feed.profile(f), ctx.toast(`Se abrió el perfil de ${f.name} en Steam`)) },
+        { icon: 'chat', label: 'Enviar mensaje', run: () => (feed.chat(f), ctx.toast(`Se abrió el chat con ${f.name} en Steam`)) },
+      ]);
+    }
+    function friendsKey(k) {
+      const rows = feed.list;
+      if (k === 'Escape' || k === 'Backspace') return back();
+      if (feed.data.status !== 'ok' || !rows.length) {
+        if (k === 'Enter') {
+          const b = $('.sw-fr-grid [data-fb]');
+          if (b) b.click();
+        }
+        return;
+      }
+      if (k === 'ArrowRight') frSel % FR_COLS === FR_COLS - 1 || frSel >= rows.length - 1 ? ctx.sound('border') : setFriend(frSel + 1);
+      else if (k === 'ArrowLeft') frSel % FR_COLS === 0 ? ctx.sound('border') : setFriend(frSel - 1);
+      else if (k === 'ArrowDown') frSel + FR_COLS > rows.length - 1 ? ctx.sound('border') : setFriend(frSel + FR_COLS);
+      else if (k === 'ArrowUp') frSel - FR_COLS < 0 ? ctx.sound('border') : setFriend(frSel - FR_COLS);
+      else if (k === 'Enter' || k === 'o' || k === 'O' || k === '+') friendOptions(rows[frSel]);
+    }
+
     // --- Música (Spotify) ---
     let musicBtn = 1;
     function renderMusic() {
       const v = U.spotifyView(spotify || {});
       const body = $('.sw-music-body');
+      $('.sw-music .sw-sh-r').textContent = v.app;
+      const acts = U.musicActions(v);
       body.innerHTML = `<div class="sw-mu">
           <div class="sw-mu-cover"${v.cover ? ` style="background-image:url('${v.cover}')"` : ''}>${v.cover ? '' : icon('music')}</div>
-          <div class="sw-mu-info"><div class="sw-mu-st">${v.on ? (v.playing ? 'Reproduciendo' : 'En pausa') : 'Spotify'}</div><div class="sw-mu-t">${esc(v.title)}</div><div class="sw-mu-a">${esc(v.artist)}</div>
-            <div class="sw-btnrow">${
+          <div class="sw-mu-info"><div class="sw-mu-st">${v.on ? `${v.playing ? 'Reproduciendo' : 'En pausa'}${v.device && v.deviceType !== 'Computer' ? ` · en ${esc(v.device)}` : ''}` : esc(v.app)}</div><div class="sw-mu-t">${esc(v.title)}</div><div class="sw-mu-a">${esc(v.artist)}</div>
+            ${U.progressHtml(v, 'sw-mu-prog')}
+            <div class="sw-btnrow" data-row="0">${
               v.on
                 ? `<button class="sw-round" data-m="prev">${icon('prev')}</button><button class="sw-round big" data-m="toggle">${icon(v.playing ? 'pause' : 'play')}</button><button class="sw-round" data-m="next">${icon('next')}</button>`
                 : ''
-            }<button class="sw-pill" data-m="open">Abrir Spotify</button></div></div></div>`;
+            }${v.appId !== 'auto' ? `<button class="sw-pill" data-m="open">Abrir ${esc(v.app)}</button>` : ''}${v.appId === 'spotify' && !v.api ? '<button class="sw-pill" data-m="connect">Conectar Spotify</button>' : ''}</div>
+            ${acts.length ? `<div class="sw-btnrow sw-mu-extra" data-row="1">${acts.map((a) => `<button class="sw-round sm${a.on ? ' on' : ''}" data-m="x:${a.id}" data-label="${esc(a.label)}${a.value && a.id !== 'like' ? `: ${esc(a.value)}` : ''}">${U.npIcon(a.icon)}</button>`).join('')}</div><div class="sw-mu-hint"></div>` : ''}
+            ${v.next ? `<div class="sw-mu-next"><small>Siguiente</small><span>${esc(U.nextText(v))}</span></div>` : ''}
+          </div></div>`;
       const btns = $$('[data-m]', body);
-      musicBtn = Math.min(musicBtn, btns.length - 1);
+      musicBtn = Math.max(0, Math.min(musicBtn, btns.length - 1));
+      const hint = () => {
+        const h = $('.sw-mu-hint', body);
+        if (h) h.textContent = btns[musicBtn] && btns[musicBtn].dataset.label ? btns[musicBtn].dataset.label : '';
+      };
       btns.forEach((b, i) => {
         b.classList.toggle('sel', i === musicBtn);
         b.addEventListener('mouseenter', () => {
           musicBtn = i;
           btns.forEach((x, j) => x.classList.toggle('sel', j === i));
+          hint();
         });
         b.addEventListener('click', () => {
-          call('spotifyControl', b.dataset.m);
-          if (b.dataset.m === 'toggle' && spotify && spotify.running) {
+          const m = b.dataset.m;
+          if (m.startsWith('x:')) return U.musicRun(api, m.slice(2), v, ctx.toast);
+          if (m === 'connect') return call('open', 'setup-spotify');
+          call('spotifyControl', m);
+          if (m === 'toggle' && spotify && spotify.running) {
             spotify = { ...spotify, playing: !spotify.playing };
             renderMusic();
           }
         });
       });
+      hint();
+    }
+    // ↑ ↓ cambia entre la fila de controles y la de aleatorio, repetir, me gusta…
+    function musicRow(dir) {
+      const b = $$('.sw-music-body [data-m]');
+      const cur = b[musicBtn] && b[musicBtn].closest('[data-row]');
+      const row = cur ? Number(cur.dataset.row) + dir : 0;
+      const first = b.findIndex((x) => x.closest(`[data-row="${row}"]`));
+      if (first >= 0) musicBtn = first;
+      else ctx.sound('border');
     }
 
     // --- Ajustes (con Tema claro/oscuro, solo de esta consola) ---
@@ -805,6 +920,7 @@
       let html;
       if (view === 'home') html = area === 'row' && rowItems[rowSel] && rowItems[rowSel].game ? h('O', 'Opciones') + h('Enter', 'Iniciar') : h('Enter', 'Abrir');
       else if (view === 'library') html = h('O', 'Opciones') + h('Esc', 'Atrás') + h('Enter', 'Ver');
+      else if (view === 'friends') html = h('Esc', 'Atrás') + h('Enter', 'Opciones');
       else if (view === 'game') html = h('Esc', 'Atrás') + h('Enter', 'Aceptar');
       else html = h('Esc', 'Atrás') + h('Enter', 'Aceptar');
       $('.sw-hints').innerHTML = html;
@@ -895,6 +1011,7 @@
           else if (k === 'Escape') setRow(rowSel, 'row');
         }
       } else if (view === 'library') libKey(k);
+      else if (view === 'friends') friendsKey(k);
       else if (view === 'trophies') achKey(k);
       else if (view === 'settings') settingsKey(k);
       else if (view === 'game') gameKey(k);
@@ -909,9 +1026,13 @@
         const b = $$('[data-m]');
         if (k === 'ArrowRight') musicBtn = Math.min(b.length - 1, musicBtn + 1);
         else if (k === 'ArrowLeft') musicBtn = Math.max(0, musicBtn - 1);
+        else if (k === 'ArrowDown') musicRow(1);
+        else if (k === 'ArrowUp') musicRow(-1);
         else if (k === 'Enter' && b[musicBtn]) return b[musicBtn].click();
         else if (k === 'Escape' || k === 'Backspace') return back();
         b.forEach((x, j) => x.classList.toggle('sel', j === musicBtn));
+        const h = $('.sw-mu-hint');
+        if (h) h.textContent = (b[musicBtn] && b[musicBtn].dataset.label) || '';
       }
     }
     window.addEventListener('keydown', onKey);
@@ -973,6 +1094,7 @@
     return {
       unmount() {
         nowPlaying.dispose();
+        feed.dispose();
         clearInterval(clockTimer);
         clearInterval(playTimer);
         window.removeEventListener('keydown', onKey);

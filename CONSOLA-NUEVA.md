@@ -33,7 +33,19 @@ más completas) cuando tengas dudas de cómo se hace algo.
       o de amigos, usar también `api.onSpotify` / `api.onDiscord` (ver PS3, PS4, 3DS).
 - [ ] **Pestaña / sección de Logros SIEMPRE** (lista de logros del juego): `api.getAchievements(appId)`,
       `api.getAchievementSummary`, `NostalHubUtil.achievementMessage / sortAchievements / achievementTexts`.
-- [ ] **Amigos de Steam** y estado de Steam: `api.onSteamSummary`, `api.onSteamChanged`.
+- [ ] **Amigos de Steam** con el estilo de la consola, usando `const feed = U.friendsFeed(api)`:
+      `feed.watch(true/false)` mientras se ve (se actualiza cada 30 s), `feed.onChange(repintar)`, `feed.data.status`,
+      `feed.list`, `feed.online`, `feed.profile(f)` y `feed.chat(f)` (abren el perfil o el chat en Steam) y
+      `feed.dispose()` al desmontar. Para pintar: `friendsGrouped`, `friendClass` (color del puntito), `friendStatus`,
+      `friendsMessage(status)` (con botón para `no-key` / `private`). Imágenes con **esquinas redondeadas**.
+      Siempre las dos acciones: **Ver perfil** y **Enviar mensaje**.
+- [ ] **Música** (la app elegida en Ajustes, no solo Spotify): `const v = U.spotifyView(estado)` → usar `v.app` en
+      los textos ("Abrir ${v.app}"), `U.progressHtml(v, clase)` (la barra se mueve sola), `U.nextText(v)` ("Siguiente"),
+      `U.musicActions(v)` (orden, repetir, me gusta, volumen, dispositivo, cola) con `U.musicRun(api, id, v, ctx.toast)`,
+      y si `v.appId === 'spotify' && !v.api`, un botón para `call('open', 'setup-spotify')`. La cola y los
+      dispositivos se abren solos (`U.musicSheet`): darle colores con `.theme-<id> .ms-overlay { --ms-bg, --ms-fg,
+      --ms-acc… }` en `shell.css`. El panel al jugar: `U.nowPlaying(contenedor, api, ctx.toast)`.
+- [ ] Estado de Steam: `api.onSteamSummary`, `api.onSteamChanged`.
 - [ ] **Ajustes** con el estilo de la consola, generados desde `api.getMenu()` / `api.runMenu()` (las opciones
       se escriben una sola vez en `menuSections()` de `main.js`). Usar `optionValueText` / `optionNextValue`.
 - [ ] Botón o atajo para **volver al selector**: `ctx.openSelector()`.

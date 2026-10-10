@@ -1,6 +1,6 @@
-﻿# Ayudante de NostalHub: lee y controla Spotify a través de los controles multimedia de Windows
+﻿# Ayudante de NostalHub: lee y controla la app de música (Spotify, Apple Music, YouTube Music…) a través de los controles multimedia de Windows
 # (los mismos que aparecen al subir el volumen). Da título, artista, estado y la portada del álbum.
-# Protocolo: recibe un comando por línea (poll | toggle | next | prev) y responde una línea JSON.
+# Protocolo: recibe un comando por línea ("poll spotify" | "toggle apple" | "next auto"…) y responde una línea JSON.
 
 $ErrorActionPreference = 'Stop'
 try { [Console]::OutputEncoding = [System.Text.Encoding]::UTF8 } catch { }
@@ -32,11 +32,34 @@ try {
 $lastKey = ''
 $thumbTries = 0
 
+# Qué app de música mirar: spotify | apple | ytmusic | auto (la que esté sonando)
+function Find-Session($app) {
+  $all = @($manager.GetSessions())
+  if ($app -eq 'auto') {
+    $cur = $manager.GetCurrentSession()
+    if ($cur) { return $cur }
+    return ($all | Select-Object -First 1)
+  }
+  switch ($app) {
+    'apple'   { $pat = 'AppleMusic|AppleInc\.|iTunes' }
+    'ytmusic' { $pat = 'youtube|chrome|msedge|brave|opera|firefox|vivaldi' }
+    default   { $pat = 'Spotify' }
+  }
+  $found = @($all | Where-Object { $_.SourceAppUserModelId -match $pat })
+  # Si hay varias (por ejemplo, varias pestañas del navegador), la que está sonando
+  $playing = $found | Where-Object { $_.GetPlaybackInfo().PlaybackStatus.ToString() -eq 'Playing' } | Select-Object -First 1
+  if ($playing) { return $playing }
+  return ($found | Select-Object -First 1)
+}
+
 while ($true) {
-  $cmd = [Console]::In.ReadLine()
-  if ($cmd -eq $null) { break }
+  $line = [Console]::In.ReadLine()
+  if ($line -eq $null) { break }
+  $parts = $line.Trim().Split(' ')
+  $cmd = $parts[0]
+  $app = if ($parts.Count -gt 1) { $parts[1] } else { 'spotify' }
   try {
-    $session = $manager.GetSessions() | Where-Object { $_.SourceAppUserModelId -match 'Spotify' } | Select-Object -First 1
+    $session = Find-Session $app
     if (-not $session) { Send @{ ok = $true; found = $false }; continue }
 
     switch ($cmd) {
@@ -47,11 +70,11 @@ while ($true) {
 
     $props = Await ($session.TryGetMediaPropertiesAsync()) ([Windows.Media.Control.GlobalSystemMediaTransportControlsSessionMediaProperties])
     $status = $session.GetPlaybackInfo().PlaybackStatus.ToString()
-    $res = @{ ok = $true; found = $true; title = $props.Title; artist = $props.Artist; album = $props.AlbumTitle; status = $status }
+    $res = @{ ok = $true; found = $true; title = $props.Title; artist = $props.Artist; album = $props.AlbumTitle; status = $status; app = $session.SourceAppUserModelId }
 
     # La portada se manda una vez por canción. Si todavía no está lista (Spotify a veces la
     # carga unos segundos después del título), se vuelve a intentar en las siguientes consultas.
-    $key = "$($props.Artist)|$($props.Title)"
+    $key = "$($session.SourceAppUserModelId)|$($props.Artist)|$($props.Title)"
     if ($key -ne $lastKey) { $lastKey = $key; $thumbTries = 15 }
     if ($thumbTries -gt 0) {
       $thumbTries--

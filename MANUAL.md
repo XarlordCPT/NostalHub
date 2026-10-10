@@ -193,31 +193,55 @@ neón de Geometry Dash) → `logo.png` / logo de Steam → iniciales.
 
 ---
 
-## 5. Spotify (pestaña home de la Xbox 360)
+## 5. Música (Spotify, Apple Music, YouTube Music)
 
-No hay nada que configurar: usa la **app de escritorio de Spotify** de tu PC.
-- Muestra la canción que está sonando con la **portada del álbum** en el centro del disco, y tiene botones de
-  anterior, reproducir/pausar y siguiente, más "Abrir Spotify".
-- Funciona con los controles multimedia de Windows (los mismos que aparecen al subir el volumen), así que los
-  botones le hablan **directo a Spotify**.
-- Si Windows no entrega la portada de alguna canción, la app la busca por internet (en iTunes y en Deezer).
-  Si aun así alguna no aparece, revisa `%APPDATA%\NostalHub\cache\spotify.log`: dice qué método se usó y qué falló.
-- Si en tu PC eso no funcionara, la app usa un método de respaldo:
-  - el nombre se lee de la ventana de Spotify y la portada se busca por internet;
-  - los botones pasan a usar las teclas multimedia, así que, si hay otra cosa sonando (por ejemplo un video
-    en el navegador), pueden controlar eso en vez de Spotify.
+La sección **Música** de cada consola y el panel de la izquierda al jugar muestran lo que suena, con su portada y
+los botones anterior / pausa / siguiente.
 
----
+- **Qué app**: Ajustes → Sonido → **App de música**: *Spotify* (la de siempre), *Apple Music*, *YouTube Music* (en
+  el navegador) o *Automático* (la que esté sonando). Funciona con los controles multimedia de Windows (los mismos
+  que aparecen al subir el volumen). Con YouTube Music en el navegador, si suena un video en otra pestaña, se puede
+  mostrar ese.
+- **Portada**: la da Windows. Si no llega, se busca por internet (iTunes y Deezer), pero solo si coincide **la
+  misma canción** del mismo artista; si no, mejor no se muestra ninguna. El registro está en
+  `%APPDATA%\NostalHub\cache\spotify.log`.
+
+### Conectar Spotify (debes tener Premium)
+
+Ajustes → Cuentas → **Conectar Spotify**. Se crea una "app" gratis en Spotify for Developers (los pasos salen en
+pantalla), se pega el **Client ID** y se acepta el permiso en el navegador. Se guarda en
+`%APPDATA%\NostalHub\spotify.json` (no lo compartas). Con Spotify conectado se suman, en todas las consolas:
+
+- **Barra de la canción** con el tiempo, y la **canción siguiente**.
+- **Cola de reproducción**: elige una canción para saltar hasta ella.
+- **Orden**: En orden ↔ Aleatorio. El *Aleatorio inteligente* se ve, pero Spotify solo deja activarlo desde su app.
+- **Repetir**: No → La lista → La canción.
+- **Me gusta** (el corazón), **volumen** de Spotify y **dispositivo** (pasar la música al PC, al teléfono o a un
+  parlante). Si suena en el teléfono, también se ve y se controla desde aquí.
+
+| Consola | Dónde |
+| --- | --- |
+| Xbox 360 | Pestaña *home*: la barra y "Siguiente" junto al disco; los botones extra a la derecha |
+| PS4 | Menú rápido (**P**) → Música |
+| PS3 | Categoría **Música**: cada opción es un elemento del XMB |
+| PS Vita | Burbuja **Música** (los botones extra abajo; su nombre aparece al marcarlos) |
+| Switch | Botón **Música** (↓ para la fila de aleatorio, repetir, me gusta…) |
+| 3DS | **Nintendo 3DS Sonido** |
+| Wii y PS2 | En el panel de la izquierda mientras juegas |
 
 ## 6. PlayStation 4, PS Vita y el Grupo (Discord)
 
 **Cómo se usa la PS4:**
 - **Menú principal**: tus 5 juegos más recientes y al final la **Biblioteca**. ← → para moverte, Enter para jugar.
   - **↓** abre la ficha del juego: horas, trofeos (tus logros de Steam), descripción, *Iniciar* y *Trofeos*.
-  - **↑** muestra la fila de funciones: Tienda, Amigos y Perfil (abren Steam), Grupo, Trofeos, Ajustes y Energía.
+  - **↑** muestra la fila de funciones: Tienda y Perfil (abren Steam), Amigos, Grupo, Trofeos, Ajustes y Energía.
+- **Amigos**: tus amigos de Steam como en Steam: primero los que están **jugando** (y a qué), después los **en línea**,
+  los **ausentes** y al final los **desconectados** (con hace cuánto). Se actualiza cada 30 segundos. Enter o clic
+  abre su **perfil** en Steam. Necesita tu clave de API de Steam y que tu **lista de amigos** sea pública en Steam
+  (Editar perfil → Configuración de privacidad).
 - **Biblioteca**: todos tus juegos, con filtros a la izquierda (Todos, Juegos de Steam, Aplicaciones, Jugados
   recientemente, Con trofeos), **Buscar** (escribe el nombre) y el orden arriba a la derecha (o la tecla **S**).
-- **Menú rápido**: tecla **P** o el botón de abajo a la derecha. Tiene Sonido, Música (Spotify), Grupo, Juego al azar,
+- **Menú rápido**: tecla **P** o el botón de abajo a la derecha. Tiene Sonido, Música, Grupo, **Amigos** (los conectados), Juego al azar,
   Biblioteca, Cambiar de consola, Ajustes y Energía. → entra a las opciones de la derecha.
 - **Con el mouse**: un clic elige un cuadro; con el cuadro ya elegido, clic en *Iniciar* para jugar o en la imagen
   para ver la ficha.
@@ -340,6 +364,26 @@ En **Ajustes → Pantalla → Modo**:
 - **Ajustes → Pantalla**: activar o desactivar **Logros sobre el juego** y elegir **en qué pantalla** aparecen.
 - **Prueba**: **Ctrl + Alt + Shift + L** muestra un logro falso con el estilo de la consola en la que estás.
 - Sonido: el tuyo en `consolas\<consola>\logro.wav` (por ejemplo `consolas\ps3\logro.wav`); si no, uno hecho con código.
+
+### Amigos de Steam (en todas las consolas)
+
+Tus amigos de Steam con el estilo de cada consola, ordenados como en Steam: jugando, en línea, ausentes y
+desconectados al final. Puedes abrir su **perfil** o su **chat** de Steam. La lista se actualiza cada 30 segundos.
+
+| Consola | Dónde está | Perfil / mensaje |
+| --- | --- | --- |
+| Wii | Botón del **sobre** (abajo a la derecha) o tecla **A** | ← → para elegir el botón, Enter |
+| PS2 | Botón **Amigos** abajo o tecla **A** | Enter abre la ventanita con los dos botones |
+| Xbox 360 | Mosaico **Amigos** de la pestaña *social* | ← → para elegir el botón, Enter |
+| PS3 | Categoría **Amigos** (después del Grupo) | Enter: perfil · **O**: opciones (perfil o mensaje) |
+| PS4 | *Amigos* en la fila de funciones, y en el **menú rápido** (P) | ← → para elegir el botón, Enter |
+| PS Vita | Burbuja **Amigos** (se abre como tarjeta) | ← → para elegir el botón, Enter |
+| Switch | Botón **Amigos** de la fila de abajo | Enter abre las opciones |
+| 3DS | Atajo **Lista de amigos** (pantalla de abajo) | Enter abre la ventanita |
+
+- Necesita tu clave de API de Steam y que tu **lista de amigos** sea pública (Steam → Editar perfil → Configuración
+  de privacidad).
+- Si un amigo tiene sus juegos en privado, sale "En línea" aunque esté jugando (Steam no dice a qué).
 
 ### Cómo se usa la PS3
 

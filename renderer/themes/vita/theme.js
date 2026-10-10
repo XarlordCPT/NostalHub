@@ -32,6 +32,7 @@
   const I = {
     home: '<path d="M7 24 24 9l17 15"/><path d="M12 21v18h9V29h6v10h9V21"/>',
     music: '<path d="M19 35V11l20-4v23"/><circle cx="14" cy="35" r="5.5" fill="currentColor"/><circle cx="34" cy="30" r="5.5" fill="currentColor"/>',
+    chat: '<path d="M8 10h32v20H22l-9 8v-8H8Z"/><path d="M15 18h18M15 23h12"/>',
     person: '<circle cx="24" cy="15" r="7"/><path d="M10 41c0-9 6-14 14-14s14 5 14 14"/>',
     headset: '<path d="M8 30v-6a16 16 0 0 1 32 0v6"/><rect x="6" y="28" width="8" height="12" rx="3"/><rect x="34" y="28" width="8" height="12" rx="3"/><path d="M40 40c0 4-5 6-12 6"/>',
     trophy: '<path d="M16 8h16v10a8 8 0 0 1-16 0Z"/><path d="M16 11H9v3a6 6 0 0 0 7 6M32 11h7v3a6 6 0 0 1-7 6"/><path d="M24 26v8M17 40h14M19 34h10v6H19z"/>',
@@ -130,7 +131,7 @@
     { id: 'settings', label: 'Ajustes' },
     { id: 'consoles', label: 'Consolas' },
   ];
-  const CARD_TITLES = { party: 'Grupo', music: 'Música', trophies: 'Trofeos', library: 'Biblioteca', settings: 'Ajustes' };
+  const CARD_TITLES = { friends: 'Amigos', party: 'Grupo', music: 'Música', trophies: 'Trofeos', library: 'Biblioteca', settings: 'Ajustes' };
 
   const MARKUP = `
 <div class="v-wall"><div class="v-light l1"></div><div class="v-light l2"></div><div class="v-light l3"></div></div>
@@ -308,6 +309,7 @@
     root.innerHTML = MARKUP;
     const api = ctx.api;
     const U = window.NostalHubUtil;
+    const feed = U.friendsFeed(api); // amigos de Steam
     const esc = U.escapeHtml;
     const $ = (s, el = root) => el.querySelector(s);
     const $$ = (s, el = root) => [...el.querySelectorAll(s)];
@@ -330,7 +332,7 @@
     let playTimer = null;
     let playingGame = null;
     const offs = [];
-    const nowPlaying = U.nowPlaying($('.v-playing'), api);
+    const nowPlaying = U.nowPlaying($('.v-playing'), api, ctx.toast);
 
     // ---------- Reloj ----------
     function tickClock() {
@@ -517,9 +519,9 @@
       if (!entry || busy) return;
       if (entry.sys) {
         const id = entry.sys;
-        if (id === 'store' || id === 'friends' || id === 'profile') {
+        if (id === 'store' || id === 'profile') {
           bounce(el);
-          call('open', id === 'store' ? 'steam-store' : id === 'friends' ? 'steam-friends' : 'steam-profile');
+          call('open', id === 'store' ? 'steam-store' : 'steam-profile');
           ctx.toast('Se abrió en Steam');
           return;
         }
@@ -694,6 +696,7 @@
       paintEdges();
       paintHint();
       if (at >= 0) setFocus(cards[at], cards[at].focus || 0);
+      feed.watch(at >= 0 && cards[at].kind === 'friends');
     }
     function removeCard(i, animate) {
       const card = cards[i];
@@ -761,6 +764,7 @@
         title.textContent = CARD_TITLES[card.kind] || '';
         if (card.kind === 'music') paintMusicCard(card, main);
         else if (card.kind === 'party') paintPartyCard(card, main);
+        else if (card.kind === 'friends') paintFriendsCard(card, main);
         else if (card.kind === 'trophies') paintTrophyCard(card, main);
         else if (card.kind === 'library') paintLibraryCard(card, main);
         else if (card.kind === 'settings') paintSettingsCard(card, main);
@@ -855,13 +859,15 @@
     function paintMusicCard(card, main) {
       const st = spotify || {};
       const v = U.spotifyView(st);
+      const acts = U.musicActions(v);
       main.innerHTML = `
-        <div class="v-mu">
+        <div class="v-mu${acts.length ? ' has-api' : ''}">
           <div class="v-mu-disc${v.playing ? ' spin' : ''}"><div class="v-mu-cover"${v.cover ? ` style="background-image:url('${v.cover}')"` : ''}>${v.cover ? '' : icon('music')}</div></div>
           <div class="v-mu-info">
-            <div class="v-mu-state">${v.on ? (v.playing ? 'Reproduciendo' : 'En pausa') : 'Spotify'}</div>
+            <div class="v-mu-state">${v.on ? `${v.playing ? 'Reproduciendo' : 'En pausa'}${v.device && v.deviceType !== 'Computer' ? ` · en ${esc(v.device)}` : ''}` : esc(v.app)}</div>
             <div class="v-mu-title">${esc(v.title)}</div>
             <div class="v-mu-artist">${esc(v.artist)}</div>
+            ${U.progressHtml(v, 'v-mu-prog')}
             <div class="v-mu-ctrl">
               ${
                 v.on
@@ -870,14 +876,19 @@
                      <button class="v-round" data-f="next" title="Siguiente">${icon('next')}</button>`
                   : ''
               }
-              <button class="v-pill" data-f="open"><span>${v.on ? 'Abrir Spotify' : 'Abrir Spotify'}</span></button>
+              ${v.appId !== 'auto' ? `<button class="v-pill" data-f="open"><span>Abrir ${esc(v.app)}</span></button>` : ''}
+              ${v.appId === 'spotify' && !v.api ? '<button class="v-pill" data-f="connect"><span>Conectar Spotify</span></button>' : ''}
             </div>
+            ${acts.length ? `<div class="v-mu-extra">${acts.map((a) => `<button class="v-round sm${a.on ? ' on' : ''}" data-f="x:${a.id}" data-label="${esc(a.label)}${a.value && a.id !== 'like' ? `: ${esc(a.value)}` : ''}">${U.npIcon(a.icon)}</button>`).join('')}</div><div class="v-mu-hint"></div>` : ''}
+            ${v.next ? `<div class="v-mu-next"><small>Siguiente</small>${esc(U.nextText(v))}</div>` : ''}
           </div>
         </div>`;
       $$('[data-f]', main).forEach((b) =>
         b.addEventListener('click', () => {
           if (cards[at] !== card) return;
           const cmd = b.dataset.f;
+          if (cmd.startsWith('x:')) return U.musicRun(api, cmd.slice(2), v, ctx.toast);
+          if (cmd === 'connect') return call('open', 'setup-spotify');
           call('spotifyControl', cmd);
           if (cmd === 'toggle' && spotify && spotify.running) {
             spotify = { ...spotify, playing: !spotify.playing };
@@ -885,6 +896,11 @@
           }
         })
       );
+      // El nombre del botón marcado (aleatorio, repetir…) se ve abajo
+      card.onFocus = (el) => {
+        const h = $('.v-mu-hint', main);
+        if (h) h.textContent = (el && el.dataset.label) || '';
+      };
       bindFocus(card);
     }
     function rowKey(card, k) {
@@ -897,6 +913,95 @@
         if (card.focus > 0) setFocus(card, card.focus - 1);
         else if (k === 'ArrowLeft') goTo(at - 1);
       } else if (k === 'Enter' && list[card.focus]) list[card.focus].click();
+      else return false;
+      return true;
+    }
+
+    // --- Amigos (de Steam) ---
+    // Tarjeta: a la izquierda el amigo marcado con sus botones, a la derecha la lista (↑ ↓) en burbujas alargadas.
+    feed.onChange(() => cards.filter((c) => c.kind === 'friends').forEach((c) => paintFriendsCard(c, c.el.querySelector('.v-card-main'))));
+    function friendPic(f, cls = '') {
+      return `<span class="v-fr-av ${cls} ${U.friendClass(f)}">${f.avatar ? `<img src="${esc(f.avatar)}" alt="" />` : `<b>${esc(initials(f.name))}</b>`}<i></i></span>`;
+    }
+    function paintFriendsCard(card, main) {
+      const d = feed.data;
+      const rows = feed.list;
+      if (d.status !== 'ok' || !rows.length) {
+        const m = U.friendsMessage(d.status);
+        main.innerHTML = `<div class="v-pa-empty"><div class="v-pa-big">${ART.friends}</div><div class="v-pa-t">${esc(m.t)}</div><div class="v-pa-d">${esc(m.d)}</div>
+          ${m.btn ? `<div class="v-pa-btns"><button class="v-pill" data-f="${m.btn[0]}"><span>${m.btn[1]}</span></button></div>` : ''}</div>`;
+        $$('[data-f]', main).forEach((b) => b.addEventListener('click', () => cards[at] === card && call('open', b.dataset.f)));
+        bindFocus(card);
+        if (cards[at] === card) setFocus(card, 0);
+        return;
+      }
+      const keep = card.friendId ? rows.findIndex((f) => f.id === card.friendId) : -1;
+      card.fSel = keep >= 0 ? keep : Math.min(card.fSel || 0, rows.length - 1);
+      card.fBtn = card.fBtn || 0;
+      const online = feed.online.length;
+      main.innerHTML = `<div class="v-fr">
+          <div class="v-fr-side"></div>
+          <div class="v-fr-main">
+            <div class="v-fr-count">${online} en línea · ${rows.length} ${rows.length === 1 ? 'amigo' : 'amigos'}</div>
+            <div class="v-fr-view">${U.friendsGrouped(rows)
+              .map((g) => `<div class="v-fr-head">${g.title}</div>` + g.items.map(([f, i]) => `<button class="v-fr-row ${U.friendClass(f)}" data-fi="${i}">${friendPic(f)}<span class="v-fr-tx"><span class="v-fr-n">${esc(f.name)}</span><span class="v-fr-s">${esc(U.friendStatus(f))}</span></span></button>`).join(''))
+              .join('')}</div>
+          </div>
+        </div>`;
+      $$('.v-fr-row', main).forEach((r) => {
+        r.addEventListener('mouseenter', () => cards[at] === card && setFriendSel(card, Number(r.dataset.fi), false));
+        r.addEventListener('click', () => cards[at] === card && feedOpen(card, 0, rows[Number(r.dataset.fi)]));
+      });
+      setFriendSel(card, card.fSel, keep < 0);
+    }
+    function setFriendSel(card, i, scroll = true) {
+      const rows = feed.list;
+      if (!rows.length) return;
+      card.fSel = Math.max(0, Math.min(rows.length - 1, i));
+      const f = rows[card.fSel];
+      card.friendId = f.id;
+      const main = card.el.querySelector('.v-card-main');
+      let el = null;
+      $$('.v-fr-row', main).forEach((r) => {
+        const on = Number(r.dataset.fi) === card.fSel;
+        r.classList.toggle('sel', on);
+        if (on) el = r;
+      });
+      if (scroll && el) el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      const side = main.querySelector('.v-fr-side');
+      side.innerHTML = `${friendPic(f, 'big')}<div class="v-fr-name">${esc(f.name)}</div><div class="v-fr-state ${U.friendClass(f)}">${esc(U.friendStatus(f))}</div>
+        <div class="v-fr-btns"><button class="v-pill${card.fBtn === 0 ? ' sel' : ''}" data-fb="0">${icon('person')}<span>Perfil</span></button><button class="v-pill${card.fBtn === 1 ? ' sel' : ''}" data-fb="1">${icon('chat')}<span>Mensaje</span></button></div>`;
+      $$('[data-fb]', side).forEach((b) => {
+        b.addEventListener('mouseenter', () => setFriendBtn(card, Number(b.dataset.fb)));
+        b.addEventListener('click', () => cards[at] === card && feedOpen(card, Number(b.dataset.fb), f));
+      });
+    }
+    function setFriendBtn(card, i) {
+      card.fBtn = i ? 1 : 0;
+      $$('[data-fb]', card.el).forEach((b) => b.classList.toggle('sel', Number(b.dataset.fb) === card.fBtn));
+    }
+    function feedOpen(card, btn, f) {
+      if (!f) return;
+      sound('select');
+      if (btn) {
+        feed.chat(f);
+        ctx.toast(`Se abrió el chat con ${f.name} en Steam`);
+      } else {
+        feed.profile(f);
+        ctx.toast(`Se abrió el perfil de ${f.name} en Steam`);
+      }
+    }
+    function friendsCardKey(card, k) {
+      if (feed.data.status !== 'ok' || !feed.list.length) return rowKey(card, k);
+      if (k === 'ArrowDown') setFriendSel(card, card.fSel + 1);
+      else if (k === 'ArrowUp') setFriendSel(card, card.fSel - 1);
+      else if (k === 'ArrowLeft') {
+        if (card.fBtn > 0) setFriendBtn(card, 0);
+        else goTo(at - 1);
+      } else if (k === 'ArrowRight') {
+        if (card.fBtn < 1) setFriendBtn(card, 1);
+        else if (at < cards.length - 1) goTo(at + 1);
+      } else if (k === 'Enter') feedOpen(card, card.fBtn, feed.list[card.fSel]);
       else return false;
       return true;
     }
@@ -1255,6 +1360,7 @@
       let used = false;
       if (card.kind === 'game') used = gameKey(card, k);
       else if (card.kind === 'music' || card.kind === 'party') used = rowKey(card, k);
+      else if (card.kind === 'friends') used = friendsCardKey(card, k);
       else if (card.kind === 'trophies') used = trophyKey(card, k);
       else if (card.kind === 'library') used = libraryKey(card, k);
       else if (card.kind === 'settings') used = settingsKey(card, k);
@@ -1355,7 +1461,7 @@
           <div class="v-qm-cover"${v.cover ? ` style="background-image:url('${v.cover}')"` : ''}>${v.cover ? '' : icon('music')}</div>
           <div class="v-qm-st"><div class="v-qm-t">${esc(v.title)}</div><div class="v-qm-a">${esc(v.artist)}</div></div>
           <div class="v-qm-ctrl">
-            ${v.on ? `<button class="v-round" data-q="prev">${icon('prev')}</button><button class="v-round big" data-q="toggle">${icon(v.playing ? 'pause' : 'play')}</button><button class="v-round" data-q="next">${icon('next')}</button>` : `<button class="v-pill" data-q="open"><span>Abrir Spotify</span></button>`}
+            ${v.on ? `<button class="v-round" data-q="prev">${icon('prev')}</button><button class="v-round big" data-q="toggle">${icon(v.playing ? 'pause' : 'play')}</button><button class="v-round" data-q="next">${icon('next')}</button>` : `<button class="v-pill" data-q="open"><span>Abrir ${esc(v.app)}</span></button>`}
           </div>
         </div>
         <div class="v-qm-rows">
@@ -1690,6 +1796,7 @@
     return {
       unmount() {
         nowPlaying.dispose();
+        feed.dispose();
         clearInterval(clockTimer);
         clearInterval(playTimer);
         clearInterval(teaseTimer);

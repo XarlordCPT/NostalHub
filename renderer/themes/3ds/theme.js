@@ -168,6 +168,7 @@
     root.innerHTML = MARKUP;
     const api = ctx.api;
     const U = window.NostalHubUtil;
+    const feed = U.friendsFeed(api); // amigos de Steam (Lista de amigos)
     const esc = U.escapeHtml;
     const $ = (s, el = root) => el.querySelector(s);
     const $$ = (s, el = root) => [...el.querySelectorAll(s)];
@@ -217,7 +218,7 @@
         { app: 'settings', icon: 'gear', color: '#8c8c8c', title: 'Configuración de la consola', sub: 'Tema, carcasa, pantalla, sonido y cuentas' },
         { app: 'eshop', icon: 'bag', color: '#f07b1d', title: 'Nintendo eShop', sub: 'Se abre la tienda de Steam' },
         { app: 'activity', icon: 'chart', color: '#3fa63f', title: 'Registro de actividad', sub: 'Cuánto has jugado a cada juego' },
-        { app: 'music', icon: 'music', color: '#e8443a', title: 'Nintendo 3DS Sonido', sub: spotify && spotify.running ? 'Spotify: ' + (spotify.title || 'abierto') : 'Tu música de Spotify' },
+        { app: 'music', icon: 'music', color: '#e8443a', title: 'Nintendo 3DS Sonido', sub: spotify && spotify.running ? `${spotify.appName || 'Spotify'}: ${spotify.title || 'abierto'}` : `Tu música de ${(spotify && spotify.appName) || 'Spotify'}` },
         { app: 'trophies', icon: 'trophy', color: '#e2a300', title: 'Logros', sub: summary.hasKey ? `${summary.done || 0} de ${summary.total || 0} logros` : 'Conecta tu Steam para verlos' },
         { app: 'consoles', icon: 'swap', color: '#29a8e0', title: 'Cambiar de consola', sub: 'Volver al selector de consolas' },
       ];
@@ -474,6 +475,7 @@
       else if (name === 'trophies') app = trophiesApp();
       else if (name === 'friends') app = friendsApp();
       else if (name === 'notes') app = notesApp();
+      feed.watch(name === 'friends');
       paintApp();
       paintHint();
     }
@@ -481,6 +483,7 @@
       if (app && app.back && app.back()) return paintApp();
       app = null;
       view = 'home';
+      feed.watch(false);
       root.classList.remove('in-app');
       $('.t-app').hidden = true;
       $('.b-app').hidden = true;
@@ -500,7 +503,7 @@
           ? list
               .map(
                 (r, i) =>
-                  `<button class="ba-row${r.dim ? ' dim' : ''}${r.on ? ' on' : ''}" data-i="${i}">${r.img !== undefined ? `<span class="ba-img"${r.img ? ` style="background-image:url('${esc(r.img)}')"` : ''}></span>` : r.icon ? `<span class="ba-ic">${ic(r.icon)}</span>` : ''}<span class="ba-l">${esc(r.label)}</span>${r.value != null ? `<span class="ba-v">${esc(r.value)}</span>` : ''}</button>`
+                  `<button class="ba-row${r.dim ? ' dim' : ''}${r.on ? ' on' : ''}" data-i="${i}">${r.svg ? `<span class="ba-ic np">${r.svg}</span>` : r.img !== undefined ? `<span class="ba-img${r.dot ? ` fr ${r.dot}` : ''}"${r.img ? ` style="background-image:url('${esc(r.img)}')"` : ''}>${r.dot ? '<i></i>' : ''}${r.ini && !r.img ? `<b>${esc(r.ini)}</b>` : ''}</span>` : r.icon ? `<span class="ba-ic">${ic(r.icon)}</span>` : ''}<span class="ba-l">${esc(r.label)}</span>${r.value != null ? `<span class="ba-v">${esc(r.value)}</span>` : ''}</button>`
               )
               .join('')
           : `<div class="ba-empty">${app.empty || 'No hay nada aquí.'}</div>`
@@ -624,11 +627,16 @@
                 { icon: 'next', label: 'Siguiente', run: () => spotifyCmd('next') },
               ]
             : [];
-          return [...rows, { icon: 'music', label: 'Abrir Spotify', run: () => spotifyCmd('open') }];
+          // Con Spotify conectado: orden, repetir, me gusta, volumen, dispositivo y la cola
+          U.musicActions(v).forEach((a) => rows.push({ svg: U.npIcon(a.icon), on: a.on, label: a.label, value: a.id === 'like' ? '' : a.value, run: () => U.musicRun(api, a.id, v, ctx.toast) }));
+          if (v.appId !== 'auto') rows.push({ icon: 'music', label: `Abrir ${v.app}`, run: () => spotifyCmd('open') });
+          if (v.appId === 'spotify' && !v.api) rows.push({ icon: 'note', label: 'Conectar Spotify (Premium)', run: () => call('open', 'setup-spotify') });
+          return rows;
         },
         top() {
           const v = U.spotifyView(spotify || {});
-          return `<div class="ta-music"><span class="ta-cover"${v.cover ? ` style="background-image:url('${esc(v.cover)}')"` : ''}>${v.cover ? '' : ic('music')}</span><div><small>${v.on ? (v.playing ? 'Reproduciendo' : 'En pausa') : 'Spotify'}</small><b>${esc(v.title)}</b><span>${esc(v.artist)}</span></div></div>`;
+          return `<div class="ta-music"><span class="ta-cover"${v.cover ? ` style="background-image:url('${esc(v.cover)}')"` : ''}>${v.cover ? '' : ic('music')}</span><div><small>${v.on ? `${v.playing ? 'Reproduciendo' : 'En pausa'}${v.device && v.deviceType !== 'Computer' ? ` · en ${esc(v.device)}` : ''}` : esc(v.app)}</small><b>${esc(v.title)}</b><span>${esc(v.artist)}</span></div></div>
+            ${U.progressHtml(v, 'ta-mprog')}${v.next ? `<div class="ta-next"><small>Siguiente</small>${esc(U.nextText(v))}</div>` : ''}`;
         },
       };
     }
@@ -691,25 +699,57 @@
       return self;
     }
 
-    // --- Lista de amigos (Discord) ---
+    // --- Lista de amigos (Steam + grupo de Discord) ---
+    // Arriba se ve la "tarjeta de amigo" del marcado; abajo la lista. Enter: ver perfil o enviar mensaje.
+    feed.onChange(() => view === 'friends' && app && paintApp());
+    function friendShort(f) {
+      if (f.state === 0) return f.lastSeen ? U.ago(f.lastSeen) : 'Desconectado';
+      if (f.game) return 'Jugando';
+      return { 2: 'Ocupado', 3: 'Ausente', 4: 'Ausente' }[f.state] || 'En línea';
+    }
+    function friendDlg(f) {
+      openDlg(`<b>${esc(f.name)}</b><small>${esc(U.friendStatus(f))}</small>`, [
+        { label: 'Ver perfil', run: () => (feed.profile(f), ctx.toast(`Se abrió el perfil de ${f.name} en Steam`)) },
+        { label: 'Enviar mensaje', run: () => (feed.chat(f), ctx.toast(`Se abrió el chat con ${f.name} en Steam`)) },
+        { label: 'Cancelar' },
+      ]);
+    }
     function friendsApp() {
       return {
         icon: 'smile',
         sel: 0,
+        big: true,
         title: () => 'Lista de amigos',
         list() {
-          const rows = [{ icon: 'person', label: 'Amigos de Steam', value: '', run: () => (call('open', 'steam-friends'), ctx.toast('Se abrió en Steam')) }];
+          const rows = [];
+          const d = feed.data;
+          if (d.status === 'ok') feed.list.forEach((f) => rows.push({ img: f.avatar || '', ini: (f.name || '?').trim().charAt(0).toUpperCase(), dot: U.friendClass(f), dim: f.state === 0, label: f.name, value: friendShort(f), f, run: () => friendDlg(f) }));
+          else {
+            const m = U.friendsMessage(d.status);
+            rows.push({ icon: 'person', label: m.t, desc: m.d, run: m.btn ? () => call('open', m.btn[0]) : null });
+          }
+          // Grupo de voz (Discord), al final
           const msg = {
             'no-config': ['Conectar Discord', () => call('open', 'setup-discord')],
             'no-discord': ['Abrir Discord', () => call('open', 'discord-app')],
             'need-auth': ['Dar permiso en Discord', () => call('discordAuthorize').then((s) => s && setDiscord(s))],
             error: ['Intentar de nuevo', () => call('discordAuthorize').then((s) => s && setDiscord(s))],
           }[discord.status];
-          if (msg) rows.push({ icon: 'headset', label: msg[0], run: msg[1] });
-          if (discord.status === 'ok' && discord.channel) discord.members.forEach((m) => rows.push({ img: m.avatar || '', label: m.name, value: m.deafened ? 'Sin audio' : m.muted ? 'Silenciado' : m.speaking ? 'Hablando' : '' }));
+          if (msg) rows.push({ icon: 'headset', label: msg[0], party: true, run: msg[1] });
+          if (discord.status === 'ok' && discord.channel) {
+            rows.push({ icon: 'headset', label: discord.channel.name, value: 'Grupo', party: true });
+            discord.members.forEach((m) => rows.push({ img: m.avatar || '', label: m.name, party: true, value: m.deafened ? 'Sin audio' : m.muted ? 'Silenciado' : m.speaking ? 'Hablando' : '' }));
+          }
           return rows;
         },
-        top() {
+        top(r) {
+          if (r && r.f) {
+            const f = r.f;
+            return `<div class="ta-fcard ${U.friendClass(f)}"><span class="ta-fav"${f.avatar ? ` style="background-image:url('${esc(f.avatar)}')"` : ''}>${f.avatar ? '' : esc((f.name || '?').trim().charAt(0).toUpperCase())}<i></i></span>
+              <div class="ta-finfo"><b>${esc(f.name)}</b><span class="ta-fst">${esc(U.friendStatus(f))}</span><small>A: ver perfil o enviar mensaje</small></div></div>
+              <div class="ta-fcount">${feed.online.length} en línea · ${feed.list.length} ${feed.list.length === 1 ? 'amigo' : 'amigos'}</div>`;
+          }
+          if (r && !r.party && feed.data.status !== 'ok') return `<div class="ta-desc"><b>${esc(r.label)}</b>${esc(r.desc || '')}</div>`;
           const v = U.partyView(discord);
           if (v.message) return `<div class="ta-desc"><b>Grupo de voz</b>${esc(v.message)}</div>`;
           return `<div class="ta-desc"><b>${esc(v.channel)}</b>${esc(v.guild)} · ${v.members.length} ${v.members.length === 1 ? 'persona' : 'personas'}</div>`;
@@ -873,7 +913,7 @@
       if (reason === 'not-started') ctx.toast('No se detectó que el juego abriera');
     }
     // Spotify y Grupo a los costados de la consola mientras juegas
-    const nowPlaying = U.nowPlaying($('.d-playing'), api);
+    const nowPlaying = U.nowPlaying($('.d-playing'), api, ctx.toast);
 
     // =====================================================================
     // Teclado y botones de la carcasa
@@ -981,6 +1021,7 @@
 
     return {
       unmount() {
+        feed.dispose();
         clearInterval(clockTimer);
         clearInterval(playTimer);
         nowPlaying.dispose();

@@ -1,4 +1,5 @@
-// Control de la app de escritorio de Spotify (solo Windows).
+// Música: Spotify (o Apple Music, YouTube Music, o la que esté sonando) a través de Windows (solo Windows).
+// Si Spotify está conectado con su API (spotify-web.js), se suman la cola, el avance, aleatorio, etc.
 //
 // Modo principal ("smtc"): un PowerShell ayudante (spotify-smtc.ps1) usa los controles multimedia de
 // Windows para saber qué suena, el estado y la PORTADA real, y para controlar Spotify directamente.
@@ -13,12 +14,26 @@ const { execFile, spawn } = require('child_process');
 const { shell } = require('electron');
 
 const VK = { prev: 177, next: 176, toggle: 179 };
+// Apps de música que se pueden elegir en Ajustes → Sonido
+const APPS = { spotify: 'Spotify', apple: 'Apple Music', ytmusic: 'YouTube Music', auto: 'Música' };
+function appNameOf(id, source) {
+  if (id !== 'auto') return APPS[id] || 'Spotify';
+  const s = String(source || '');
+  if (/spotify/i.test(s)) return 'Spotify';
+  if (/apple|itunes/i.test(s)) return 'Apple Music';
+  if (/youtube/i.test(s)) return 'YouTube Music';
+  if (/chrome|msedge|firefox|brave|opera|vivaldi/i.test(s)) return 'Navegador';
+  return 'Música';
+}
 
 class Spotify {
-  constructor(onUpdate, logFile) {
+  constructor(onUpdate, logFile, opts = {}) {
     this.onUpdate = onUpdate;
     this.logFile = logFile || null;
+    this.getApp = opts.getApp || (() => 'spotify'); // app elegida en Ajustes
+    this.web = opts.web || null; // conexión con la API de Spotify (opcional)
     this.state = { supported: process.platform === 'win32', running: false, playing: false, artist: '', title: '', album: '', cover: null };
+    this.lastSent = '';
     this.timer = null;
     this.watchers = 0;
     this.mode = null; // 'smtc' | 'basic'
@@ -30,7 +45,13 @@ class Spotify {
   }
 
   // ---------- Encendido / apagado según si la pantalla lo está mostrando ----------
+  get appId() {
+    const a = this.getApp();
+    return APPS[a] ? a : 'spotify';
+  }
+
   watch(on) {
+    if (this.web) this.web.watch(on);
     this.watchers = Math.max(0, this.watchers + (on ? 1 : -1));
     if (this.watchers && !this.timer && !this.starting) {
       this.starting = true;
@@ -39,7 +60,7 @@ class Spotify {
       clearInterval(this.timer);
       this.timer = null;
     }
-    return this.state;
+    return this.view();
   }
 
   async start() {
@@ -133,11 +154,15 @@ class Spotify {
   applySmtc(msg) {
     if (!msg || !msg.ok) return;
     const next = { ...this.state };
+    const app = this.appId;
+    if (next.app !== app) Object.assign(next, { app, title: '', artist: '', album: '', cover: null }); // se cambió de app
+    next.appName = appNameOf(app, msg.app);
     if (!msg.found) {
-      // Sin sesión de Spotify: puede estar cerrado o recién abierto sin música
+      // Sin sesión de esa app: puede estar cerrada o recién abierta sin música
       next.running = false;
       next.playing = false;
-      this.checkRunning(next);
+      if (app === 'spotify') this.checkRunning(next);
+      else this.commit(next);
       return;
     }
     next.running = true;
@@ -152,11 +177,12 @@ class Spotify {
     if (msg.thumb) next.cover = `data:${msg.thumbType || 'image/jpeg'};base64,${msg.thumb}`;
     if (msg.thumbError) this.log(`miniatura de Windows: ${msg.thumbError}`);
     this.commit(next);
-    // Si Windows no da la portada después de unas consultas (~6 s), se busca por internet
-    if (!next.cover && next.title) {
+    // Si Windows no da la portada después de unas consultas (~10 s), se busca por internet
+    // (con Spotify conectado no hace falta: la portada viene exacta de Spotify)
+    if (!next.cover && next.title && !this.webPlaying()) {
       this.noThumb = msg.title !== this.lastThumbTitle ? 1 : (this.noThumb || 0) + 1;
       this.lastThumbTitle = msg.title;
-      if (this.noThumb >= 3) this.lookupCover(next.artist, next.title);
+      if (this.noThumb >= 5) this.lookupCover(next.artist, next.title);
     }
   }
 
@@ -237,15 +263,23 @@ class Spotify {
 
   // ¿El resultado es del mismo artista? (para no mostrar la portada de otra canción)
   sameArtist(a, b) {
-    const norm = (x) =>
-      String(x || '')
-        .toLowerCase()
-        .normalize('NFD')
-        .replace(/[̀-ͯ]/g, '')
-        .replace(/[^a-z0-9]/g, '');
-    const x = norm(a);
-    const y = norm(b);
+    const x = this.norm(a);
+    const y = this.norm(b);
     return !!x && !!y && (x.includes(y) || y.includes(x));
+  }
+  // ¿Y es la misma canción? Sin esto se tomaba cualquier canción del artista (portada equivocada)
+  sameSong(a, b) {
+    const strip = (t) => this.norm(String(t || '').replace(/\s*[([].*?[)\]]/g, '').replace(/\s+-\s+.*$/, ''));
+    const x = strip(a);
+    const y = strip(b);
+    return !!x && !!y && (x === y || (Math.min(x.length, y.length) >= 4 && (x.includes(y) || y.includes(x))));
+  }
+  norm(x) {
+    return String(x || '')
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]/g, '');
   }
 
   async fromItunes(artist, title, country) {
@@ -254,7 +288,7 @@ class Spotify {
       signal: AbortSignal.timeout(8000),
     });
     const data = await res.json();
-    const hit = ((data && data.results) || []).find((r) => this.sameArtist(r.artistName, artist) && r.artworkUrl100);
+    const hit = ((data && data.results) || []).find((r) => this.sameArtist(r.artistName, artist) && this.sameSong(r.trackName, title) && r.artworkUrl100);
     return hit ? hit.artworkUrl100.replace(/100x100bb/, '600x600bb') : null;
   }
 
@@ -263,7 +297,7 @@ class Spotify {
     for (const q of tries) {
       const res = await fetch(`https://api.deezer.com/search?q=${encodeURIComponent(q)}&limit=5`, { signal: AbortSignal.timeout(8000) });
       const data = await res.json();
-      const hit = ((data && data.data) || []).find((r) => r.album && r.artist && this.sameArtist(r.artist.name, artist));
+      const hit = ((data && data.data) || []).find((r) => r.album && r.artist && this.sameArtist(r.artist.name, artist) && this.sameSong(r.title, title));
       if (hit) return hit.album.cover_xl || hit.album.cover_big || hit.album.cover_medium || null;
     }
     return null;
@@ -284,15 +318,60 @@ class Spotify {
   }
 
   commit(next) {
-    const changed = JSON.stringify(next) !== JSON.stringify(this.state);
     this.state = next;
-    if (changed) this.onUpdate(this.state);
+    this.emit();
+  }
+
+  // ¿La API de Spotify está dando la canción actual?
+  webPlaying() {
+    const w = this.web;
+    return !!(w && this.appId === 'spotify' && w.state.status === 'ok' && w.state.playback && w.state.playback.item);
+  }
+
+  // Lo que ve la interfaz: lo de Windows + lo de la API de Spotify (si está conectada)
+  view() {
+    const app = this.appId;
+    const v = { ...this.state, app, appName: this.state.app === app && this.state.appName ? this.state.appName : appNameOf(app) };
+    const w = this.web;
+    if (!w || app !== 'spotify') return v;
+    v.web = { status: w.state.status, message: w.state.message, user: w.state.user };
+    const pb = w.state.status === 'ok' ? w.state.playback : null;
+    if (!pb) return v;
+    Object.assign(v, { hasApi: true, device: pb.device, shuffle: pb.shuffle, smartShuffle: pb.smartShuffle, repeat: pb.repeat, liked: w.state.liked, queue: w.state.queue || [] });
+    if (pb.item) {
+      Object.assign(v, {
+        running: true,
+        playing: pb.isPlaying,
+        title: pb.item.title,
+        artist: pb.item.artist,
+        album: pb.item.album,
+        cover: pb.item.cover || (this.state.title === pb.item.title ? this.state.cover : null),
+        progressMs: pb.progressMs,
+        durationMs: pb.item.durationMs,
+        at: w.state.at,
+      });
+    }
+    return v;
+  }
+  emit() {
+    const v = this.view();
+    // El avance de la canción cambia en cada consulta: solo se manda si se salió de lo esperado
+    // (la interfaz lo va moviendo sola), para no redibujar las pantallas cada 2 segundos.
+    const { progressMs, at, ...rest } = v;
+    const key = JSON.stringify(rest);
+    const p = this.lastProg;
+    const expected = p ? p.progressMs + (p.playing ? (at || 0) - p.at : 0) : null;
+    const drift = progressMs == null || expected == null ? Infinity : Math.abs(progressMs - expected);
+    if (key === this.lastSent && drift < 1500) return;
+    this.lastSent = key;
+    this.lastProg = progressMs == null ? null : { progressMs, at, playing: v.playing };
+    this.onUpdate(v);
   }
 
   async poll() {
     if (!this.state.supported) return;
-    if (this.mode === 'smtc') this.applySmtc(await this.ask('poll'));
-    else if (this.mode === 'basic') this.pollBasic();
+    if (this.mode === 'smtc') this.applySmtc(await this.ask(`poll ${this.appId}`));
+    else if (this.mode === 'basic' && this.appId === 'spotify') this.pollBasic();
   }
 
   // ---------- Controles ----------
@@ -310,14 +389,24 @@ class Spotify {
     return this.keyProc;
   }
 
-  async control(cmd) {
+  async control(cmd, arg) {
+    const app = this.appId;
     if (cmd === 'open') {
-      shell.openExternal('spotify:').catch(() => shell.openExternal('https://open.spotify.com'));
-      return;
+      if (app === 'apple') spawn('explorer.exe', ['shell:AppsFolder\\AppleInc.AppleMusicWin_nzyj5cx40ttypa!App'], { windowsHide: true }).on('error', () => shell.openExternal('https://music.apple.com'));
+      else if (app === 'ytmusic') shell.openExternal('https://music.youtube.com');
+      else if (app === 'spotify') shell.openExternal('spotify:').catch(() => shell.openExternal('https://open.spotify.com'));
+      return { ok: true };
     }
-    if (!this.state.supported || !VK[cmd]) return;
+    // Lo que solo sabe hacer la API de Spotify (aleatorio, repetir, me gusta, volumen, dispositivo, saltar en la cola)
+    if (!VK[cmd]) {
+      if (this.web && app === 'spotify') return this.web.action(cmd, arg);
+      return { ok: false };
+    }
+    // Con la API conectada, los botones también controlan Spotify en el teléfono u otro dispositivo
+    if (this.webPlaying() && !(this.state.running && this.state.title)) return this.web.action(cmd);
+    if (!this.state.supported) return { ok: false };
     if (this.mode === 'smtc' && this.helper) {
-      this.applySmtc(await this.ask(cmd));
+      this.applySmtc(await this.ask(`${cmd} ${app}`));
     } else {
       try {
         this.ensureKeyProc().stdin.write(`${VK[cmd]}\n`);
@@ -326,6 +415,11 @@ class Spotify {
     // Refresca rápido para que la interfaz responda al tiro
     setTimeout(() => this.poll(), 400);
     setTimeout(() => this.poll(), 1300);
+    if (this.webPlaying()) {
+      setTimeout(() => this.web.poll(), 500);
+      setTimeout(() => this.web.poll(), 1500);
+    }
+    return { ok: true };
   }
 
   dispose() {
@@ -340,4 +434,4 @@ class Spotify {
   }
 }
 
-module.exports = { Spotify };
+module.exports = { Spotify, MUSIC_APPS: APPS };

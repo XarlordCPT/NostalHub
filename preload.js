@@ -28,15 +28,18 @@ contextBridge.exposeInMainWorld('nostalhub', {
   getFreeSpace: () => ipcRenderer.invoke('system:free-space'),
   quitApp: () => ipcRenderer.invoke('app:quit'),
   open: (what) => ipcRenderer.invoke('app:open', what),
-  // Steam (perfil y logros)
+  // Steam (perfil, logros y amigos)
   getSteamProfile: () => ipcRenderer.invoke('steam:profile'),
   getAchievements: (appId) => ipcRenderer.invoke('steam:achievements', appId),
   getAchievementSummary: () => ipcRenderer.invoke('steam:summary'),
+  getFriends: () => ipcRenderer.invoke('steam:friends'),
   onSteamSummary: on('steam:summary'),
   onSteamChanged: on('steam:changed'),
   // Spotify
   spotifyWatch: (on) => ipcRenderer.invoke('spotify:watch', on),
-  spotifyControl: (cmd) => ipcRenderer.invoke('spotify:control', cmd),
+  spotifyControl: (cmd, arg) => ipcRenderer.invoke('spotify:control', cmd, arg),
+  spotifyDevices: () => ipcRenderer.invoke('spotify:devices'),
+  onSpotifyWeb: on('spotify:web'),
   onSpotify: on('spotify:update'),
   // Discord (grupo de la PS4)
   discordWatch: (on) => ipcRenderer.invoke('discord:watch', on),
@@ -61,6 +64,8 @@ contextBridge.exposeInMainWorld('nostalhub', {
   getSetup: () => ipcRenderer.invoke('setup:get'),
   saveSteamKey: (key) => ipcRenderer.invoke('setup:steam', key),
   saveDiscord: (data) => ipcRenderer.invoke('setup:discord', data),
+  connectSpotify: (clientId) => ipcRenderer.invoke('setup:spotify', clientId),
+  disconnectSpotify: () => ipcRenderer.invoke('setup:spotify-disconnect'),
   readClipboard: () => ipcRenderer.invoke('clipboard:read'),
   writeClipboard: (text) => ipcRenderer.invoke('clipboard:write', text),
   onSetup: on('shell:setup'),

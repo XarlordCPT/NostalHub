@@ -352,6 +352,7 @@ void main(){
     root.innerHTML = MARKUP;
     const api = ctx.api;
     const U = window.NostalHubUtil;
+    const feed = U.friendsFeed(api); // amigos de Steam (categoría Amigos)
     const esc = U.escapeHtml;
     const $ = (s, el = root) => el.querySelector(s);
     const $$ = (s, el = root) => [...el.querySelectorAll(s)];
@@ -366,7 +367,7 @@ void main(){
     let menuModel = [];
     let mode = 'boot'; // boot | xmb | sub | opts | info | dlg | gameboot | playing
     const offs = [];
-    const nowPlaying = U.nowPlaying($('.p3-playing'), api);
+    const nowPlaying = U.nowPlaying($('.p3-playing'), api, ctx.toast);
 
     // ---------- Fondo: color (mes u elegido) y brillo según la hora ----------
     let colorPick = store.get('color', 'auto'); // 'auto' o el número del color
@@ -514,18 +515,27 @@ void main(){
         ];
       }
       if (id === 'music') {
+        // Música: la canción (con su barra), lo que viene, y con Spotify conectado: orden, repetir, me gusta,
+        // volumen, dispositivo y la cola. Cada uno es un elemento del XMB.
         const v = U.spotifyView(spotify || {});
         const list = [
           {
             icon: v.on ? (v.playing ? 'pause' : 'play') : 'note',
             img: v.cover,
             title: v.title,
-            sub: v.on ? `${v.artist ? v.artist + '  ·  ' : ''}${v.playing ? 'Reproduciendo' : 'En pausa'}` : v.artist,
+            sub: v.on ? `${v.artist ? v.artist + '  ·  ' : ''}${v.playing ? 'Reproduciendo' : 'En pausa'}${v.device && v.deviceType !== 'Computer' ? `  ·  en ${v.device}` : ''}` : v.artist,
+            extra: U.progressHtml(v, 'p3-prog'),
             run: () => spotifyCmd(v.on ? 'toggle' : 'open'),
+            def: true,
           },
         ];
+        if (v.next) list.push({ svg: U.npIcon('next'), title: `Siguiente: ${v.next.title}`, sub: v.next.artist, run: () => spotifyCmd('next') });
         if (v.on) list.push({ icon: 'prev', title: 'Pista anterior', run: () => spotifyCmd('prev') }, { icon: 'next', title: 'Pista siguiente', run: () => spotifyCmd('next') });
-        list.push({ icon: 'open', title: 'Abrir Spotify', run: () => spotifyCmd('open') });
+        U.musicActions(v).forEach((a) =>
+          list.push({ svg: U.npIcon(a.icon), on: a.on, title: a.id === 'like' ? a.label : `${a.label}${a.value ? `: ${a.value}` : ''}`, sub: a.id === 'queue' ? 'Elige una canción para saltar hasta ella' : a.id === 'device' ? 'Pasa la música a otro dispositivo' : a.id === 'shuffle' ? 'Cambia entre En orden y Aleatorio' : '', run: () => U.musicRun(api, a.id, v, ctx.toast) })
+        );
+        if (v.appId !== 'auto') list.push({ icon: 'open', title: `Abrir ${v.app}`, run: () => spotifyCmd('open') });
+        if (v.appId === 'spotify' && !v.api) list.push({ svg: U.npIcon('queue'), title: 'Conectar Spotify (debes tener Premium)', sub: 'Para ver la cola, la barra de la canción, aleatorio, repetir y más', run: () => call('open', 'setup-spotify') });
         return list;
       }
       if (id === 'game') {
@@ -543,7 +553,7 @@ void main(){
         ];
       }
       if (id === 'friends') {
-        const list = [{ icon: 'people', title: 'Amigos de Steam', sub: 'Se abre en Steam', run: () => (call('open', 'steam-friends'), ctx.toast('Se abrió en Steam')) }];
+        const list = [];
         const st = {
           'no-config': ['Conecta tu Discord', 'Para ver tu canal de voz y quiénes están contigo', () => call('open', 'setup-discord')],
           'no-discord': ['Discord no está abierto', 'Ábrelo y NostalHub se conecta sola', () => call('open', 'discord-app')],
@@ -560,6 +570,14 @@ void main(){
         } else if (discord.status === 'ok') list.push({ icon: 'headset', title: 'No estás en un canal de voz', sub: 'Cuando entres a uno, aquí vas a ver quiénes están contigo' });
         else if (st) list.push({ icon: 'headset', title: st[0], sub: st[1], run: st[2] });
         else list.push({ icon: 'headset', title: 'Conectando con Discord…' });
+        // Amigos de Steam, uno por fila como en la PS3 (jugando, en línea, ausentes y desconectados al final)
+        const fd = feed.data;
+        if (fd.status === 'ok' && feed.list.length) {
+          feed.list.forEach((f) => list.push({ icon: 'user', img: f.avatar, rsq: true, friend: f, dot: U.friendClass(f), title: f.name, sub: U.friendStatus(f), run: () => friendOpen(f, 'profile') }));
+        } else {
+          const m = U.friendsMessage(fd.status);
+          list.push({ icon: 'people', title: m.t, sub: m.d || '', run: m.btn ? () => call('open', m.btn[0]) : null });
+        }
         return list;
       }
       return [];
@@ -604,10 +622,10 @@ void main(){
           const z = sizeOf(it);
           // si la imagen falla, queda el ícono (o el nombre, en los juegos)
           const img = it.game ? gameIconHtml(it.game) : it.img ? `<img src="${esc(it.img)}" alt="" draggable="false" />` : '';
-          const inner = img + (it.game ? `<span class="p3-noicon">${esc(it.title)}</span>` : ic(it.icon));
-          return `<div class="p3-it${it.game ? ' is-game' : ''}${it.round ? ' round' : ''}${it.talking ? ' talking' : ''}${it.img ? ' has-img' : ''}" data-i="${i}"${it.game ? ` data-game-id="${esc(it.game.id)}"` : ''}>
-            <div class="p3-ic" style="width:${z.w}px;height:${z.h}px">${inner}</div>
-            <div class="p3-tx"><b>${esc(it.title)}</b>${it.sub ? `<small>${esc(it.sub)}</small>` : ''}</div></div>`;
+          const inner = img + (it.game ? `<span class="p3-noicon">${esc(it.title)}</span>` : it.svg || ic(it.icon));
+          return `<div class="p3-it${it.game ? ' is-game' : ''}${it.on ? ' on' : ''}${it.svg ? ' np' : ''}${it.round ? ' round' : ''}${it.rsq ? ' rsq' : ''}${it.talking ? ' talking' : ''}${it.img ? ' has-img' : ''}" data-i="${i}"${it.game ? ` data-game-id="${esc(it.game.id)}"` : ''}>
+            <div class="p3-ic" style="width:${z.w}px;height:${z.h}px">${inner}${it.dot ? `<i class="p3-fdot ${it.dot}"></i>` : ''}</div>
+            <div class="p3-tx"><b>${esc(it.title)}</b>${it.sub ? `<small>${esc(it.sub)}</small>` : ''}${it.extra || ''}</div></div>`;
         })
         .join('');
       watchImages(box);
@@ -670,6 +688,7 @@ void main(){
       paintCats();
       renderItems(dir);
       paintHints();
+      feed.watch(CATS[catSel].id === 'friends');
     }
     function setItem(i) {
       const id = CATS[catSel].id;
@@ -692,13 +711,13 @@ void main(){
       if (CATS[catSel].id !== id && id !== '*') return;
       const it = curItem();
       const keep = it && it.game ? it.game.id : null;
+      const keepFriend = it && it.friend ? it.friend.id : null; // el mismo amigo aunque la lista se reordene
       const cat = CATS[catSel].id;
       const prev = itemSel[cat];
       items = buildItems(cat);
-      if (keep) {
-        const j = items.findIndex((x) => x.game && x.game.id === keep);
-        if (j >= 0) itemSel[cat] = j;
-      } else itemSel[cat] = Math.min(prev || 0, items.length - 1);
+      const j = keep ? items.findIndex((x) => x.game && x.game.id === keep) : keepFriend ? items.findIndex((x) => x.friend && x.friend.id === keepFriend) : -1;
+      if (j >= 0) itemSel[cat] = j;
+      else itemSel[cat] = Math.min(prev || 0, items.length - 1);
       renderItems(0); // si el juego elegido sigue igual, no se reinicia su fondo ni su música
     }
 
@@ -1005,8 +1024,23 @@ void main(){
     // Menú de opciones (el triángulo → tecla O)
     // =====================================================================
     let opts = null;
+    function friendOpen(f, what) {
+      if (what === 'chat') {
+        feed.chat(f);
+        ctx.toast(`Se abrió el chat con ${f.name} en Steam`);
+      } else {
+        feed.profile(f);
+        ctx.toast(`Se abrió el perfil de ${f.name} en Steam`);
+      }
+    }
     function openOpts() {
       const it = curItem();
+      if (it && it.friend) {
+        return showOpts([
+          { label: 'Ver perfil', run: () => friendOpen(it.friend, 'profile') },
+          { label: 'Enviar mensaje', run: () => friendOpen(it.friend, 'chat') },
+        ]);
+      }
       const g = it && it.game;
       if (!g) return;
       const list = [
@@ -1146,7 +1180,7 @@ void main(){
       let html = '';
       if (mode === 'xmb') {
         const it = curItem();
-        html = it && it.game ? h('O', 'Opciones') + h('Enter', 'Iniciar') : it && it.run ? h('Enter', 'Elegir') : '';
+        html = it && it.game ? h('O', 'Opciones') + h('Enter', 'Iniciar') : it && it.friend ? h('O', 'Opciones') + h('Enter', 'Ver perfil') : it && it.run ? h('Enter', 'Elegir') : '';
       } else if (mode === 'sub') html = h('Esc', 'Volver') + (curLevel() && curLevel().rows.some((r) => r.run) ? h('Enter', 'Elegir') : '');
       else if (mode === 'opts') html = h('O', 'Cerrar') + h('Enter', 'Elegir');
       $('.p3-hints').innerHTML = html;
@@ -1345,6 +1379,7 @@ void main(){
     // =====================================================================
     // Datos
     // =====================================================================
+    feed.onChange(() => (mode === 'xmb' || mode === 'opts') && refreshCat('friends'));
     function setDiscord(s) {
       discord = s || discord;
       if (mode === 'xmb' || mode === 'opts') refreshCat('friends');
@@ -1403,6 +1438,7 @@ void main(){
     return {
       unmount() {
         cancelAnimationFrame(raf);
+        feed.dispose();
         clearInterval(clockTimer);
         clearInterval(colorTimer);
         clearInterval(playTimer);
