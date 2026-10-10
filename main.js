@@ -1,7 +1,7 @@
 // Proceso principal: ventana en la segunda pantalla, bandeja del sistema,
 // arranque con Windows, juegos y arte.
 
-const { app, BrowserWindow, Tray, Menu, screen, ipcMain, shell, session, nativeImage, dialog, clipboard } = require('electron');
+const { app, BrowserWindow, Tray, Menu, screen, ipcMain, shell, session, nativeImage, dialog, clipboard, globalShortcut } = require('electron');
 const fs = require('fs');
 const path = require('path');
 const { pathToFileURL } = require('url');
@@ -11,6 +11,8 @@ const steam = require('./src/steam');
 const media = require('./src/media');
 const { Launcher } = require('./src/launcher');
 const { SteamWeb } = require('./src/steamweb');
+const { AchievementWatcher, gamerscore, trophyTier } = require('./src/achievements');
+const { Overlay } = require('./src/overlay');
 const { Spotify } = require('./src/spotify');
 
 const IS_DEV = process.argv.includes('--dev');
@@ -101,12 +103,59 @@ let steamUser = null;
 let localStats = {};
 async function refreshSteamUser() {
   try {
+    const prevAccount = steamUser && steamUser.accountId;
     steamUser = await steam.getSteamUser();
+    // Logros al instante: vigila los archivos de logros de esa cuenta
+    if (steamUser && steamUser.accountId && (steamUser.accountId !== prevAccount || !achWatcher.watcher)) {
+      achWatcher.start(await steam.findSteamPath(), steamUser.accountId);
+    }
     localStats = steamUser ? await steam.getLocalAppStats(steamUser.accountId) : {};
   } catch (e) {
     console.warn('No se pudo leer el usuario de Steam:', e.message);
   }
   pushGamesSoon();
+}
+
+// ---------- Logros encima del juego (con el estilo de la consola que estás usando) ----------
+// Pantalla donde aparecen: la principal de Windows o la que elijas en Ajustes → Pantalla
+function achievementDisplay() {
+  const v = config.data.achDisplay;
+  if (v && v !== 'primary') {
+    const d = sortedDisplays()[Number(v) - 1];
+    if (d) return d;
+  }
+  return screen.getPrimaryDisplay();
+}
+const overlay = new Overlay({ dir: __dirname, pickDisplay: achievementDisplay });
+const ACH_STYLES = ['x360', 'ps3', 'ps4', 'vita', 'wii', 'ps2', 'switch', '3ds']; // las que tienen aviso propio (ver renderer/overlay)
+const PLAYSTATION = ['ps3', 'ps4', 'vita'];
+function showAchievement(a, { test = false } = {}) {
+  if (config.data.achOverlay === false) return test && send('toast', 'Los logros sobre el juego están apagados (Ajustes → Pantalla)');
+  const last = config.data.lastConsole || '';
+  const style = ACH_STYLES.includes(last) ? last : 'x360';
+  const ss = soundSettings();
+  const sound = (consoleAssets([style])[style] || {}).achievement || null;
+  const base = { style, sound, volume: Math.max(0.5, ss.sfxVolume || 0.6) };
+  overlay.show({ ...base, name: a.name, gamerscore: a.gamerscore, tier: a.tier || 'bronze', icon: a.icon });
+  // Completaste todos los logros del juego: en las PlayStation sale además el trofeo de platino
+  if (a.completed && PLAYSTATION.includes(style)) {
+    const g = a.appId && config.games.find((x) => String(x.appId) === String(a.appId));
+    overlay.show({ ...base, name: g ? g.name : 'Todos los trofeos', tier: 'platinum', icon: null });
+  }
+}
+const achWatcher = new AchievementWatcher({
+  onUnlock: (a) => {
+    showAchievement(a);
+    send('steam:achievement', a);
+  },
+  log: (...m) => console.warn(...m),
+});
+// Logro de prueba (atajo escondido: Ctrl + Alt + Shift + L), funciona aunque estés dentro de un juego
+const FAKE = ['Primeros pasos', 'Coleccionista incansable', 'Sin un rasguño', 'Maestro de la velocidad', 'El más rápido del oeste', 'Leyenda de NostalHub'];
+global.nostalhubTestAchievement = (o) => testAchievement(o); // (para pruebas automáticas)
+function testAchievement(o = {}) {
+  const pct = [60, 30, 12, 6, 2, 0.5][Math.floor(Math.random() * 6)];
+  showAchievement({ name: FAKE[Math.floor(Math.random() * FAKE.length)], gamerscore: gamerscore(pct), tier: trophyTier(pct), icon: null, completed: Math.random() < 0.15, ...o }, { test: true });
 }
 
 // ---------- Utilidades ----------
@@ -238,6 +287,7 @@ const CONSOLE_FILES = {
   page: { base: 'pagina', ext: ['.wav', '.mp3', '.ogg', '.m4a'] },
   start: { base: 'inicio', ext: ['.wav', '.mp3', '.ogg', '.m4a'] },
   gameboot: { base: 'gameboot', ext: ['.wav', '.mp3', '.ogg', '.m4a'] },
+  achievement: { base: 'logro', ext: ['.wav', '.mp3', '.ogg', '.m4a'] },
   option: { base: 'opciones', ext: ['.wav', '.mp3', '.ogg', '.m4a'] },
   error: { base: 'error', ext: ['.wav', '.mp3', '.ogg', '.m4a'] },
   border: { base: 'borde', ext: ['.wav', '.mp3', '.ogg', '.m4a'] },
@@ -554,7 +604,7 @@ function placeWindow() {
   if (win.isMaximized()) win.unmaximize();
   win.setResizable(false);
   win.setMaximizable(false);
-  win.setSkipTaskbar(true);
+  win.setSkipTaskbar(config.data.showInTaskbar === false); // en la barra de Windows (salvo que lo apagues), para traerla adelante con un clic
   sendWindowState();
   const d = pickDisplay();
   if (!d) {
@@ -665,6 +715,9 @@ ipcMain.handle('win:control', (_e, action) => {
 
 let isQuitting = false;
 app.on('before-quit', () => {
+  globalShortcut.unregisterAll();
+  achWatcher.stop();
+  overlay.destroy();
   isQuitting = true;
   spotify.dispose();
   discord.dispose();
@@ -826,7 +879,35 @@ function menuSections() {
                 value: !!config.data.fullscreen,
                 set: (v) => (setOption('fullscreen', v), placeWindow()),
               },
+              {
+                id: 'showInTaskbar',
+                type: 'toggle',
+                label: 'Mostrar en la barra de Windows',
+                desc: 'Aparece como app abierta en la barra de tareas: un clic y vuelve adelante si algo la tapa.',
+                value: config.data.showInTaskbar !== false,
+                set: (v) => (setOption('showInTaskbar', !!v), placeWindow()),
+              },
             ]),
+        {
+          id: 'achOverlay',
+          type: 'toggle',
+          label: 'Logros sobre el juego',
+          desc: 'Cuando ganas un logro de Steam, aparece encima del juego con el estilo de la consola que estás usando. Pon el juego en "ventana sin bordes". Para probarlo: Ctrl + Alt + Shift + L.',
+          value: config.data.achOverlay !== false,
+          set: (v) => setOption('achOverlay', !!v),
+        },
+        {
+          id: 'achDisplay',
+          type: 'choice',
+          label: 'Pantalla de los logros',
+          desc: 'En qué pantalla aparecen los logros (la del juego).',
+          options: [
+            { value: 'primary', label: 'La principal de Windows', short: 'Principal' },
+            ...displays.map((d, i) => ({ value: String(i + 1), label: `Pantalla ${i + 1} — ${d.size.width}×${d.size.height}${d.id === primary.id ? ' (principal)' : ''}`, short: `Pantalla ${i + 1}` })),
+          ],
+          value: config.data.achDisplay ? String(config.data.achDisplay) : 'primary',
+          set: (v) => setOption('achDisplay', v),
+        },
         {
           id: 'autoStart',
           type: 'toggle',
@@ -1326,6 +1407,10 @@ ipcMain.handle('menu:popup', () => {
 app.on('second-instance', showWindow);
 
 app.whenReady().then(async () => {
+  // Atajo escondido para probar los logros sobre el juego
+  try {
+    globalShortcut.register('CommandOrControl+Alt+Shift+L', testAchievement);
+  } catch {}
   config.load();
   fs.mkdirSync(MEDIA_DIR, { recursive: true });
   ensureCustomFolders();

@@ -317,10 +317,29 @@ Las mismas opciones del menú del ícono junto al reloj, con el estilo de cada c
 
 En **Ajustes → Pantalla → Modo**:
 - **Pantalla completa** (como siempre). Ahí mismo eliges si **cubre la barra de tareas** de Windows o no.
+  También aparece como **app abierta en la barra de Windows**: si algo la tapa, un clic ahí y vuelve adelante
+  (se apaga con *Mostrar en la barra de Windows*).
 - **Ventana**: se puede mover, cambiar de tamaño y minimizar, y recuerda dónde la dejaste. Arriba hay una barra
   **escondida**: lleva el mouse al borde de arriba y baja con **minimizar, maximizar y cerrar**. La barra cambia de
   estilo según dónde estés (selector o cada consola). Arrástrala para mover la ventana; doble clic la maximiza.
   **Cerrar** sale de NostalHub.
+
+### Logros sobre el juego
+
+- Cuando ganas un logro de Steam, aparece **encima del juego** el aviso de la **última consola que elegiste**:
+  - **Xbox 360**: arriba al centro, "Logro desbloqueado" con los puntos G según qué tan raro es.
+  - **PS3** (arriba a la derecha), **PS4** (arriba a la izquierda) y **PS Vita** (arriba a la derecha): "Has obtenido
+    un trofeo" con la copa de **bronce, plata u oro** según qué tan raro es. Si con ese logro completas el juego,
+    sale además el trofeo de **platino**.
+  - Las que no tenían logros tienen uno hecho a su estilo: **Wii** (cartel blanco con borde celeste, arriba al
+    centro), **PS2** (panel azul que brilla, arriba a la derecha), **Switch** (notificación oscura, arriba a la
+    izquierda) y **3DS** (aviso blanco con la luz azul parpadeando, arriba al centro).
+- Se detecta **al instante** leyendo los archivos de logros que Steam guarda en tu PC (no necesita internet).
+- El juego tiene que estar en **ventana sin bordes** ("Borderless" / "Ventana completa"). En pantalla completa
+  "exclusiva" no se ve encima (muchos juegos con DirectX 12 sí funcionan).
+- **Ajustes → Pantalla**: activar o desactivar **Logros sobre el juego** y elegir **en qué pantalla** aparecen.
+- **Prueba**: **Ctrl + Alt + Shift + L** muestra un logro falso con el estilo de la consola en la que estás.
+- Sonido: el tuyo en `consolas\<consola>\logro.wav` (por ejemplo `consolas\ps3\logro.wav`); si no, uno hecho con código.
 
 ### Cómo se usa la PS3
 

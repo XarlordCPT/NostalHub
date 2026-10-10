@@ -1,0 +1,129 @@
+/* Avisos de logros encima del juego. Cada consola tiene su estilo (ver STYLES en overlay.js). */
+html, body { margin: 0; height: 100%; overflow: hidden; background: transparent; user-select: none; }
+#stage { position: absolute; inset: 0; }
+
+/* ============ Xbox 360: la "píldora" gris con el aro de luz a la izquierda, arriba al centro ============ */
+.x3 { position: absolute; left: 50%; top: 24px; height: 112px; transform: translateX(-50%); font-family: 'Segoe UI', 'Selawik', Arial, sans-serif; }
+.x3-pill {
+  position: absolute; left: 0; top: 0; height: 112px; width: 112px; border-radius: 56px; overflow: hidden;
+  background: linear-gradient(180deg, #6e6e6e 0%, #4a4a4a 40%, #2f2f2f 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28), inset 0 -2px 4px rgba(0, 0, 0, 0.35), 0 6px 18px rgba(0, 0, 0, 0.45);
+  transition: width 0.45s cubic-bezier(0.3, 0.8, 0.3, 1);
+}
+.x3.open .x3-pill { width: var(--w); }
+/* Aro: negro con 4 segmentos grises y uno verde (arriba a la izquierda), como el aro de luz */
+.x3-orb { position: absolute; left: 0; top: 0; width: 112px; height: 112px; border-radius: 50%; z-index: 2; background: radial-gradient(circle, #1a1a1a 60%, #0b0b0b 72%); box-shadow: 0 2px 6px rgba(0, 0, 0, 0.6); transform: scale(0); opacity: 0; }
+.x3-ring { position: absolute; inset: 6px; border-radius: 50%;
+  background: conic-gradient(transparent 0deg 6deg, #5d5d5d 6deg 84deg, transparent 84deg 96deg, #5d5d5d 96deg 174deg, transparent 174deg 186deg, #5d5d5d 186deg 264deg, transparent 264deg 276deg, #63d12b 276deg 354deg, transparent 354deg 360deg);
+  -webkit-mask: radial-gradient(circle, transparent 37px, #000 38px, #000 49px, transparent 50px);
+  mask: radial-gradient(circle, transparent 37px, #000 38px, #000 49px, transparent 50px);
+}
+.x3.in .x3-ring { animation: x3-glow 1.2s 0.2s ease-out; }
+@keyframes x3-glow { 0% { filter: brightness(1); } 30% { filter: brightness(1.8) drop-shadow(0 0 6px #7ee03c); } 100% { filter: brightness(1); } }
+.x3-ball { position: absolute; left: 18px; top: 18px; width: 76px; height: 76px; border-radius: 50%; overflow: hidden; display: grid; place-items: center;
+  background: radial-gradient(circle at 38% 30%, #f4f4f4, #c9c9c9 45%, #8d8d8d 80%, #6d6d6d);
+  box-shadow: inset 0 -4px 8px rgba(0, 0, 0, 0.35), 0 0 0 2px #0b0b0b; }
+.x3-ball img { width: 100%; height: 100%; object-fit: cover; }
+.x3-ball::after { content: ''; position: absolute; inset: 0; border-radius: 50%; background: radial-gradient(circle at 35% 25%, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0) 45%); pointer-events: none; }
+.x3-ball svg { width: 44px; height: 44px; color: #4b4b4b; }
+.x3.in .x3-orb { animation: x3-pop 0.45s cubic-bezier(0.3, 1.5, 0.5, 1) forwards; }
+.x3.out .x3-orb { animation: x3-unpop 0.35s ease-in forwards; }
+@keyframes x3-pop { from { transform: scale(0); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+@keyframes x3-unpop { from { transform: scale(1); opacity: 1; } to { transform: scale(0); opacity: 0; } }
+.x3-text { position: absolute; left: 140px; top: 0; height: 112px; display: flex; flex-direction: column; justify-content: center; gap: 2px; padding-right: 44px; white-space: nowrap; color: #fff; opacity: 0; transition: opacity 0.25s ease; text-shadow: 0 1px 1px rgba(0, 0, 0, 0.6); }
+.x3.open .x3-text { opacity: 1; transition-delay: 0.25s; }
+.x3-t1, .x3-t2 { font-size: 30px; line-height: 1.2; letter-spacing: 0.2px; }
+.x3-t2 { max-width: 700px; overflow: hidden; text-overflow: ellipsis; }
+
+/* ============ Las demás consolas: "tarjetas" (imagen a la izquierda + 2 líneas) ============ */
+@font-face { font-family: 'P3 Rodin'; font-weight: 400; src: url(../themes/ps3/fonts/m-plus-1p-latin-400-normal.woff2) format('woff2'); }
+@font-face { font-family: 'P3 Rodin'; font-weight: 700; src: url(../themes/ps3/fonts/m-plus-1p-latin-700-normal.woff2) format('woff2'); }
+.card { position: absolute; top: 36px; display: flex; align-items: center; max-width: 900px; box-sizing: border-box; opacity: 0; white-space: nowrap; }
+.card .ic { flex: none; overflow: hidden; display: grid; place-items: center; }
+.card .ic img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.card .noicon { display: grid; place-items: center; width: 100%; height: 100%; }
+.card .noicon svg { width: 62%; height: 62%; }
+.card .tx { min-width: 0; display: flex; flex-direction: column; justify-content: center; }
+.card .t1, .card .t2 { overflow: hidden; text-overflow: ellipsis; }
+.card .t2 { display: flex; align-items: center; gap: 8px; }
+.card .t2 span { overflow: hidden; text-overflow: ellipsis; }
+.card .cup { flex: none; width: 1.15em; height: 1.15em; filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.5)); }
+
+/* PS3: arriba a la derecha, negro translúcido con borde fino, fuente Rodin; aparece y se desvanece */
+.p3n { right: 40px; height: 88px; padding: 10px 26px 10px 10px; gap: 16px; border-radius: 6px; font-family: 'P3 Rodin', 'Segoe UI', sans-serif; color: #fff;
+  background: linear-gradient(180deg, rgba(40, 40, 40, 0.82), rgba(8, 8, 8, 0.82)); border: 1px solid rgba(255, 255, 255, 0.28); box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5); transition: opacity 0.35s ease; }
+.p3n .ic { width: 68px; height: 68px; border: 1px solid rgba(255, 255, 255, 0.35); background: #111; }
+.p3n .noicon { color: #ddd; }
+.p3n .t1 { font-size: 20px; color: #e8e8e8; }
+.p3n .t2 { font-size: 24px; margin-top: 3px; }
+.p3n.in { opacity: 1; }
+
+/* PS4: arriba a la izquierda, barra gris oscura con el ícono pegado al borde; entra deslizándose */
+.p4n { left: 48px; top: 40px; height: 96px; padding-right: 30px; gap: 20px; border-radius: 3px; font-family: 'Segoe UI', 'Selawik', sans-serif; color: #fff;
+  background: linear-gradient(180deg, rgba(58, 58, 62, 0.94), rgba(30, 30, 34, 0.94)); box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45); transform: translateX(-40px); transition: opacity 0.3s ease, transform 0.35s cubic-bezier(0.2, 0.8, 0.3, 1); }
+.p4n .ic { width: 96px; height: 96px; background: #15151a; }
+.p4n .noicon { color: #ccc; }
+.p4n .t1 { font-size: 19px; color: #c9c9cf; }
+.p4n .t2 { font-size: 26px; font-weight: 300; margin-top: 2px; }
+.p4n.in { opacity: 1; transform: none; }
+.p4n.out { transform: translateX(-40px); }
+
+/* PS Vita: arriba a la derecha, burbuja brillante y redondeada que salta */
+.vtn { right: 30px; top: 26px; height: 92px; padding: 10px 28px 10px 10px; gap: 16px; border-radius: 22px; font-family: 'M PLUS Rounded 1c', 'Segoe UI', sans-serif; color: #fff;
+  background: linear-gradient(180deg, rgba(78, 82, 90, 0.96) 0%, rgba(34, 36, 42, 0.96) 52%, rgba(16, 17, 20, 0.96) 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 6px 18px rgba(0, 0, 0, 0.5); transform: scale(0.6); transform-origin: right top; }
+.vtn .ic { width: 72px; height: 72px; border-radius: 14px; background: #222; box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.18); }
+.vtn .noicon { color: #ddd; }
+.vtn .t1 { font-size: 19px; color: #d8dce4; }
+.vtn .t2 { font-size: 25px; font-weight: 700; margin-top: 2px; }
+.vtn.in { animation: vt-in 0.45s cubic-bezier(0.3, 1.6, 0.5, 1) forwards; }
+.vtn.out { opacity: 1; animation: vt-out 0.3s ease-in forwards; }
+@keyframes vt-in { from { opacity: 0; transform: scale(0.6); } to { opacity: 1; transform: scale(1); } }
+@keyframes vt-out { from { opacity: 1; transform: scale(1); } to { opacity: 0; transform: scale(0.7); } }
+
+/* Switch: arriba a la izquierda, gris oscuro con esquinas redondas; baja un poquito */
+.swn { left: 40px; top: 32px; height: 92px; padding: 10px 30px 10px 10px; gap: 18px; border-radius: 12px; font-family: 'Segoe UI', 'M PLUS Rounded 1c', sans-serif; color: #fff;
+  background: rgba(45, 45, 45, 0.95); box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45); transform: translateY(-24px); transition: opacity 0.25s ease, transform 0.3s cubic-bezier(0.2, 0.8, 0.3, 1); }
+.swn .ic { width: 72px; height: 72px; border-radius: 6px; background: #1e1e1e; }
+.swn .noicon { color: #00c3e3; }
+.swn .t1 { font-size: 25px; font-weight: 600; }
+.swn .t2 { font-size: 19px; color: #b5b5b5; margin-top: 4px; }
+.swn.in { opacity: 1; transform: none; }
+.swn.out { transform: translateY(-24px); }
+
+/* Wii: arriba al centro, cartel blanco con el borde celeste de la Wii; cae con un rebote */
+.wiin { left: 50%; top: 22px; height: 112px; padding: 12px 40px 12px 14px; gap: 20px; border-radius: 30px; font-family: 'M PLUS Rounded 1c', 'Segoe UI', sans-serif;
+  background: linear-gradient(180deg, #ffffff 0%, #f4f4f4 60%, #e6e6e6 100%); border: 5px solid #34beed; box-shadow: inset 0 2px 0 #fff, 0 8px 22px rgba(0, 0, 0, 0.35); transform: translate(-50%, -150px); }
+.wiin .ic { width: 80px; height: 80px; border-radius: 16px; background: #fff; border: 3px solid #cfd3d6; }
+.wiin .noicon { color: #34beed; }
+.wiin .t1 { font-size: 21px; font-weight: 700; color: #34beed; }
+.wiin .t2 { font-size: 30px; font-weight: 700; color: #5a5a5a; margin-top: 2px; }
+.wiin.in { animation: wii-in 0.6s cubic-bezier(0.3, 1.45, 0.5, 1) forwards; }
+.wiin.out { opacity: 1; animation: wii-out 0.45s ease-in forwards; }
+@keyframes wii-in { from { opacity: 0; transform: translate(-50%, -150px); } to { opacity: 1; transform: translate(-50%, 0); } }
+@keyframes wii-out { from { opacity: 1; transform: translate(-50%, 0) scale(1); } to { opacity: 0; transform: translate(-50%, 0) scale(0.85); } }
+
+/* PS2: arriba a la derecha, panel azul oscuro que brilla; el ícono gira como los de la tarjeta de memoria */
+.ps2n { right: 40px; top: 40px; height: 96px; padding: 10px 34px 10px 14px; gap: 20px; border-radius: 4px; font-family: 'M PLUS Rounded 1c', 'Segoe UI', sans-serif; color: #e8f0ff;
+  background: linear-gradient(135deg, rgba(14, 30, 78, 0.92), rgba(2, 6, 20, 0.92)); border: 1px solid rgba(120, 170, 255, 0.55);
+  box-shadow: 0 0 22px rgba(60, 120, 255, 0.45), inset 0 0 18px rgba(80, 140, 255, 0.18); filter: blur(6px); transition: opacity 0.55s ease, filter 0.55s ease; }
+.ps2n .ic { width: 74px; height: 74px; perspective: 300px; overflow: visible; }
+.ps2n .ic > * { width: 100%; height: 100%; box-shadow: 0 0 14px rgba(110, 170, 255, 0.7); animation: ps2-spin 3.2s ease-in-out infinite alternate; }
+.ps2n .noicon { color: #9cc2ff; background: rgba(20, 40, 100, 0.6); }
+.ps2n .t1 { font-size: 15px; letter-spacing: 4px; text-transform: uppercase; color: #8fb4ff; }
+.ps2n .t2 { font-size: 27px; margin-top: 4px; text-shadow: 0 0 10px rgba(120, 170, 255, 0.6); }
+.ps2n.in { opacity: 1; filter: none; }
+.ps2n.out { filter: blur(6px); }
+@keyframes ps2-spin { from { transform: rotateY(-28deg); } to { transform: rotateY(28deg); } }
+
+/* 3DS: arriba al centro, aviso blanco con borde gris y la luz de notificación (azul) parpadeando */
+.n3n { left: 50%; top: 24px; height: 100px; padding: 10px 36px 10px 44px; gap: 18px; border-radius: 16px; font-family: 'M PLUS Rounded 1c', 'Segoe UI', sans-serif;
+  background: linear-gradient(180deg, #ffffff, #eeeeee); border: 2px solid #c8c8c8; box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3); transform: translate(-50%, -30px); transition: opacity 0.3s ease, transform 0.35s cubic-bezier(0.2, 0.9, 0.3, 1.2); }
+.n3n .led { position: absolute; left: 16px; top: 50%; width: 14px; height: 14px; margin-top: -7px; border-radius: 50%; background: #29a8e0; box-shadow: 0 0 10px 3px rgba(41, 168, 224, 0.7); animation: n3-led 0.9s ease-in-out infinite; }
+@keyframes n3-led { 0%, 100% { opacity: 1; } 50% { opacity: 0.2; } }
+.n3n .ic { width: 76px; height: 76px; border-radius: 10px; background: #fff; border: 2px solid #d4d4d4; }
+.n3n .noicon { color: #29a8e0; }
+.n3n .t1 { font-size: 20px; font-weight: 700; color: #29a8e0; }
+.n3n .t2 { font-size: 28px; font-weight: 700; color: #4a4a4a; margin-top: 2px; }
+.n3n.in { opacity: 1; transform: translate(-50%, 0); }
+.n3n.out { transform: translate(-50%, -30px); }
