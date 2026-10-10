@@ -22,6 +22,9 @@
       <button class="sel-arrow up" id="sel-up" aria-label="Consola anterior"></button>
       <div id="sel-track"></div>
       <button class="sel-arrow down" id="sel-down" aria-label="Consola siguiente"></button>
+      <!-- Ordenar consolas (tecla O) -->
+      <button class="sel-sort" id="sel-sort"><svg viewBox="0 0 24 24"><path d="M7 4v16M3 16l4 4 4-4M17 20V4M13 8l4-4 4 4"/></svg><span class="sel-sort-l"></span><kbd>O</kbd></button>
+      <div class="sel-move-hint" hidden></div>
     </section>
 
     <!-- ===== Aquí se monta el menú de la consola elegida (themes/<id>/) ===== -->
@@ -71,6 +74,7 @@
   <script src="themes/vita/theme.js"></script>
   <script src="themes/switch/theme.js"></script>
   <script src="themes/ps3/theme.js"></script>
+  <script src="themes/3ds/theme.js"></script>
   <script src="setup.js"></script>
   <script src="game-editor.js"></script>
   <script src="shell.js"></script>

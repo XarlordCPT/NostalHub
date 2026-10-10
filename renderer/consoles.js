@@ -143,4 +143,25 @@ window.CONSOLES = [
       enterFlash: '#000000', // la PS3 enciende desde negro
     },
   },
+  {
+    id: '3ds',
+    company: 'Nintendo',
+    name: 'Nintendo 3DS',
+    year: 2011,
+    look: {
+      background:
+        'radial-gradient(ellipse 60% 55% at 72% 50%, rgba(41,168,224,0.28), rgba(41,168,224,0) 70%),' +
+        'repeating-linear-gradient(0deg, rgba(0,0,0,0.035) 0 1px, transparent 1px 22px),' +
+        'repeating-linear-gradient(90deg, rgba(0,0,0,0.035) 0 1px, transparent 1px 22px),' +
+        'linear-gradient(170deg, #f7f7f7 0%, #e6e6e6 100%)',
+      base: '#e6e6e6',
+      text: '#4a4a4a',
+      subtext: '#8a8a8a',
+      accent: '#29a8e0',
+      font: "'M PLUS Rounded 1c', 'Segoe UI', sans-serif",
+      nameWeight: 800,
+      nameShadow: '0 4px 0 rgba(255,255,255,0.7)',
+      enterFlash: '#ffffff',
+    },
+  },
 ];

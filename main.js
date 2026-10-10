@@ -630,6 +630,25 @@ function createWindow() {
 
 // Botones de la barra de arriba (modo ventana)
 ipcMain.handle('win:state', () => windowState());
+// Mover la ventana arrastrando la barra (se hace a mano: más confiable que la "zona de arrastre" de Windows)
+ipcMain.handle('win:drag-start', (_e, sx, sy) => {
+  if (!win || win.isDestroyed() || !isWindowMode()) return null;
+  if (win.isMaximized()) {
+    // Arrastrar estando maximizada: vuelve a su tamaño, con el mouse en la misma proporción de la barra
+    const full = win.getBounds();
+    const ratio = full.width ? (sx - full.x) / full.width : 0.5;
+    win.unmaximize();
+    const b = config.data.windowBounds || { width: 1280, height: 720 };
+    const nb = { x: Math.round(sx - b.width * ratio), y: Math.round(sy - 20), width: b.width, height: b.height };
+    win.setBounds(nb);
+    return nb;
+  }
+  return win.getBounds();
+});
+ipcMain.on('win:drag-move', (_e, x, y, w, h) => {
+  if (!win || win.isDestroyed() || !isWindowMode() || win.isMaximized()) return;
+  win.setBounds({ x: Math.round(x), y: Math.round(y), width: Math.round(w), height: Math.round(h) }); // con el tamaño fijo (si no, Windows lo agranda al cambiar de pantalla)
+});
 ipcMain.handle('win:control', (_e, action) => {
   if (!win || win.isDestroyed()) return null;
   if (action === 'minimize') win.minimize();

@@ -470,7 +470,7 @@ img, video { -webkit-user-drag: none; }
 
 /* ============ Barra de la ventana (modo ventana) ============
    Escondida arriba; baja al acercar el mouse. Cada consola le da su estilo (body[data-console=…]).
-   Solo se puede arrastrar mientras se ve (así no tapa los clics del menú). */
+   Arrastrar la barra mueve la ventana (lo hace shell.js). */
 #winbar {
   --wb-h: 42px;
   position: fixed; left: 0; right: 0; top: 0; z-index: 1000;
@@ -483,8 +483,7 @@ img, video { -webkit-user-drag: none; }
   transition: transform 0.22s var(--ease), visibility 0s linear 0.22s;
 }
 body.windowed #winbar.show { transform: none; visibility: visible; transition: transform 0.22s var(--ease), visibility 0s; }
-#winbar.show .wb-drag { -webkit-app-region: drag; }
-#winbar .wb-btns { -webkit-app-region: no-drag; }
+#winbar .wb-drag { cursor: default; touch-action: none; }
 .wb-drag { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; padding: 0 16px; white-space: nowrap; overflow: hidden; }
 .wb-dot { width: 12px; height: 12px; border-radius: 50%; flex: none; background: conic-gradient(#34bfed, #e60012, #45b52a, #3d7bff, #34bfed); }
 .wb-title { font-weight: 700; letter-spacing: 0.3px; }
@@ -555,3 +554,42 @@ body[data-console='ps3'] .wb-b { border-radius: 0; height: 100%; width: 46px; }
 body[data-console='ps3'] .wb-btns { gap: 0; padding: 0; }
 body[data-console='ps3'] .wb-b:hover { background: linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.28)); box-shadow: inset 0 -1px 0 #fff, 0 0 18px rgba(255, 255, 255, 0.25); }
 body[data-console='ps3'] .wb-close:hover { background: linear-gradient(180deg, rgba(229, 72, 77, 0.1), rgba(229, 72, 77, 0.55)); }
+
+/* ============ Ordenar consolas (selector) ============ */
+.sel-sort {
+  position: absolute; left: 56px; bottom: 48px; z-index: 4;
+  height: 74px; padding: 0 22px 0 18px; display: flex; align-items: center; gap: 14px;
+  border-radius: 37px; background: rgba(255, 255, 255, 0.92); color: #4b4b4b;
+  border: 4px solid var(--sel-ui, #34bfed);
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.2);
+  font-family: var(--font); font-size: 28px; font-weight: 700; cursor: pointer;
+  transition: transform 0.15s var(--ease), box-shadow 0.15s;
+}
+.sel-sort:hover { transform: scale(1.04); box-shadow: 0 0 0 6px color-mix(in srgb, var(--sel-ui, #34bfed) 30%, transparent), 0 10px 26px rgba(0, 0, 0, 0.2); }
+.sel-sort svg { width: 38px; height: 38px; fill: none; stroke: var(--sel-ui, #34bfed); stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+.sel-sort kbd, .sel-move-hint kbd { font: inherit; font-size: 20px; min-width: 34px; padding: 2px 8px; border-radius: 8px; border: 2px solid #c8c8c8; color: #8a8a8a; text-align: center; }
+.sel-sortmenu { left: 56px; bottom: 140px; width: 640px; }
+.sel-sortmenu button.kf:not(.on) { background: #eef7fb; box-shadow: inset 0 0 0 3px var(--accent, #34bfed); }
+.sel-sortmenu button.on.kf { box-shadow: 0 0 0 4px #fff, 0 0 0 7px var(--accent, #34bfed); }
+.sel-sortmenu button.mv { margin-top: 8px; border-top: 2px solid #ececec; border-radius: 0 0 18px 18px; color: var(--accent, #34bfed); font-weight: 700; }
+#selector.moving .sel-sort { opacity: 0; pointer-events: none; }
+.sel-move-hint {
+  position: absolute; left: 50%; top: 150px; z-index: 5; transform: translateX(-50%);
+  padding: 18px 34px; border-radius: 40px; white-space: nowrap;
+  background: rgba(255, 255, 255, 0.95); color: #4b4b4b; border: 4px solid var(--sel-ui, #34bfed);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.22);
+  font-family: var(--font); font-size: 28px; animation: ge-fade 0.2s ease both;
+}
+.sel-move-hint b { color: var(--sel-ui, #34bfed); }
+.sel-move-hint kbd { margin: 0 4px; }
+/* la consola que se está moviendo "flota" y tiembla un poco, como al mover un canal en la Wii */
+#selector.moving .sel-item.active .sel-info, #selector.moving .sel-item.active .sel-icon { animation: sel-wiggle 0.42s ease-in-out infinite alternate; }
+#selector.moving .sel-item.near { opacity: 0.55 !important; }
+@keyframes sel-wiggle { from { transform: rotate(-1.2deg) translateY(-6px); } to { transform: rotate(1.2deg) translateY(-6px); } }
+
+/* --- 3DS: blanca con borde celeste y botones redondeados --- */
+body[data-console='3ds'] #winbar { font-family: 'M PLUS Rounded 1c', sans-serif; color: #4a4a4a; background: linear-gradient(180deg, #ffffff, #ebebeb); border-bottom: 3px solid #29a8e0; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18); backdrop-filter: none; }
+body[data-console='3ds'] .wb-dot { background: linear-gradient(160deg, #8fd0ef, #29a8e0); border-radius: 4px; }
+body[data-console='3ds'] .wb-b { border-radius: 8px; background: #fff; box-shadow: inset 0 0 0 1.5px #d4d4d4; }
+body[data-console='3ds'] .wb-b:hover { background: #e3f4fc; color: #29a8e0; box-shadow: inset 0 0 0 2px #29a8e0; }
+body[data-console='3ds'] .wb-close:hover { background: #fde8e8; color: #e2402a; box-shadow: inset 0 0 0 2px #e2402a; }

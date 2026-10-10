@@ -10,7 +10,7 @@
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
   const call = (fn, ...a) => (typeof api[fn] === 'function' ? api[fn](...a) : Promise.resolve(null));
 
-  const CONSOLE_NAMES = { wii: 'Wii', ps2: 'PS2', x360: 'Xbox 360', ps4: 'PS4', vita: 'PS Vita', switch: 'Switch', ps3: 'PS3' };
+  const CONSOLE_NAMES = { wii: 'Wii', ps2: 'PS2', x360: 'Xbox 360', ps4: 'PS4', vita: 'PS Vita', switch: 'Switch', ps3: 'PS3', '3ds': '3DS' };
   // Qué imágenes se ven en cada consola (en orden)
   const BY_CONSOLE = {
     wii: ['tile', 'hero', 'logo', 'video'],
@@ -20,6 +20,7 @@
     vita: ['bubble', 'hero', 'logo'],
     switch: ['square', 'hero', 'logo'],
     ps3: ['icon0', 'hero', 'music'],
+    '3ds': ['square', 'hero', 'logo'],
   };
   const ALL = ['tile', 'square', 'bubble', 'icon0', 'cover', 'hero', 'logo', 'video', 'model', 'music'];
   // Algunas también se usan en otras consolas aunque no sean "suyas"
@@ -31,7 +32,7 @@
     video: { label: 'Video del canal', hint: 'La animación al entrar al canal (mp4, webm o gif; 10 a 20 segundos, sin audio).', shape: 'wide' },
     model: { label: 'Modelo 3D', hint: 'Ícono 3D animado (.glb o .gltf, por ejemplo de Blockbench).', shape: 'square' },
     cover: { label: 'Carátula', hint: 'La caja del juego, vertical (600×900).', shape: 'tall' },
-    square: { label: 'Imagen cuadrada', hint: 'El cuadro del juego en la Switch (ej. 1024×1024). Si no hay, se arma con el fondo y el logo.', shape: 'square' },
+    square: { label: 'Imagen cuadrada', hint: 'El cuadro del juego en la Switch y el icono en la 3DS (ej. 1024×1024). Si no hay, se arma con el fondo y el logo.', shape: 'square' },
     icon0: { label: 'Icono PS3', hint: 'El icono del juego en el menú de la PS3 (320×176). Si no hay, se usa la cabecera de Steam.', shape: 'ps3' },
     music: { label: 'Música', hint: 'Suena al quedarte sobre el juego en la PS3 (mp3, ogg, m4a o wav; 30 a 60 segundos).', shape: 'audio' },
     bubble: { label: 'Burbuja', hint: 'Imagen cuadrada; se recorta en círculo (ej. 512×512). Si no hay, se usa la carátula.', shape: 'circle' },

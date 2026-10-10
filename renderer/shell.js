@@ -54,7 +54,7 @@
   if (api.getWindowState) api.getWindowState().then(applyWin);
   if (api.onWindowState) api.onWindowState(applyWin);
   window.addEventListener('mousemove', (e) => {
-    if (winState.mode !== 'window') return;
+    if (winState.mode !== 'window' || drag) return;
     if (e.clientY <= 8) showBar(true);
     else if (e.clientY <= 60) clearTimeout(barTimer);
     else if (winbar.classList.contains('show')) {
@@ -67,6 +67,38 @@
     clearTimeout(barTimer);
     barTimer = setTimeout(() => showBar(false), 900);
   });
+  // Arrastrar la barra mueve la ventana; doble clic la maximiza
+  let drag = null;
+  const dragArea = winbar.querySelector('.wb-drag');
+  dragArea.addEventListener('pointerdown', (e) => {
+    if (e.button !== 0 || winState.mode !== 'window' || !api.windowDragStart) return;
+    e.preventDefault();
+    dragArea.setPointerCapture(e.pointerId);
+    const d = { sx: e.screenX, sy: e.screenY, b: null, started: false, p: null };
+    drag = d;
+    if (!winState.maximized) d.p = api.windowDragStart(e.screenX, e.screenY).then((b) => (d.b = b));
+  });
+  dragArea.addEventListener('pointermove', (e) => {
+    const d = drag;
+    if (!d) return;
+    if (!d.started) {
+      if (Math.abs(e.screenX - d.sx) + Math.abs(e.screenY - d.sy) < 4) return;
+      d.started = true;
+      // estaba maximizada: primero vuelve a su tamaño, debajo del mouse
+      if (!d.p) {
+        const x = e.screenX;
+        const y = e.screenY;
+        d.p = api.windowDragStart(x, y).then((b) => ((d.b = b), (d.sx = x), (d.sy = y)));
+      }
+    }
+    if (!d.b) return;
+    api.windowDragMove(d.b.x + e.screenX - d.sx, d.b.y + e.screenY - d.sy, d.b.width, d.b.height);
+  });
+  const endDrag = () => (drag = null);
+  dragArea.addEventListener('pointerup', endDrag);
+  dragArea.addEventListener('pointercancel', endDrag);
+  dragArea.addEventListener('dblclick', () => api.windowControl && api.windowControl('maximize').then((s) => s && applyWin(s)));
+
   winbar.querySelectorAll('[data-w]').forEach((b) =>
     b.addEventListener('click', () => {
       showBar(false);
@@ -223,7 +255,11 @@
       });
 
       item.append(info, icon);
-      item.addEventListener('click', () => (i === index ? enter() : select(i)));
+      item.addEventListener('click', () => {
+        const n = Number(item.dataset.index); // (cambia al mover consolas)
+        if (moving) return n === index && endMove(true);
+        n === index ? enter() : select(n);
+      });
       track.appendChild(item);
     });
     layout(false);
@@ -245,6 +281,16 @@
     $('#sel-down').classList.toggle('off', index >= CONSOLES.length - 1);
   }
 
+  // Color de acento que se lea sobre blanco: si el de la consola es muy claro (PS3, PS4), usa su color de fondo
+  function uiAccent(look) {
+    const a = look.accent || '#34bfed';
+    const m = /^#([0-9a-f]{6})$/i.exec(a);
+    if (!m) return a;
+    const n = parseInt(m[1], 16);
+    const lum = (0.2126 * ((n >> 16) & 255) + 0.7152 * ((n >> 8) & 255) + 0.0722 * (n & 255)) / 255;
+    return lum > 0.72 ? look.base || '#4b4b4b' : a;
+  }
+
   let bgFront = bgA;
   function paintBackground(animate = true) {
     const c = CONSOLES[index];
@@ -262,6 +308,7 @@
     bgFront = back;
     document.body.style.backgroundColor = look.base || '#222';
     stage.style.setProperty('--sel-accent', look.accent || '#34bfed');
+    stage.style.setProperty('--sel-ui', uiAccent(look)); // para el botón y menú de ordenar (sobre fondo blanco)
   }
 
   function select(i) {
@@ -553,13 +600,190 @@
   if (api.onSettings) api.onSettings((s) => Sound.apply(s));
 
   // ---------- Controles del selector ----------
-  $('#sel-up').addEventListener('click', () => select(index - 1));
-  $('#sel-down').addEventListener('click', () => select(index + 1));
+  $('#sel-up').addEventListener('click', () => (moving ? moveBy(-1) : select(index - 1)));
+  $('#sel-down').addEventListener('click', () => (moving ? moveBy(1) : select(index + 1)));
+
+  // ---------- Orden de las consolas: personalizado, por fecha, nombre o empresa (botón abajo o tecla O) ----------
+  const BASE = [...CONSOLES];
+  const SORTS = [
+    ['custom', 'Personalizado'],
+    ['year', 'Fecha de salida (más antiguas primero)'],
+    ['year-desc', 'Fecha de salida (más nuevas primero)'],
+    ['name', 'Nombre'],
+    ['company', 'Empresa'],
+  ];
+  const SHORT = { custom: 'Personalizado', year: 'Más antiguas primero', 'year-desc': 'Más nuevas primero', name: 'Por nombre', company: 'Por empresa' };
+  const store = {
+    get(k, d) {
+      try {
+        const v = localStorage.getItem('nostalhub.' + k);
+        return v == null ? d : v;
+      } catch {
+        return d;
+      }
+    },
+    set(k, v) {
+      try {
+        localStorage.setItem('nostalhub.' + k, v);
+      } catch {}
+    },
+  };
+  let sortMode = store.get('consoleSort', 'custom');
+  if (!SHORT[sortMode]) sortMode = 'custom';
+  let customOrder = [];
+  try {
+    customOrder = JSON.parse(store.get('consoleOrder', '[]')) || [];
+  } catch {}
+  function orderedList(m) {
+    const byName = (a, b) => a.name.localeCompare(b.name, 'es');
+    const byYear = (a, b) => (a.year || 0) - (b.year || 0);
+    if (m === 'year') return [...BASE].sort((a, b) => byYear(a, b) || byName(a, b));
+    if (m === 'year-desc') return [...BASE].sort((a, b) => byYear(b, a) || byName(a, b));
+    if (m === 'name') return [...BASE].sort(byName);
+    if (m === 'company') return [...BASE].sort((a, b) => a.company.localeCompare(b.company, 'es') || byYear(a, b));
+    // personalizado: las que no estén en tu orden (consolas nuevas) van al final
+    const pos = (c) => (customOrder.includes(c.id) ? customOrder.indexOf(c.id) : 1000 + BASE.indexOf(c));
+    return [...BASE].sort((a, b) => pos(a) - pos(b));
+  }
+  function applyOrder(rerender = true) {
+    const keep = CONSOLES[index] && CONSOLES[index].id;
+    CONSOLES.splice(0, CONSOLES.length, ...orderedList(sortMode));
+    const i = CONSOLES.findIndex((c) => c.id === keep);
+    index = i >= 0 ? i : 0;
+    $('#sel-sort .sel-sort-l').textContent = SHORT[sortMode];
+    if (rerender) renderItems();
+  }
+  function setSort(m) {
+    sortMode = m;
+    store.set('consoleSort', m);
+    applyOrder();
+  }
+
+  // Menú para elegir el orden
+  let sortMenu = null; // { el, items, sel }
+  function openSortMenu() {
+    if (mode !== 'selector' || moving) return;
+    closeSortMenu();
+    const c = CONSOLES[index];
+    const items = [
+      ...SORTS.map(([m, l]) => ({ label: l, on: m === sortMode, run: () => setSort(m) })),
+      { label: `Mover ${c ? c.name : 'esta consola'}…`, move: true, run: startMove },
+    ];
+    const el = document.createElement('div');
+    el.className = 'sel-tilt sel-sortmenu';
+    el.innerHTML = `<div class="sel-tilt-h">Ordenar consolas</div>${items.map((it, i) => `<button data-i="${i}" class="${it.on ? 'on' : ''}${it.move ? ' mv' : ''}">${it.label}</button>`).join('')}`;
+    ['pointerdown', 'click', 'mousedown', 'wheel'].forEach((t) => el.addEventListener(t, (ev) => ev.stopPropagation()));
+    el.querySelectorAll('button').forEach((b) => {
+      b.addEventListener('mouseenter', () => setSortSel(Number(b.dataset.i)));
+      b.addEventListener('click', () => pickSort(Number(b.dataset.i)));
+    });
+    el.style.setProperty('--accent', uiAccent((c && c.look) || {}));
+    selector.appendChild(el);
+    sortMenu = { el, items, sel: Math.max(0, items.findIndex((x) => x.on)) };
+    setSortSel(sortMenu.sel);
+  }
+  function setSortSel(i) {
+    if (!sortMenu) return;
+    sortMenu.sel = (i + sortMenu.items.length) % sortMenu.items.length;
+    sortMenu.el.querySelectorAll('button').forEach((b) => b.classList.toggle('kf', Number(b.dataset.i) === sortMenu.sel));
+  }
+  function pickSort(i) {
+    const it = sortMenu && sortMenu.items[i];
+    closeSortMenu();
+    if (it) it.run();
+  }
+  function closeSortMenu() {
+    if (sortMenu) sortMenu.el.remove();
+    sortMenu = null;
+  }
+  $('#sel-sort').addEventListener('click', (e) => {
+    e.stopPropagation();
+    sortMenu ? closeSortMenu() : openSortMenu();
+  });
+  document.addEventListener('pointerdown', (e) => sortMenu && !sortMenu.el.contains(e.target) && !e.target.closest('#sel-sort') && closeSortMenu(), true);
+
+  // Mover una consola (orden personalizado): ↑ ↓ la cambia de lugar, Enter la deja, Esc cancela
+  let moving = null; // { before: [ids] }
+  function startMove() {
+    if (sortMode !== 'custom') {
+      customOrder = CONSOLES.map((c) => c.id); // parte desde el orden que estás viendo
+      sortMode = 'custom';
+      store.set('consoleSort', 'custom');
+      $('#sel-sort .sel-sort-l').textContent = SHORT.custom;
+    }
+    moving = { before: CONSOLES.map((c) => c.id) };
+    selector.classList.add('moving');
+    const hint = $('.sel-move-hint');
+    hint.innerHTML = `Moviendo <b>${CONSOLES[index].name}</b> · <kbd>↑</kbd><kbd>↓</kbd> para cambiarla de lugar · <kbd>Enter</kbd> dejarla · <kbd>Esc</kbd> cancelar`;
+    hint.hidden = false;
+    layout();
+  }
+  function moveBy(d) {
+    const j = index + d;
+    if (!moving || j < 0 || j >= CONSOLES.length) return;
+    [CONSOLES[index], CONSOLES[j]] = [CONSOLES[j], CONSOLES[index]];
+    const a = track.querySelector(`.sel-item[data-index="${index}"]`);
+    const b = track.querySelector(`.sel-item[data-index="${j}"]`);
+    if (a) a.dataset.index = j;
+    if (b) b.dataset.index = index;
+    index = j;
+    layout();
+  }
+  function endMove(save) {
+    if (!moving) return;
+    const before = moving.before;
+    moving = null;
+    selector.classList.remove('moving');
+    $('.sel-move-hint').hidden = true;
+    if (save) {
+      customOrder = CONSOLES.map((c) => c.id);
+      store.set('consoleOrder', JSON.stringify(customOrder));
+      layout();
+    } else {
+      const keep = CONSOLES[index].id;
+      CONSOLES.sort((x, y) => before.indexOf(x.id) - before.indexOf(y.id));
+      index = CONSOLES.findIndex((c) => c.id === keep);
+      renderItems();
+    }
+  }
+
+  // Teclas del orden (antes que las del selector)
+  window.addEventListener(
+    'keydown',
+    (e) => {
+      if (mode !== 'selector') return;
+      const k = e.key;
+      if (sortMenu) {
+        e.stopImmediatePropagation();
+        e.preventDefault();
+        if (k === 'ArrowDown') setSortSel(sortMenu.sel + 1);
+        else if (k === 'ArrowUp') setSortSel(sortMenu.sel - 1);
+        else if (k === 'Enter' || k === ' ') pickSort(sortMenu.sel);
+        else if (k === 'Escape' || k === 'o' || k === 'O' || k === 'Backspace') closeSortMenu();
+        return;
+      }
+      if (moving) {
+        e.stopImmediatePropagation();
+        e.preventDefault();
+        if (k === 'ArrowUp') moveBy(-1);
+        else if (k === 'ArrowDown') moveBy(1);
+        else if (k === 'Enter' || k === ' ') endMove(true);
+        else if (k === 'Escape' || k === 'Backspace') endMove(false);
+        return;
+      }
+      if ((k === 'o' || k === 'O') && !e.ctrlKey && !e.altKey) {
+        e.preventDefault();
+        openSortMenu();
+      }
+    },
+    true
+  );
 
   let wheelLock = 0;
   selector.addEventListener('wheel', (e) => {
     if (Date.now() < wheelLock || Math.abs(e.deltaY) < 10) return;
-    select(index + (e.deltaY > 0 ? 1 : -1));
+    if (moving) moveBy(e.deltaY > 0 ? 1 : -1);
+    else select(index + (e.deltaY > 0 ? 1 : -1));
     wheelLock = Date.now() + 380;
   });
 
@@ -678,6 +902,8 @@
   (async () => {
     const res = await loadAssets();
     const last = res && res.last;
+    CONSOLES.splice(0, CONSOLES.length, ...orderedList(sortMode)); // tu orden de consolas
+    $('#sel-sort .sel-sort-l').textContent = SHORT[sortMode];
     const i = CONSOLES.findIndex((c) => c.id === last);
     index = i >= 0 ? i : 0;
     renderItems();

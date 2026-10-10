@@ -68,6 +68,8 @@ contextBridge.exposeInMainWorld('nostalhub', {
   getWindowState: () => ipcRenderer.invoke('win:state'),
   windowControl: (action) => ipcRenderer.invoke('win:control', action),
   onWindowState: on('win:state'),
+  windowDragStart: (sx, sy) => ipcRenderer.invoke('win:drag-start', sx, sy),
+  windowDragMove: (x, y, w, h) => ipcRenderer.send('win:drag-move', x, y, w, h),
   // Sonido
   getSettings: () => ipcRenderer.invoke('settings:get'),
   onSettings: on('settings:changed'),

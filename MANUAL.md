@@ -49,7 +49,7 @@ Para abrirla: pega esa ruta en la barra del Explorador de Windows, o usa los ata
         ├── modelo.glb         (PS2)
         ├── caratula.jpg       (Xbox 360 y burbuja de la Vita)
         ├── burbuja.png        (PS Vita)
-        ├── cuadrado.png       (Switch)
+        ├── cuadrado.png       (Switch y 3DS)
         ├── icono.png          (PS3)
         ├── musica.mp3         (PS3)
         └── descripcion.txt    (todas)
@@ -334,13 +334,27 @@ En **Ajustes → Pantalla → Modo**:
 - **Encendido**: al entrar aparece la ola con destellos (Enter o un clic lo salta). Si tienes `intro.mp4` en
   `consolas\ps3\`, o apagaste los videos de inicio, entra directo.
 
+### Cómo se usa la Nintendo 3DS
+
+- Se ve la consola abierta con sus **dos pantallas**: arriba el banner del icono marcado (con profundidad 3D que
+  sigue al mouse; el **deslizador 3D** a la derecha de la pantalla la sube o la apaga) y abajo la cuadrícula de iconos.
+- Primero van las apps: **Configuración de la consola** (tema de las pantallas, color de la carcasa y las opciones de
+  NostalHub), **Nintendo eShop** (Steam), **Registro de actividad** (tus horas por juego), **Nintendo 3DS Sonido**
+  (Spotify), **Logros** y **Cambiar de consola**. Después tus juegos, los más recientes primero.
+- Arriba de la pantalla táctil: Notas (logros), **Lista de amigos** (tu canal de Discord), Notificaciones, Navegador
+  (actividad de Steam) y Perfil.
+- Abajo: los botones **− / +** cambian cuántas filas se ven (de 1 a 6) y el pincel abre el **Tema**.
+- Los botones de la carcasa funcionan con clic: cruceta, **A** (abrir), **B** (volver), **X** (opciones del juego),
+  **Y** (más filas), **HOME** (vuelve al menú) y el botón de **encendido** (cambiar de consola o apagar).
+- El icono de cada juego es la misma imagen cuadrada de la Switch (`cuadrado.png`).
+
 ---
 
 ## 9. Teclas
 
 | Dónde | Teclas |
 |---|---|
-| Selector de consolas | ↑ ↓ elegir · Enter entrar · **Esc** pregunta si cerrar la app (Esc otra vez = cerrar) |
+| Selector de consolas | ↑ ↓ elegir · Enter entrar · **O** ordenar las consolas (personalizado, fecha de salida, nombre o empresa; "Mover…" para cambiar una de lugar con ↑ ↓) · **Esc** pregunta si cerrar la app (Esc otra vez = cerrar) |
 | Wii | ← → páginas / juegos · Enter iniciar · Esc volver (en el menú: volver al selector) |
 | PS2 | Flechas moverse · Enter elegir · **C** configuración · Esc volver |
 | Xbox 360 | Flechas moverse · **Q / E** cambiar de pestaña · **G** la Guía · Enter seleccionar · Esc volver |
@@ -348,6 +362,7 @@ En **Ajustes → Pantalla → Modo**:
 | Cualquier consola | **Clic derecho** sobre un juego, o la tecla **I** con el juego marcado: cambiar imágenes y descripción |
 | Nintendo Switch | ← → juegos · **↓** botones redondos · Enter iniciar · **O** opciones del juego · **S** ordenar (Todo el software) · Esc volver (en el inicio: selector). Tema claro u oscuro: **Ajustes → Tema** |
 | PS3 | ← → categorías · ↑ ↓ opciones · Enter elegir / iniciar · **O** opciones (el triángulo) · Esc volver (en la barra: selector). Color del fondo: **Ajustes → Ajustes de tema** |
+| Nintendo 3DS | Flechas por la cuadrícula · Enter abrir · **O** (o X) opciones del juego · **+ / −** filas · Esc volver (en el menú: selector) |
 | PS Vita | Flechas entre burbujas (↑ ↓ en los bordes, o la rueda / RePág / AvPág, cambian de página) · Enter abrir · **Q / E** cambiar de tarjeta · **Retroceso** cerrar la tarjeta · **P** menú rápido · **N** avisos · Esc inicio (en el inicio: selector) |
 
 ---
