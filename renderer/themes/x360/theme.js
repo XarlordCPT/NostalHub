@@ -558,6 +558,7 @@
     }
     async function loadSummary(s) {
       summary = s || (await call('getAchievementSummary')) || summary;
+      if (current && (view === 'detail' || stack.includes('detail'))) paintDetailInfo(current);
       const el = $('.xb-me-score');
       if (!summary.hasKey) {
         el.innerHTML = `<button class="xb-link" data-nav data-open="apikey">${icon('key')} Agrega tu clave de Steam para ver tus logros</button>`;
@@ -690,21 +691,8 @@
       box.innerHTML = '';
       box.appendChild(buildCase(g, 'big'));
       $('.xb-detail-name').textContent = g.name;
-      $('.xb-detail-meta').textContent = [
-        { steam: 'Steam', exe: 'Programa', shortcut: 'Acceso directo', url: 'Launcher' }[g.type] || '',
-        hours(g.playtimeMin),
-        g.lastPlayed ? `Jugado ${ago(g.lastPlayed)}` : '',
-      ]
-        .filter(Boolean)
-        .join('   ·   ');
+      paintDetailInfo(g);
       $('.xb-detail-desc').textContent = g.description || '';
-      const per = summary.perGame && g.appId && summary.perGame[g.appId];
-      const prog = $('.xb-detail-progress');
-      prog.hidden = !(per && per.total);
-      if (per && per.total) {
-        prog.querySelector('i').style.width = `${(per.done / per.total) * 100}%`;
-        prog.querySelector('span').textContent = `${per.done} de ${per.total} logros`;
-      }
       const achBtn = root.querySelector('[data-dact="ach"]');
       achBtn.classList.toggle('disabled', g.type !== 'steam');
       $('.xb-detail').classList.remove('enter');
@@ -712,6 +700,23 @@
       $('.xb-detail').classList.add('enter');
       detailHints();
       setFocus(root.querySelector('[data-dact="play"]'));
+    }
+    // Horas, "jugado hace…" y logros de la ficha (también cuando llegan datos nuevos con la ficha abierta)
+    function paintDetailInfo(g) {
+      $('.xb-detail-meta').textContent = [
+        { steam: 'Steam', exe: 'Programa', shortcut: 'Acceso directo', url: 'Launcher' }[g.type] || '',
+        hours(g.playtimeMin),
+        g.lastPlayed ? `Jugado ${ago(g.lastPlayed)}` : '',
+      ]
+        .filter(Boolean)
+        .join('   ·   ');
+      const per = summary.perGame && g.appId && summary.perGame[g.appId];
+      const prog = $('.xb-detail-progress');
+      prog.hidden = !(per && per.total);
+      if (per && per.total) {
+        prog.querySelector('i').style.width = `${(per.done / per.total) * 100}%`;
+        prog.querySelector('span').textContent = `${per.done} de ${per.total} logros`;
+      }
     }
     $$('[data-dact]').forEach((b) =>
       b.addEventListener('click', () => {
@@ -1224,6 +1229,7 @@
     function setGames(list) {
       games = list || [];
       if (current) current = games.find((g) => g.id === current.id) || current;
+      if (current && (view === 'detail' || stack.includes('detail'))) paintDetailInfo(current);
       renderHome();
       renderRecent();
       if (view === 'shelf') {

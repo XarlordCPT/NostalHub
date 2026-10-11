@@ -615,7 +615,12 @@
         .join('   ·   ');
     }
     if (api.getAchievementSummary) api.getAchievementSummary().then((s) => s && (summary = s));
-    const offSummary = api.onSteamSummary ? api.onSteamSummary((s) => (summary = s || summary)) : null;
+    const offSummary = api.onSteamSummary
+      ? api.onSteamSummary((s) => {
+          summary = s || summary;
+          if ((view === 'channel' || view === 'ach') && current >= 0 && games[current]) channel.querySelector('.ch-stats').textContent = statsLine(games[current]);
+        })
+      : null;
 
     const ACH_COLS = 12;
     let achList = [];
@@ -1065,6 +1070,7 @@
       // Si la pantalla de canal está abierta, refresca el arte sin cortar el video
       if (view === 'channel' && current >= 0) {
         const g = games[current];
+        channel.querySelector('.ch-stats').textContent = statsLine(g);
         const hero = chMedia.querySelector('img.hero');
         if (hero && (g.hero || g.tile) && hero.src !== (g.hero || g.tile)) hero.src = g.hero || g.tile;
       }

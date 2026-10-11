@@ -75,7 +75,7 @@
   // Íconos de la cuadrícula: tamaño de cada casilla (px de la pantalla real) según cuántas filas
   const SLOT = { 1: 84, 2: 74, 3: 56, 4: 42, 5: 34, 6: 28 };
   const GRID_TOP = 4; // dentro de la zona de la cuadrícula (debajo de los accesos directos)
-  const GRID_H = 174;
+  const GRID_H = 196;
 
   const MARKUP = `
 <div class="d-desk"></div>
@@ -104,14 +104,18 @@
     <div class="d-screen d-botwrap"><div class="d-bot">
       <div class="b-bg"></div>
       <div class="b-home">
-        <div class="b-short"></div>
-        <div class="b-gridview"><div class="b-grid"></div></div>
-        <div class="b-bar">
-          <button class="b-zoom" data-z="-1" title="Más filas">${ic('zoomOut')}</button>
-          <button class="b-zoom" data-z="1" title="Menos filas">${ic('zoomIn')}</button>
-          <div class="b-scroll"><i></i></div>
-          <button class="b-theme" title="Tema">${ic('brush')}</button>
+        <!-- Arriba (como la 3DS): configuración del menú HOME, accesos directos y tamaño de los íconos -->
+        <div class="b-top">
+          <button class="b-theme" title="Configuración del menú HOME (tema)">${ic('house')}<span class="b-brush">${ic('brush')}</span></button>
+          <div class="b-short"></div>
+          <div class="b-zooms">
+            <button class="b-zoom" data-z="1" title="Íconos más pequeños">${ic('zoomOut')}</button>
+            <button class="b-zoom" data-z="-1" title="Íconos más grandes">${ic('zoomIn')}</button>
+          </div>
         </div>
+        <div class="b-gridview"><div class="b-grid"></div></div>
+        <!-- Abajo solo la barra para moverse por las páginas (se puede arrastrar) -->
+        <div class="b-bar"><div class="b-scroll"><i></i></div></div>
       </div>
       <div class="b-app" hidden></div>
       <div class="b-dlg" hidden><div class="b-dlg-box"><div class="b-dlg-t"></div><div class="b-dlg-btns"></div></div></div>
@@ -261,6 +265,7 @@
       grid.innerHTML = '';
       grid.style.setProperty('--s', `${S}px`);
       root.dataset.rows = rows;
+      root.querySelectorAll('.b-zoom').forEach((b) => (b.disabled = rows + Number(b.dataset.z) < 1 || rows + Number(b.dataset.z) > 6));
       const y0 = GRID_TOP + (GRID_H - rows * S) / 2;
       for (let i = 0; i < cols * rows; i++) {
         const col = Math.floor(i / rows);
@@ -296,19 +301,26 @@
       const vis = visibleCols();
       if (col < firstCol) firstCol = col;
       else if (col > firstCol + vis - 1) firstCol = col - vis + 1;
+      applyScroll(animate);
+      $$('.b-slot', $('.b-grid')).forEach((s) => s.classList.toggle('sel', Number(s.dataset.i) === sel && s.classList.contains('full')));
+      paintBanner();
+      paintHint();
+    }
+    // Mueve la cuadrícula a firstCol y pone la barra de abajo en su lugar
+    function scrollInfo() {
+      const vis = visibleCols();
       const totalCols = Math.ceil(items.length / rows) + 1;
-      firstCol = Math.max(0, Math.min(firstCol, Math.max(0, totalCols - vis)));
+      return { vis, totalCols, max: Math.max(0, totalCols - vis), frac: Math.min(1, vis / totalCols) };
+    }
+    function applyScroll(animate = true) {
+      const { max, frac } = scrollInfo();
+      firstCol = Math.max(0, Math.min(firstCol, max));
       const grid = $('.b-grid');
       grid.classList.toggle('still', !animate);
       grid.style.transform = `translateX(${-firstCol * SLOT[rows]}px)`;
-      $$('.b-slot', grid).forEach((s) => s.classList.toggle('sel', Number(s.dataset.i) === sel && s.classList.contains('full')));
-      // barra de desplazamiento
       const thumb = $('.b-scroll i');
-      const frac = Math.min(1, vis / totalCols);
       thumb.style.width = `${frac * 100}%`;
-      thumb.style.left = `${totalCols > vis ? (firstCol / (totalCols - vis)) * (1 - frac) * 100 : 0}%`;
-      paintBanner();
-      paintHint();
+      thumb.style.left = `${max ? (firstCol / max) * (1 - frac) * 100 : 0}%`;
     }
     function moveSel(k) {
       const r = sel % rows;
@@ -329,15 +341,42 @@
       renderGrid();
       ctx.sound('page');
     }
-    $$('.b-zoom').forEach((b) => b.addEventListener('click', () => view === 'home' && zoom(Number(b.dataset.z))));
+    // Botones de tamaño (arriba a la derecha): achicar (más filas) y agrandar (menos filas)
+    root.querySelectorAll('.b-zoom').forEach((b) => b.addEventListener('click', () => view === 'home' && zoom(Number(b.dataset.z))));
     $('.b-theme').addEventListener('click', () => view === 'home' && openApp('settings', 'theme'));
-    $('.b-scroll').addEventListener('click', (e) => {
-      if (view !== 'home') return;
-      const r = e.currentTarget.getBoundingClientRect();
-      const frac = (e.clientX - r.left) / r.width;
-      const totalCols = Math.ceil(items.length / rows);
-      setSel(Math.min(items.length - 1, Math.floor(frac * totalCols) * rows));
+    // Barra de abajo: tocarla o arrastrarla mueve las páginas
+    const bar = $('.b-scroll');
+    let dragging = false;
+    function scrollToPointer(e) {
+      const r = bar.getBoundingClientRect();
+      const { max, frac } = scrollInfo();
+      if (!max) return;
+      const left = (e.clientX - r.left) / r.width - frac / 2; // el centro de la barrita sigue al mouse
+      const col = Math.round((Math.max(0, Math.min(1 - frac, left)) / (1 - frac)) * max);
+      if (col !== firstCol) {
+        firstCol = col;
+        applyScroll(!dragging);
+      }
+    }
+    bar.addEventListener('pointerdown', (e) => {
+      if (view !== 'home' || e.button !== 0) return;
+      e.preventDefault();
+      dragging = true;
+      bar.classList.add('drag');
+      bar.setPointerCapture(e.pointerId);
+      scrollToPointer(e);
     });
+    bar.addEventListener('pointermove', (e) => dragging && scrollToPointer(e));
+    const endDrag = () => {
+      if (!dragging) return;
+      dragging = false;
+      bar.classList.remove('drag');
+      // si lo elegido quedó fuera de la vista, se elige el primero de lo que se ve (para seguir con las flechas)
+      const col = Math.floor(sel / rows);
+      if (col < firstCol || col > firstCol + visibleCols() - 1) setSel(Math.min(items.length - 1, firstCol * rows));
+    };
+    bar.addEventListener('pointerup', endDrag);
+    bar.addEventListener('pointercancel', endDrag);
     $('.b-gridview').addEventListener('wheel', (e) => {
       if (view !== 'home' || dlg || Math.abs(e.deltaY) + Math.abs(e.deltaX) < 8) return;
       if (Date.now() < wheelLock) return;

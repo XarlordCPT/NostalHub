@@ -1053,6 +1053,7 @@
     }
     async function loadSummary(s) {
       summary = s || (await call('getAchievementSummary')) || summary;
+      if (view === 'game' && gameCur) paintGameMain();
     }
     function renderSpotify(s) {
       spotify = s || spotify;
@@ -1065,8 +1066,10 @@
     }
     function setGames(list) {
       games = list || [];
+      if (gameCur) gameCur = games.find((g) => g.id === gameCur.id) || gameCur;
       renderRow();
       if (view === 'library') paintLib();
+      if (view === 'game' && gameCur) paintGameMain();
     }
     offs.push(api.onGamesUpdated(setGames));
     offs.push(api.onGameEnded(({ reason }) => endPlaying(reason)));

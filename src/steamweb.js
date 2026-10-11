@@ -188,6 +188,36 @@ class SteamWeb {
     }
   }
 
+  // ---------- Horas jugadas según Steam ----------
+  // El archivo de Steam en el PC (localconfig.vdf) a veces no se actualiza hasta cerrar Steam;
+  // los servidores de Steam sí lo saben apenas cierras el juego. { appId: { playtimeMin, lastPlayed } }
+  async playtimes(steamId, maxAgeMs = 10 * 60 * 1000) {
+    const key = this.key;
+    if (!key || !steamId) return {};
+    try {
+      const d = await this.get(`${API}/IPlayerService/GetOwnedGames/v1/?key=${key}&steamid=${steamId}&include_played_free_games=1`, maxAgeMs);
+      const out = {};
+      for (const g of (d && d.response && d.response.games) || []) out[String(g.appid)] = { playtimeMin: Number(g.playtime_forever) || 0, lastPlayed: (Number(g.rtime_last_played) || 0) * 1000 };
+      return out;
+    } catch {
+      return {};
+    }
+  }
+
+  // Vuelve a pedir los logros de un juego sin usar lo guardado (al cerrar el juego)
+  refreshGame(appId, steamId) {
+    for (const k of [...this.memo.keys()]) if (k.includes('GetPlayerAchievements') && k.includes(`appid=${appId}&`)) this.memo.delete(k);
+    return this.achievements(String(appId), steamId);
+  }
+
+  // Un logro nuevo recién ganado (lo avisa el vigilante de logros): suma 1 al total de ese juego al tiro
+  bumpTotal(appId) {
+    const t = this.totals[appId];
+    if (!t || t.done >= t.total) return false;
+    this.setTotal(appId, t.done + 1, t.total);
+    return true;
+  }
+
   // ---------- Totales (para la pestaña social) ----------
   loadTotals() {
     try {
@@ -216,13 +246,14 @@ class SteamWeb {
   }
 
   // Recorre tus juegos en segundo plano para sumar los logros (sin repetir los recientes)
-  async refreshTotals(appIds, steamId, onProgress) {
+  // lastPlayed: { appId: ms } — si jugaste un juego después de la última consulta, se vuelve a pedir
+  async refreshTotals(appIds, steamId, onProgress, lastPlayed = {}) {
     if (!this.key || !steamId || this.refreshing) return;
     this.refreshing = true;
     try {
       for (const appId of appIds) {
         const prev = this.totals[appId];
-        if (prev && Date.now() - prev.t < 6 * 3600 * 1000) continue;
+        if (prev && Date.now() - prev.t < 6 * 3600 * 1000 && !((lastPlayed[appId] || 0) > prev.t)) continue;
         const r = await this.achievements(appId, steamId);
         if (r.status === 'none') this.setTotal(appId, 0, 0);
         if (onProgress) onProgress(this.summary());

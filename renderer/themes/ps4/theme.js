@@ -267,6 +267,7 @@
       summary = s || (await call('getAchievementSummary')) || summary;
       $('.p4-st-troph b').textContent = summary.hasKey ? String(summary.done || 0) : '—';
       if (view === 'home') renderTeaser();
+      if (current && view === 'game') paintGameTrophies(current);
     }
 
     // ---------- Datos de cada juego ----------
@@ -1573,6 +1574,10 @@
       if (current) current = games.find((g) => g.id === current.id) || current;
       renderRow();
       if (view === 'library') paintLib();
+      if (current && view === 'game') {
+        $('.p4g-meta').textContent = [typeLabel(current), U.hours(current.playtimeMin), current.lastPlayed ? `Jugado ${U.ago(current.lastPlayed)}` : ''].filter(Boolean).join('   ·   ');
+        paintGameTrophies(current);
+      }
     }
     offs.push(api.onGamesUpdated(setGames));
     offs.push(api.onGameEnded(({ reason }) => endPlaying(reason)));

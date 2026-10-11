@@ -618,7 +618,12 @@
     const U = window.NostalHubUtil;
     let summary = { perGame: {} };
     if (api.getAchievementSummary) api.getAchievementSummary().then((s) => s && (summary = s));
-    const offSummary = api.onSteamSummary ? api.onSteamSummary((s) => (summary = s || summary)) : null;
+    const offSummary = api.onSteamSummary
+      ? api.onSteamSummary((s) => {
+          summary = s || summary;
+          if ((view === 'detail' || view === 'playing') && current >= 0 && games[current]) fillStats(games[current]);
+        })
+      : null;
 
     function fillStats(g) {
       $('.ps-sub').textContent = [typeLabel(g), U.playLine(g)].filter(Boolean).join('  ·  ');
@@ -1036,6 +1041,7 @@
       }
       renderGrid();
       setScroll(scrollRow);
+      if ((view === 'detail' || view === 'playing') && current >= 0 && games[current]) fillStats(games[current]);
     }
 
     setHints([['Enter', 'Entrar'], ['Esc', 'Consolas']]);

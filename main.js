@@ -82,7 +82,20 @@ let tray = null;
 const launcher = new Launcher((gameId, reason) => {
   send('game:ended', { gameId, reason });
   refreshSteamUser(); // actualiza "jugado por última vez" y horas
+  // Al cerrar un juego de Steam: sus logros y horas de nuevo (Steam tarda unos segundos en subirlos)
+  const g = config.games.find((x) => x.id === gameId);
+  if (g && g.appId && g.type === 'steam') {
+    const again = () => {
+      if (steamUser && steamWeb.key) steamWeb.refreshGame(g.appId, steamUser.steamId).then(sendSummary);
+      refreshSteamUser(true);
+    };
+    setTimeout(again, 4000);
+    setTimeout(again, 30000);
+  }
 });
+function sendSummary() {
+  send('steam:summary', { ...steamWeb.summary(), hasKey: !!steamWeb.key });
+}
 const steamWeb = new SteamWeb(DATA_DIR);
 const { DiscordVoice } = require('./src/discord');
 // Conexión con la API de Spotify (opcional, Premium): cola, avance, aleatorio, repetir, me gusta, volumen, dispositivo
@@ -114,7 +127,8 @@ const MANUAL_FILE = path.join(__dirname, 'MANUAL.md').replace(`app.asar${path.se
 // Usuario de Steam de este PC y sus estadísticas locales (última vez jugado, horas)
 let steamUser = null;
 let localStats = {};
-async function refreshSteamUser() {
+let webPlay = {}; // horas y última vez jugado según los servidores de Steam (más al día que el archivo local)
+async function refreshSteamUser(force = false) {
   try {
     const prevAccount = steamUser && steamUser.accountId;
     steamUser = await steam.getSteamUser();
@@ -123,6 +137,7 @@ async function refreshSteamUser() {
       achWatcher.start(await steam.findSteamPath(), steamUser.accountId);
     }
     localStats = steamUser ? await steam.getLocalAppStats(steamUser.accountId) : {};
+    if (steamUser && steamWeb.key) webPlay = await steamWeb.playtimes(steamUser.steamId, force ? 0 : 10 * 60 * 1000);
   } catch (e) {
     console.warn('No se pudo leer el usuario de Steam:', e.message);
   }
@@ -160,6 +175,7 @@ const achWatcher = new AchievementWatcher({
   onUnlock: (a) => {
     showAchievement(a);
     send('steam:achievement', a);
+    if (steamWeb.bumpTotal(String(a.appId))) sendSummary(); // "20 de 42" al tiro, sin esperar
   },
   log: (...m) => console.warn(...m),
 });
@@ -258,8 +274,8 @@ function gamesView() {
         icon0: fileUrl(c.icon0), // icono propio de la PS3 (320×176)
         header: fileUrl(m.header), // cabecera horizontal de Steam (460×215)
         music: fileUrl(c.music), // música propia del juego (PS3)
-        lastPlayed: Math.max((g.appId && localStats[g.appId] && localStats[g.appId].lastPlayed) || 0, (config.data.launchLog || {})[g.id] || 0),
-        playtimeMin: (g.appId && localStats[g.appId] && localStats[g.appId].playtimeMin) || 0,
+        lastPlayed: Math.max((g.appId && localStats[g.appId] && localStats[g.appId].lastPlayed) || 0, (g.appId && webPlay[g.appId] && webPlay[g.appId].lastPlayed) || 0, (config.data.launchLog || {})[g.id] || 0),
+        playtimeMin: Math.max((g.appId && localStats[g.appId] && localStats[g.appId].playtimeMin) || 0, (g.appId && webPlay[g.appId] && webPlay[g.appId].playtimeMin) || 0),
       };
     });
 }
@@ -1366,7 +1382,11 @@ ipcMain.handle('steam:profile', async () => {
 });
 
 ipcMain.handle('steam:friends', () => steamWeb.friends(steamUser && steamUser.steamId));
-ipcMain.handle('steam:achievements', (_e, appId) => steamWeb.achievements(String(appId), steamUser && steamUser.steamId));
+ipcMain.handle('steam:achievements', async (_e, appId) => {
+  const r = await steamWeb.achievements(String(appId), steamUser && steamUser.steamId);
+  if (r && r.status === 'ok') sendSummary(); // al mirar la lista, el contador de la ficha también se pone al día
+  return r;
+});
 
 ipcMain.handle('steam:summary', () => ({ ...steamWeb.summary(), hasKey: !!steamWeb.key }));
 
@@ -1437,7 +1457,9 @@ function refreshAchievementTotals() {
     .filter((g) => g.type === 'steam' && g.appId && !g.hidden)
     .sort((a, b) => ((localStats[b.appId] || {}).lastPlayed || 0) - ((localStats[a.appId] || {}).lastPlayed || 0))
     .map((g) => g.appId);
-  steamWeb.refreshTotals(ids, steamUser.steamId, (summary) => send('steam:summary', { ...summary, hasKey: true }));
+  const last = {};
+  for (const id of ids) last[id] = Math.max((localStats[id] || {}).lastPlayed || 0, (webPlay[id] || {}).lastPlayed || 0);
+  steamWeb.refreshTotals(ids, steamUser.steamId, (summary) => send('steam:summary', { ...summary, hasKey: true }), last);
 }
 
 ipcMain.handle('menu:popup', () => {
@@ -1512,7 +1534,7 @@ app.whenReady().then(async () => {
   // Perfil de Steam, horas jugadas y logros
   await refreshSteamUser();
   refreshAchievementTotals();
-  setInterval(refreshSteamUser, 2 * 60 * 1000);
+  setInterval(() => (refreshSteamUser(), refreshAchievementTotals()), 2 * 60 * 1000);
   steamWeb.ensureKeyFile();
   fs.watchFile(steamWeb.keyFile, { interval: 2000 }, () => {
     send('steam:changed');

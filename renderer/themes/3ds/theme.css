@@ -150,12 +150,25 @@
 /* ============ Pantalla de abajo ============ */
 .b-bg { position: absolute; inset: 0; background: repeating-linear-gradient(0deg, var(--grid) 0 1px, transparent 1px 16px), repeating-linear-gradient(90deg, var(--grid) 0 1px, transparent 1px 16px), var(--bbg); }
 .b-home { position: absolute; inset: 0; }
-.b-short { position: absolute; left: 0; right: 0; top: 5px; height: 24px; display: flex; justify-content: center; gap: 7px; }
-.b-short button { position: relative; width: 38px; height: 22px; border-radius: 7px; display: grid; place-items: center; font-size: 15px; color: var(--sub); background: var(--card); box-shadow: inset 0 0 0 1px var(--cardb), 0 1px 2px rgba(0, 0, 0, 0.12); }
-.b-short button:hover { color: var(--acc); box-shadow: inset 0 0 0 1.5px var(--acc); }
+/* Barra de arriba (como la 3DS): a la izquierda la configuración del menú HOME, los accesos directos
+   chiquitos y de colores, y a la derecha el botón del tamaño de los íconos */
+.b-top { position: absolute; left: 0; right: 0; top: 0; height: 22px; z-index: 2; display: flex; align-items: center; gap: 2px; padding: 0 4px; background: linear-gradient(to bottom, rgba(255, 255, 255, 0.75), rgba(255, 255, 255, 0.45)); border-bottom: 1px solid rgba(0, 0, 0, 0.08); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05); }
+.theme-3ds[data-t='black'] .b-top { background: linear-gradient(to bottom, rgba(70, 70, 70, 0.8), rgba(40, 40, 40, 0.6)); border-bottom-color: rgba(255, 255, 255, 0.08); }
+.b-short { flex: 1; display: flex; justify-content: flex-start; gap: 2px; padding-left: 6px; }
+.b-short button, .b-zoom, .b-theme { position: relative; width: 20px; height: 18px; border-radius: 5px; display: grid; place-items: center; font-size: 13px; color: var(--sub); transition: background 0.12s, transform 0.12s; }
+.b-short button:hover, .b-zoom:hover, .b-theme:hover { background: var(--accbg); transform: scale(1.12); }
+.b-short button[data-s='notes'] { color: #f0b21c; }
+.b-short button[data-s='friends'] { color: #f0892a; }
+.b-short button[data-s='notif'] { color: #34b24a; }
+.b-short button[data-s='browser'] { color: #2a8fd6; }
+.b-short button[data-s='profile'] { color: #5aae46; }
+.b-theme { width: 24px; color: #8a8a8a; }
+.b-theme .b-brush { position: absolute; right: 1px; bottom: 1px; font-size: 8px; color: #f0892a; }
+.b-zoom { color: #8a8a8a; }
+.b-zooms { display: flex; gap: 2px; }
+.b-zoom:disabled { opacity: 0.35; cursor: default; background: none; transform: none; }
 .b-short em { position: absolute; right: -4px; top: -4px; min-width: 11px; height: 11px; padding: 0 2px; border-radius: 6px; background: #f05a28; color: #fff; font: 800 7.5px/11px 'M PLUS Rounded 1c', sans-serif; font-style: normal; }
-.b-gridview { position: absolute; left: 0; right: 0; top: 30px; bottom: 28px; overflow: hidden; }
-.b-short { z-index: 2; }
+.b-gridview { position: absolute; left: 0; right: 0; top: 23px; bottom: 15px; overflow: hidden; }
 .b-grid { position: absolute; left: 0; top: 0; transition: transform 0.25s cubic-bezier(0.25, 0.8, 0.25, 1); }
 .b-grid.still { transition: none; }
 .b-slot { position: absolute; width: var(--s); height: var(--s); }
@@ -172,12 +185,16 @@
 .sq.none { background: linear-gradient(160deg, #8fd0ef, #29a8e0); color: #fff; font-size: 7px; font-weight: 800; text-align: center; padding: 2px; line-height: 1.1; overflow: hidden; }
 .sq.app { background: linear-gradient(160deg, color-mix(in srgb, var(--c) 65%, #fff), var(--c)); color: #fff; font-size: calc(var(--s) * 0.42); }
 .theme-3ds[data-rows='5'] .sq.none, .theme-3ds[data-rows='6'] .sq.none { font-size: 0; }
-.b-bar { position: absolute; left: 0; right: 0; bottom: 0; height: 28px; display: flex; align-items: center; gap: 5px; padding: 0 6px; background: rgba(255, 255, 255, 0.35); border-top: 1px solid rgba(0, 0, 0, 0.07); }
-.theme-3ds[data-t='black'] .b-bar { background: rgba(0, 0, 0, 0.25); }
-.b-zoom, .b-theme { width: 28px; height: 20px; border-radius: 6px; display: grid; place-items: center; font-size: 13px; color: var(--sub); background: var(--card); box-shadow: inset 0 0 0 1px var(--cardb); }
-.b-zoom:hover, .b-theme:hover { color: var(--acc); }
-.b-scroll { position: relative; flex: 1; height: 7px; margin: 0 4px; border-radius: 4px; background: rgba(0, 0, 0, 0.1); cursor: pointer; }
-.b-scroll i { position: absolute; top: 0; bottom: 0; border-radius: 4px; background: var(--acc); transition: left 0.25s ease, width 0.25s ease; }
+/* Abajo solo la barra para moverse por las páginas (se toca o se arrastra) */
+.b-bar { position: absolute; left: 0; right: 0; bottom: 0; height: 15px; display: flex; align-items: center; padding: 0 10px; }
+.b-scroll { position: relative; flex: 1; height: 11px; cursor: grab; touch-action: none; }
+.b-scroll::before { content: ''; position: absolute; left: 0; right: 0; top: 4px; height: 3px; border-radius: 2px; background: rgba(0, 0, 0, 0.12); }
+.theme-3ds[data-t='black'] .b-scroll::before { background: rgba(255, 255, 255, 0.15); }
+.b-scroll i { position: absolute; top: 1px; height: 9px; min-width: 16px; border-radius: 5px; background: linear-gradient(to bottom, #ffffff, #dcdcdc); box-shadow: inset 0 0 0 1px var(--cardb), 0 1px 2px rgba(0, 0, 0, 0.25); transition: left 0.25s ease, width 0.25s ease; }
+.b-scroll i::after { content: ''; position: absolute; left: 50%; top: 3px; width: 8px; height: 3px; margin-left: -4px; border-left: 1px solid var(--cardb); border-right: 1px solid var(--cardb); box-shadow: inset 3px 0 0 -2px var(--cardb); }
+.b-scroll:hover i, .b-scroll.drag i { box-shadow: inset 0 0 0 1.4px var(--acc), 0 1px 3px rgba(0, 0, 0, 0.3); }
+.b-scroll.drag { cursor: grabbing; }
+.b-scroll.drag i { transition: none; }
 
 /* Apps (abajo): lista táctil */
 .b-app { position: absolute; inset: 0; }
