@@ -231,7 +231,7 @@ La conexión queda en `spotify.json` (no lo compartas). Con Spotify conectado se
 | --- | --- |
 | Wii y PS2 | En el panel de la izquierda mientras juegas |
 | Xbox 360 | Pestaña *home*: el disco, la barra y "Siguiente"; los botones extra a la derecha |
-| PS3 | Categoría **Música**: cada opción es un elemento del XMB |
+| PS3 | Categoría **Música**: la canción, la siguiente y **Opciones de música** (una pantalla como la de Ajustes; el volumen se cambia con ← →) |
 | PS4 | Menú rápido (**P**) → Música |
 | PS Vita | Burbuja **Música** (los botones extra abajo; su nombre aparece al marcarlos) |
 | Switch | Botón **Música** (↓ para la fila de aleatorio, repetir, me gusta…) |

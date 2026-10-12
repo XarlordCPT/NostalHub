@@ -118,6 +118,10 @@
 .p3-sub:not(.big) .p3-row:not(.sel) small { display: none; }
 .p3-r-v { flex: none; max-width: 460px; font-size: 27px; opacity: 0.92; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .p3-row.on .p3-r-v { font-size: 20px; }
+.p3-adj { display: flex; align-items: center; gap: 18px; overflow: visible; }
+.p3-adj i { display: none; font-style: normal; font-size: 20px; opacity: 0.85; padding: 8px 6px; cursor: pointer; }
+.p3-row.sel .p3-adj i { display: block; }
+.p3-adj i:hover { opacity: 1; }
 .p3-bar { display: block; width: 380px; height: 8px; margin-top: 10px; border-radius: 4px; overflow: hidden; background: rgba(255, 255, 255, 0.22); }
 .p3-bar i { display: block; height: 100%; background: #fff; box-shadow: 0 0 8px rgba(255, 255, 255, 0.6); }
 .p3-empty { padding: 34px 28px; font-size: 28px; line-height: 1.45; opacity: 0.9; text-shadow: 0 1px 8px rgba(0, 0, 0, 0.45); }

@@ -515,8 +515,7 @@ void main(){
         ];
       }
       if (id === 'music') {
-        // Música: la canción (con su barra), lo que viene, y con Spotify conectado: orden, repetir, me gusta,
-        // volumen, dispositivo y la cola. Cada uno es un elemento del XMB.
+        // Música: la canción (con su barra), lo que viene y "Opciones de música" (pantalla como Ajustes, ver musicLevel)
         const v = U.spotifyView(spotify || {});
         const list = [
           {
@@ -530,11 +529,8 @@ void main(){
           },
         ];
         if (v.next) list.push({ svg: U.npIcon('next'), title: `Siguiente: ${v.next.title}`, sub: v.next.artist, run: () => spotifyCmd('next') });
-        if (v.on) list.push({ icon: 'prev', title: 'Pista anterior', run: () => spotifyCmd('prev') }, { icon: 'next', title: 'Pista siguiente', run: () => spotifyCmd('next') });
-        U.musicActions(v).forEach((a) =>
-          list.push({ svg: U.npIcon(a.icon), on: a.on, title: a.id === 'like' ? a.label : `${a.label}${a.value ? `: ${a.value}` : ''}`, sub: a.id === 'queue' ? 'Elige una canción para saltar hasta ella' : a.id === 'device' ? 'Pasa la música a otro dispositivo' : a.id === 'shuffle' ? 'Cambia entre En orden y Aleatorio' : '', run: () => U.musicRun(api, a.id, v, ctx.toast) })
-        );
-        if (v.appId !== 'auto') list.push({ icon: 'open', title: `Abrir ${v.app}`, run: () => spotifyCmd('open') });
+        if (v.on) list.push({ icon: 'gear', title: 'Opciones de música', sub: v.api ? 'Pista, orden, repetir, me gusta, volumen, dispositivo y cola' : `Pista anterior, siguiente y abrir ${v.app}`, run: () => openSub(musicLevel()) });
+        else if (v.appId !== 'auto') list.push({ icon: 'open', title: `Abrir ${v.app}`, run: () => spotifyCmd('open') });
         if (v.appId === 'spotify' && !v.api) list.push({ svg: U.npIcon('queue'), title: 'Conectar Spotify (debes tener Premium)', sub: 'Para ver la cola, la barra de la canción, aleatorio, repetir y más', run: () => call('open', 'setup-spotify') });
         return list;
       }
@@ -824,15 +820,17 @@ void main(){
               (r, i) => `<div class="p3-row${r.dim ? ' dim' : ''}${r.on ? ' on' : ''}" data-i="${i}"${r.gameId ? ` data-game-id="${esc(r.gameId)}"` : ''}>
             ${r.img !== undefined || r.icon ? `<span class="p3-r-ic${r.wide ? ' wide' : ''}">${r.img ? `<img src="${esc(r.img)}" alt="" draggable="false" />` : r.icon ? ic(r.icon) : ''}</span>` : ''}
             <span class="p3-r-t"><b>${esc(r.title)}</b>${r.desc ? `<small>${esc(r.desc)}</small>` : ''}${r.bar != null ? `<i class="p3-bar"><i style="width:${Math.round(r.bar * 100)}%"></i></i>` : ''}</span>
-            ${r.value != null ? `<span class="p3-r-v">${esc(r.value)}</span>` : ''}</div>`
+            ${r.adjust ? `<span class="p3-r-v p3-adj"><i data-d="-1">◀</i>${esc(r.value)}<i data-d="1">▶</i></span>` : r.value != null ? `<span class="p3-r-v">${esc(r.value)}</span>` : ''}</div>`
             )
             .join('')
         : `<div class="p3-empty">${lv.empty || 'No hay nada aquí.'}</div>`;
       watchImages(list);
       $$('.p3-row', list).forEach((el) => {
         const i = Number(el.dataset.i);
-        el.addEventListener('click', () => {
+        el.addEventListener('click', (e) => {
           if (mode !== 'sub') return;
+          const adj = e.target.closest('[data-d]');
+          if (adj && curLevel().rows[i] && curLevel().rows[i].adjust) return setRow(i), curLevel().rows[i].adjust(Number(adj.dataset.d));
           if (i === curLevel().sel) pickRow();
           else ctx.sound('move'), setRow(i);
         });
@@ -869,6 +867,7 @@ void main(){
       else if (k === 'ArrowUp') setRow(lv.sel - 1);
       else if (k === 'PageDown') setRow(lv.sel + 5);
       else if (k === 'PageUp') setRow(lv.sel - 5);
+      else if ((k === 'ArrowLeft' || k === 'ArrowRight') && lv.rows[lv.sel] && lv.rows[lv.sel].adjust) lv.rows[lv.sel].adjust(k === 'ArrowRight' ? 1 : -1);
       else if (k === 'Enter' || k === 'ArrowRight') {
         const r = lv.rows[lv.sel];
         if (k === 'Enter' || (r && r.sub)) pickRow();
@@ -933,6 +932,125 @@ void main(){
       };
       if (onPreview) lv.onMove = (i) => onPreview(options[i].value);
       return lv;
+    }
+
+    // --- Opciones de música (como los Ajustes) ---
+    // El volumen se cambia con ← → y se muestra al tiro; a Spotify se manda un momento después de soltar, y
+    // mientras tanto se muestra el valor elegido (Spotify tarda en avisar el nuevo y a veces manda el viejo).
+    let volPick = null;
+    let volUntil = 0;
+    let volTimer = 0;
+    const volShown = (v) => (volPick != null && Date.now() < volUntil ? volPick : v.volume);
+    function changeVolume(d) {
+      const v = U.spotifyView(spotify || {});
+      if (!v.canVolume) return;
+      const cur = volShown(v);
+      const next = Math.max(0, Math.min(100, d > 0 ? Math.floor(cur / 5) * 5 + 5 : Math.ceil(cur / 5) * 5 - 5));
+      if (next === cur) return ctx.sound('error');
+      volPick = next;
+      volUntil = Date.now() + 4000;
+      ctx.sound('move');
+      paintSub();
+      clearTimeout(volTimer);
+      volTimer = setTimeout(async () => {
+        volUntil = Date.now() + 2500;
+        const r = await call('spotifyControl', 'volume', { value: volPick });
+        if (r && r.ok === false && r.message) ctx.toast(r.message);
+      }, 300);
+    }
+    // Orden, repetir y me gusta: se ven cambiados al tiro, sin esperar a Spotify
+    async function musicAction(id) {
+      const v = U.spotifyView(spotify || {});
+      if (spotify) {
+        if (id === 'shuffle') spotify = { ...spotify, shuffle: v.shuffle === 'off', smartShuffle: false };
+        else if (id === 'repeat') spotify = { ...spotify, repeat: { off: 'context', context: 'track', track: 'off' }[v.repeat] || 'off' };
+        else if (id === 'like') spotify = { ...spotify, liked: !v.liked };
+        paintSub();
+      }
+      await U.musicRun(api, id, v, ctx.toast);
+    }
+    function musicLevel() {
+      call('spotifyWatch', true); // la cola y el resto al día mientras está abierta
+      return {
+        title: 'Música',
+        music: true,
+        head: () => {
+          const v = U.spotifyView(spotify || {});
+          return `<b>Música</b>${v.on ? `<em>${esc(v.title)}${v.artist ? `  ·  ${esc(v.artist)}` : ''}</em>` : ''}`;
+        },
+        build: () => {
+          const v = U.spotifyView(spotify || {});
+          const rows = [
+            { title: v.playing ? 'Pausar' : 'Reanudar', desc: v.on ? `${v.title}${v.artist ? ` — ${v.artist}` : ''}` : '', run: () => spotifyCmd('toggle') },
+            { title: 'Pista anterior', run: () => spotifyCmd('prev') },
+            { title: 'Pista siguiente', desc: v.next ? `Siguiente: ${U.nextText(v)}` : '', run: () => spotifyCmd('next') },
+          ];
+          if (v.api) {
+            rows.push(
+              { title: 'Orden', desc: v.shuffle === 'smart' ? 'El aleatorio inteligente se apaga desde Spotify' : 'En orden o Aleatorio', value: U.SHUFFLE_LABEL[v.shuffle], run: () => musicAction('shuffle') },
+              { title: 'Repetir', desc: 'No, la lista o la canción', value: U.REPEAT_LABEL[v.repeat], run: () => musicAction('repeat') },
+              { title: 'Me gusta', desc: 'Guarda la canción en tus Me gusta de Spotify', value: v.liked ? 'Sí' : 'No', run: () => musicAction('like') }
+            );
+            if (v.canVolume) rows.push({ title: 'Volumen', desc: 'El volumen de Spotify. ← → para cambiarlo', value: `${volShown(v)} %`, adjust: changeVolume });
+            rows.push(
+              { title: 'Dispositivo', desc: 'Pasa la música a otro dispositivo', value: v.device || '—', sub: true, run: () => openSub(deviceLevel()) },
+              { title: 'Cola de reproducción', desc: 'Elige una canción para saltar hasta ella', value: v.queue.length ? `${v.queue.length} canciones` : 'Vacía', sub: true, run: () => openSub(queueLevel()) }
+            );
+          }
+          if (v.appId !== 'auto') rows.push({ title: `Abrir ${v.app}`, run: () => (spotifyCmd('open'), ctx.toast(`Se abrió ${v.app}`)) });
+          if (v.appId === 'spotify' && !v.api) rows.push({ title: 'Conectar Spotify (debes tener Premium)', desc: 'Para ver la cola, la barra de la canción, aleatorio, repetir y más', run: () => call('open', 'setup-spotify') });
+          return rows;
+        },
+        onBack: () => call('spotifyWatch', false),
+      };
+    }
+    function deviceLevel() {
+      const TYPES = { Computer: 'Computador', Smartphone: 'Teléfono', Speaker: 'Parlante', TV: 'Televisor' };
+      return {
+        title: 'Dispositivo',
+        rows: [],
+        empty: 'Buscando dispositivos… Si no aparece, abre Spotify en él.',
+        async load(self) {
+          const devs = (await call('spotifyDevices')) || [];
+          if (curLevel() !== self) return;
+          self.sel = Math.max(0, devs.findIndex((d) => d.active));
+          self.rows = devs.map((d) => ({
+            title: d.name,
+            desc: d.active ? 'Sonando aquí' : TYPES[d.type] || d.type || '',
+            on: d.active,
+            value: d.active ? '●' : '',
+            run: () => {
+              if (!d.active) {
+                ctx.toast(`Pasando la música a ${d.name}…`);
+                call('spotifyControl', 'device', d.id).then((r) => r && r.ok === false && r.message && ctx.toast(r.message));
+              }
+              closeSub();
+            },
+          }));
+          self.empty = 'No hay dispositivos. Abre Spotify en el que quieras usar.';
+          paintSub();
+        },
+      };
+    }
+    function queueLevel() {
+      return {
+        title: 'Cola de reproducción',
+        music: true,
+        big: true,
+        empty: 'No hay canciones en la cola.',
+        build: () =>
+          U.spotifyView(spotify || {}).queue.map((t, i) => ({
+            img: t.cover || '',
+            title: t.title,
+            desc: t.artist,
+            value: i === 0 ? 'Siguiente' : '',
+            run: () => {
+              ctx.toast(`Saltando a "${t.title}"…`);
+              call('spotifyControl', 'skipto', i).then((r) => r && r.ok === false && r.message && ctx.toast(r.message));
+              closeSub();
+            },
+          })),
+      };
     }
 
     // --- Ajustes de NostalHub (los mismos de todas las consolas) ---
@@ -1171,6 +1289,7 @@ void main(){
       if (cmd === 'toggle' && spotify && spotify.running) {
         spotify = { ...spotify, playing: !spotify.playing };
         refreshCat('music');
+        if (mode === 'sub' && curLevel() && curLevel().music) paintSub();
       }
     }
 
@@ -1387,6 +1506,7 @@ void main(){
     function setSpotify(s) {
       spotify = s || spotify;
       if (mode === 'xmb') refreshCat('music');
+      else if (mode === 'sub' && curLevel() && curLevel().music) paintSub();
     }
     async function loadProfile() {
       profile = (await call('getSteamProfile')) || profile;

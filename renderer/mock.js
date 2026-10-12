@@ -224,7 +224,7 @@
       if (c === 'shuffle') spState = { ...spState, shuffle: !spState.shuffle, smartShuffle: false };
       if (c === 'repeat') spState = { ...spState, repeat: { off: 'context', context: 'track', track: 'off' }[spState.repeat] };
       if (c === 'like') spState = { ...spState, liked: !spState.liked };
-      if (c === 'volume') spState = { ...spState, device: { ...spState.device, volume: Math.max(0, Math.min(100, spState.device.volume + Number(arg))) } };
+      if (c === 'volume') spState = { ...spState, device: { ...spState.device, volume: Math.max(0, Math.min(100, arg && typeof arg === 'object' ? Number(arg.value) : spState.device.volume + Number(arg))) } };
       if (c === 'device') spState = { ...spState, device: { ...spState.device, id: arg, name: arg === 'phone' ? 'iPhone de Cristóbal' : 'MI-PC', type: arg === 'phone' ? 'Smartphone' : 'Computer' } };
       setTimeout(() => spCbs.forEach((cb) => cb(spState)), 200);
       return { ok: true };
