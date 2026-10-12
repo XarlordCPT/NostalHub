@@ -35,15 +35,30 @@ class Config {
   load() {
     fs.mkdirSync(this.dir, { recursive: true });
     let raw = {};
+    let error = null;
     if (fs.existsSync(this.file)) {
       try {
         raw = JSON.parse(fs.readFileSync(this.file, 'utf8'));
+        if (!raw || typeof raw !== 'object' || Array.isArray(raw)) throw new Error('no es una lista de opciones { … }');
       } catch (e) {
-        // Si el JSON quedó mal editado, lo respaldamos en vez de perderlo.
-        const backup = this.file.replace(/\.json$/, `.roto-${Date.now()}.json`);
-        fs.copyFileSync(this.file, backup);
-        console.error(`config.json inválido, respaldado en ${backup}:`, e.message);
+        error = e;
       }
+    }
+    if (error) {
+      // Quedó mal editado: se respalda una vez y NO se guarda encima hasta que lo arregles (antes tus juegos
+      // y ajustes se reemplazaban por los de fábrica). Al guardarlo bien, se recarga solo.
+      if (!this.broken) {
+        const backup = this.file.replace(/\.json$/, `.roto-${Date.now()}.json`);
+        try {
+          fs.copyFileSync(this.file, backup);
+        } catch {}
+        console.error(`config.json inválido, respaldado en ${backup}:`, error.message);
+      }
+      this.broken = error.message;
+      if (this.data) return this.data; // con la app abierta: sigue con lo que tenía
+      raw = {};
+    } else {
+      this.broken = null;
     }
     this.data = { ...DEFAULTS, ...raw };
     this.data.games = (this.data.games || []).map(normalizeGame);
@@ -51,6 +66,7 @@ class Config {
   }
 
   save() {
+    if (this.broken) return; // no pisar tu config.json mientras tenga un error
     const tmp = this.file + '.tmp';
     fs.writeFileSync(tmp, JSON.stringify(this.data, null, 2), 'utf8');
     fs.renameSync(tmp, this.file);

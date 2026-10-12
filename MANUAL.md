@@ -300,8 +300,8 @@ Para ponerle arte propio a cualquiera de ellos, usa clic derecho → Cambiar im�
 ```
 
 - `target` puede ser un acceso directo `.lnk`, un `.exe` o una URL de otro launcher.
-- En las rutas, cada `\` va doble: `\\`. Si el archivo queda mal escrito, NostalHub guarda una copia
-  (`config.roto-….json`) y sigue funcionando sin tus cambios.
+- En las rutas, cada `\` va doble: `\\`. Si el archivo queda mal escrito, NostalHub te avisa, guarda una
+  copia (`config.roto-….json`) y **no guarda nada encima** hasta que lo arregles; al guardarlo bien, se recarga solo.
 - **Ocultar un juego:** agrégale `"hidden": true`. No lo borres, porque los de Steam se vuelven a importar.
 - **Cambiar el orden:** el orden de la lista es el orden en los menús.
 
@@ -337,7 +337,9 @@ En **Ajustes → Pantalla**:
 - **Modo → Ventana**: se puede mover, cambiar de tamaño y minimizar, y recuerda dónde la dejaste. Arriba hay una barra
   **escondida**: lleva el mouse al borde de arriba y baja con **minimizar, maximizar y cerrar** (con el estilo de cada
   consola). Arrástrala para mover la ventana; doble clic la maximiza. **Cerrar** sale de NostalHub.
-- **Pantalla**: en cuál monitor se muestra (*Automática* = la secundaria).
+- **Pantalla**: en cuál monitor se muestra (*Automática* = la secundaria). Si apagas o desconectas la segunda
+  pantalla, NostalHub queda como **ventana** en la principal (se puede mover y minimizar) y vuelve sola a pantalla
+  completa cuando la conectas de nuevo.
 - **Iniciar con Windows**.
 
 ### Logros sobre el juego
@@ -394,7 +396,9 @@ actualiza cada 30 segundos.
 ### Mientras juegas
 
 Al abrir un juego, cada consola muestra su pantalla de "jugando" con el tiempo que llevas. A los lados aparecen la
-**música** (izquierda) y tu **Grupo de Discord** (derecha). Al cerrar el juego vuelves solo al menú.
+**música** (izquierda) y tu **Grupo de Discord** (derecha). Al cerrar el juego vuelves solo al menú (también con
+los accesos directos `.lnk` a un `.exe`). Con los que se abren por un enlace de otro launcher (Epic, etc.) no se
+puede saber cuándo terminan: usa **Volver al menú**.
 
 ---
 

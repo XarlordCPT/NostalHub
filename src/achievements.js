@@ -9,19 +9,21 @@ const path = require('path');
 // ---------- Formato binario de Steam (KeyValues) ----------
 function parseKV(buf) {
   let i = 0;
+  // Un archivo cortado (Steam lo estaba escribiendo) da error en vez de leerse a medias
   const str = () => {
     const end = buf.indexOf(0, i);
-    const s = buf.toString('utf8', i, end < 0 ? buf.length : end);
-    i = end < 0 ? buf.length : end + 1;
+    if (end < 0) throw new Error('archivo incompleto');
+    const s = buf.toString('utf8', i, end);
+    i = end + 1;
     return s;
   };
-  const map = () => {
+  const map = (nested) => {
     const o = {};
     while (i < buf.length) {
       const t = buf[i++];
       if (t === 0x08 || t === 0x0b) return o;
       const k = str();
-      if (t === 0x00) o[k] = map();
+      if (t === 0x00) o[k] = map(true);
       else if (t === 0x01) o[k] = str();
       else if (t === 0x02 || t === 0x04 || t === 0x06) (o[k] = buf.readInt32LE(i)), (i += 4);
       else if (t === 0x03) (o[k] = buf.readFloatLE(i)), (i += 4);
@@ -29,9 +31,10 @@ function parseKV(buf) {
       else if (t === 0x0a) (o[k] = buf.readBigInt64LE(i)), (i += 8);
       else throw new Error(`tipo ${t}`);
     }
+    if (nested) throw new Error('archivo incompleto');
     return o;
   };
-  return map();
+  return map(false);
 }
 function readKV(file) {
   try {
@@ -41,10 +44,12 @@ function readKV(file) {
   }
 }
 
-// Logros desbloqueados en el archivo del jugador: Map("statId/bit" → segundos)
+// Logros desbloqueados en el archivo del jugador: Map("statId/bit" → segundos),
+// o null si no se pudo leer (por ejemplo, Steam lo estaba escribiendo)
 function unlockedOf(file) {
   const kv = readKV(file);
-  const root = kv && (kv.cache || Object.values(kv)[0]);
+  if (!kv) return null;
+  const root = kv.cache || Object.values(kv)[0];
   const out = new Map();
   if (!root || typeof root !== 'object') return out;
   for (const [statId, st] of Object.entries(root)) {
@@ -129,7 +134,9 @@ class AchievementWatcher {
     try {
       for (const f of fs.readdirSync(this.dir)) {
         const m = /^UserGameStats_(\d+)_(\d+)\.bin$/i.exec(f);
-        if (m && m[1] === this.account) this.snap.set(m[2], new Set(unlockedOf(path.join(this.dir, f)).keys()));
+        if (m && m[1] !== this.account) continue;
+        const got = m && unlockedOf(path.join(this.dir, f));
+        if (got) this.snap.set(m[2], new Set(got.keys()));
       }
     } catch {}
     try {
@@ -154,14 +161,22 @@ class AchievementWatcher {
     this.timers.clear();
   }
 
-  async check(appId) {
+  async check(appId, tries = 0) {
     const file = path.join(this.dir, `UserGameStats_${this.account}_${appId}.bin`);
     const now = unlockedOf(file);
+    if (!now) {
+      // No se pudo leer (Steam lo estaba escribiendo): se intenta de nuevo, sin tocar la foto anterior.
+      // Si se borrara la foto, la próxima lectura avisaría TODOS los logros viejos como nuevos.
+      if (fs.existsSync(file) && tries < 3) this.timers.set(appId, setTimeout(() => this.check(appId, tries + 1), 1000));
+      return;
+    }
     if (!now.size && !fs.existsSync(file)) return;
     const before = this.snap.get(appId);
     this.snap.set(appId, new Set(now.keys()));
-    // Sin foto anterior (juego nuevo): solo los desbloqueados hace menos de 2 minutos
-    const fresh = [...now.entries()].filter(([k, t]) => (before ? !before.has(k) : t * 1000 > Math.max(this.startedAt, Date.now() - 120000)));
+    // Sin foto anterior (juego nuevo): solo los desbloqueados hace menos de 2 minutos.
+    // Con foto: los que no estaban, salvo que su fecha diga que son viejos (más de 15 min).
+    const old = Date.now() - 15 * 60 * 1000;
+    const fresh = [...now.entries()].filter(([k, t]) => (before ? !before.has(k) && !(t > 0 && t * 1000 < old) : t * 1000 > Math.max(this.startedAt, Date.now() - 120000)));
     if (!fresh.length) return;
     const schema = schemaOf(path.join(this.dir, `UserGameStatsSchema_${appId}.bin`), appId);
     // Solo logros (en el mismo archivo también hay contadores del juego, que no son logros)

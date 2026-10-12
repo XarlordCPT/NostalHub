@@ -196,7 +196,8 @@ function send(channel, payload) {
 function fileUrl(p) {
   if (!p || !fs.existsSync(p)) return null;
   const v = Math.round(fs.statSync(p).mtimeMs);
-  return `${pathToFileURL(p).href}?v=${v}`;
+  // El apóstrofo (Baldur's Gate) rompe los url('…') del CSS: se escribe como %27
+  return `${pathToFileURL(p).href.replace(/'/g, '%27')}?v=${v}`;
 }
 
 // Nombre de carpeta seguro para Windows a partir del nombre del juego.
@@ -599,10 +600,14 @@ function pickDisplay() {
 }
 
 const isWindowMode = () => config.data.windowMode === 'window';
+// Se comporta como ventana (se mueve, se minimiza, barra de arriba) si elegiste "Ventana", o si en
+// pantalla completa no está su pantalla (queda un solo monitor): así no tapa el monitor principal.
+// Al volver la segunda pantalla, vuelve sola a pantalla completa.
+const actsAsWindow = () => isWindowMode() || !pickDisplay();
 
 // Lo que la barra de arriba necesita saber (modo ventana y si está maximizada)
 function windowState() {
-  return { mode: isWindowMode() ? 'window' : 'fullscreen', maximized: !!win && !win.isDestroyed() && win.isMaximized() };
+  return { mode: actsAsWindow() ? 'window' : 'fullscreen', maximized: !!win && !win.isDestroyed() && win.isMaximized() };
 }
 function sendWindowState() {
   send('win:state', windowState());
@@ -629,20 +634,13 @@ function placeAsWindow() {
 
 function placeWindow() {
   if (!win) return;
-  if (isWindowMode()) return placeAsWindow();
+  const d = pickDisplay();
+  if (isWindowMode() || !d) return placeAsWindow();
   if (win.isMaximized()) win.unmaximize();
   win.setResizable(false);
   win.setMaximizable(false);
   win.setSkipTaskbar(config.data.showInTaskbar === false); // en la barra de Windows (salvo que lo apagues), para traerla adelante con un clic
   sendWindowState();
-  const d = pickDisplay();
-  if (!d) {
-    // Solo hay una pantalla: ventana normal para no tapar todo.
-    const wa = screen.getPrimaryDisplay().workArea;
-    const w = Math.min(1280, wa.width), h = Math.min(720, wa.height);
-    win.setBounds({ x: wa.x + Math.round((wa.width - w) / 2), y: wa.y + Math.round((wa.height - h) / 2), width: w, height: h });
-    return;
-  }
   const area = config.data.fullscreen ? d.bounds : d.workArea;
   win.setBounds(area);
   // Segunda pasada: en Windows con escalas distintas por monitor a veces queda corrido.
@@ -695,7 +693,7 @@ function createWindow() {
   const remember = () => {
     clearTimeout(saveTimer);
     saveTimer = setTimeout(() => {
-      if (!win || win.isDestroyed() || !isWindowMode() || win.isMinimized()) return;
+      if (!win || win.isDestroyed() || !actsAsWindow() || win.isMinimized()) return;
       config.data.windowMaximized = win.isMaximized();
       if (!win.isMaximized()) config.data.windowBounds = win.getBounds();
       config.save();
@@ -711,7 +709,7 @@ function createWindow() {
 ipcMain.handle('win:state', () => windowState());
 // Mover la ventana arrastrando la barra (se hace a mano: más confiable que la "zona de arrastre" de Windows)
 ipcMain.handle('win:drag-start', (_e, sx, sy) => {
-  if (!win || win.isDestroyed() || !isWindowMode()) return null;
+  if (!win || win.isDestroyed() || !actsAsWindow()) return null;
   if (win.isMaximized()) {
     // Arrastrar estando maximizada: vuelve a su tamaño, con el mouse en la misma proporción de la barra
     const full = win.getBounds();
@@ -725,14 +723,14 @@ ipcMain.handle('win:drag-start', (_e, sx, sy) => {
   return win.getBounds();
 });
 ipcMain.on('win:drag-move', (_e, x, y, w, h) => {
-  if (!win || win.isDestroyed() || !isWindowMode() || win.isMaximized()) return;
+  if (!win || win.isDestroyed() || !actsAsWindow() || win.isMaximized()) return;
   win.setBounds({ x: Math.round(x), y: Math.round(y), width: Math.round(w), height: Math.round(h) }); // con el tamaño fijo (si no, Windows lo agranda al cambiar de pantalla)
 });
 ipcMain.handle('win:control', (_e, action) => {
   if (!win || win.isDestroyed()) return null;
   if (action === 'minimize') win.minimize();
   else if (action === 'maximize') {
-    if (!isWindowMode()) return windowState();
+    if (!actsAsWindow()) return windowState();
     if (win.isMaximized()) win.unmaximize();
     else win.maximize();
   } else if (action === 'close') {
@@ -1468,6 +1466,11 @@ ipcMain.handle('menu:popup', () => {
 
 // ---------- Inicio ----------
 
+// config.json tiene un error (editado a mano): se avisa y no se guarda encima hasta que lo arregles
+function warnBrokenConfig() {
+  send('toast', 'config.json quedó mal escrito (revisa comas, comillas y llaves). No se guarda nada hasta que lo arregles');
+}
+
 app.on('second-instance', showWindow);
 
 app.whenReady().then(async () => {
@@ -1492,6 +1495,7 @@ app.whenReady().then(async () => {
   createWindow();
   createTray();
   applyAutoStart();
+  if (config.broken) win.webContents.once('did-finish-load', () => setTimeout(warnBrokenConfig, 1500));
 
   screen.on('display-added', placeWindow);
   screen.on('display-removed', placeWindow);
@@ -1516,7 +1520,10 @@ app.whenReady().then(async () => {
   fs.watchFile(config.file, { interval: 1500 }, (cur) => {
     if (!cur.mtimeMs || cur.mtimeMs === config.lastWriteMs) return;
     config.lastWriteMs = cur.mtimeMs;
+    const wasBroken = config.broken;
     config.load();
+    if (config.broken) return warnBrokenConfig();
+    if (wasBroken) send('toast', 'config.json quedó bien de nuevo');
     ensureCustomFolders();
     applyAutoStart();
     send('settings:changed', soundSettings());

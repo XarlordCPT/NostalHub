@@ -970,7 +970,6 @@ void main(){
       await U.musicRun(api, id, v, ctx.toast);
     }
     function musicLevel() {
-      call('spotifyWatch', true); // la cola y el resto al día mientras está abierta
       return {
         title: 'Música',
         music: true,
@@ -1001,7 +1000,6 @@ void main(){
           if (v.appId === 'spotify' && !v.api) rows.push({ title: 'Conectar Spotify (debes tener Premium)', desc: 'Para ver la cola, la barra de la canción, aleatorio, repetir y más', run: () => call('open', 'setup-spotify') });
           return rows;
         },
-        onBack: () => call('spotifyWatch', false),
       };
     }
     function deviceLevel() {
