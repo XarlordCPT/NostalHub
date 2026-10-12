@@ -1,13 +1,17 @@
-# Manual de NostalHub — lo que pones tú a mano
+# Manual de NostalHub
 
-Todo lo que agregas tú (imágenes, modelos, claves) vive en **una sola carpeta de datos**, separada del código:
+NostalHub muestra tus juegos con los menús de 8 consolas: **Wii, PlayStation 2, Xbox 360, PlayStation 3,
+PlayStation 4, PS Vita, Nintendo Switch y Nintendo 3DS**. Este manual explica cómo se usa cada una y dónde va cada
+archivo que pones a mano.
+
+Todo lo que agregas tú (imágenes, sonidos, modelos, claves) vive en **una sola carpeta de datos**, separada del código:
 
 ```
 %APPDATA%\NostalHub
 ```
 
-Para abrirla: pega esa ruta en la barra del Explorador de Windows, o usa los atajos de los ajustes
-(engranaje de la Wii, Guía de la Xbox, Configuración de la PS2, o clic derecho en el ícono de NostalHub junto al reloj de Windows).
+Para abrirla: pega esa ruta en la barra del Explorador de Windows, o usa **Ajustes → Archivos** en cualquier consola
+(también el clic derecho en el ícono de NostalHub junto al reloj de Windows).
 
 > Después de copiar o cambiar un archivo, **no hace falta reiniciar**: la app lo detecta sola en uno o dos segundos.
 > La excepción es si cambias el **código** del proyecto: ahí sí hay que cerrar (menú → Salir) y volver a hacer `npm start`.
@@ -18,36 +22,28 @@ Para abrirla: pega esa ruta en la barra del Explorador de Windows, o usa los ata
 
 ```
 %APPDATA%\NostalHub
-├── steam-api-key.txt          ← tu clave de Steam (logros, nombre y foto)
-├── discord.txt                ← datos de tu aplicación de Discord (Grupo de la PS4, la Vita y la Xbox)
+├── steam-api-key.txt          ← tu clave de Steam (logros, amigos, nombre y foto)   ¡no la compartas!
+├── discord.txt                ← tu aplicación de Discord (el Grupo)                  ¡no la compartas!
+├── spotify.json               ← la conexión con Spotify (cola, me gusta…)            ¡no la compartas!
 ├── config.json                ← lista de juegos y opciones
+├── cache\                     ← cosas que la app descarga sola (y los registros spotify.log y discord.log)
 ├── consolas\                  ← una carpeta por consola del selector
-│   ├── wii\
-│   │   ├── icono.png
-│   │   ├── modelo.glb         ← modelo 3D que gira en el selector (en vez de icono.png)
-│   │   ├── logo.png
-│   │   ├── fondo.jpg
-│   │   ├── musica.mp3         ← música de fondo del menú
-│   │   ├── mover.wav          ← sonido al moverte / pasar el mouse
-│   │   ├── elegir.wav         ← sonido al elegir
-│   │   ├── volver.wav         ← sonido al volver
-│   │   ├── pagina.wav         ← (Wii y PS Vita) sonido al pasar de página
-│   │   ├── inicio.wav         ← sonido al terminar de entrar (después del video)
-│   │   └── intro.mp4          ← video al entrar a la consola
-│   ├── ps2\   (igual)
-│   ├── x360\  (igual)
-│   ├── ps4\   (igual)
-│   ├── vita\  (igual)
-│   ├── switch\ (igual)
-│   └── ps3\    (igual, y además gameboot.wav)
+│   ├── wii\  ps2\  x360\  ps3\  ps4\  vita\  switch\  3ds\
+│   │   ├── icono.png  /  modelo.glb   ← imagen o modelo 3D de la consola en el selector
+│   │   ├── logo.png                   ← el nombre de la consola en letras
+│   │   ├── fondo.jpg                  ← fondo del selector
+│   │   ├── musica.mp3                 ← música de fondo del menú
+│   │   ├── mover.wav, elegir.wav, volver.wav, pagina.wav, inicio.wav
+│   │   ├── gameboot.wav, opciones.wav, error.wav, borde.wav, logro.wav
+│   │   └── intro.mp4                  ← video al entrar a la consola
 └── personalizar\              ← una carpeta por juego
     └── Nombre del juego\
-        ├── canal.png          (Wii)
-        ├── fondo.jpg          (Wii, PS2 y PS4)
-        ├── logo.png           (Wii, PS2, Xbox y PS4)
+        ├── canal.png          (Wii; también PS4 y PS Vita)
+        ├── fondo.jpg          (Wii, Xbox 360, PS3, PS4, PS Vita, Switch y 3DS)
+        ├── logo.png           (Wii, PS2, Xbox 360, PS4, PS Vita, Switch y 3DS)
         ├── video.mp4          (Wii)
         ├── modelo.glb         (PS2)
-        ├── caratula.jpg       (Xbox 360 y burbuja de la Vita)
+        ├── caratula.jpg       (Xbox 360; también la PS Vita)
         ├── burbuja.png        (PS Vita)
         ├── cuadrado.png       (Switch y 3DS)
         ├── icono.png          (PS3)
@@ -55,14 +51,22 @@ Para abrirla: pega esa ruta en la barra del Explorador de Windows, o usa los ata
         └── descripcion.txt    (todas)
 ```
 
-Todos los archivos son **opcionales**. Si no pones nada, se usa lo que se descarga solo de Steam.
+Todos los archivos son **opcionales**. Si no pones nada, se usa lo que se descarga solo de Steam, y los sonidos que
+la app trae hechos con código.
 
 ---
 
 ## 1. Selector de consolas — `consolas\<consola>\`
 
-Las carpetas se llaman `wii`, `ps2`, `x360`, `ps4`, `vita` y `switch`.
-Para abrirlas: ajustes → Archivos → **Carpeta de consolas** (o en la Xbox: settings → **Íconos de consolas**).
+Al abrir NostalHub aparece el selector: la consola a la izquierda (empresa, nombre y año) y su imagen a la derecha.
+↑ ↓, la rueda o los botones de arriba y abajo para cambiar; Enter o clic para entrar.
+
+- **O**: ordenar las consolas (personalizado, fecha de salida, nombre o empresa). Con *Mover…* cambias una de lugar
+  con ↑ ↓.
+- **Esc**: pregunta si quieres cerrar NostalHub (Esc otra vez = cerrar).
+
+Las carpetas se llaman `wii`, `ps2`, `x360`, `ps3`, `ps4`, `vita`, `switch` y `3ds`.
+Para abrirlas: Ajustes → Archivos → **Carpeta de consolas** (en la Xbox también el mosaico *Íconos de consolas*).
 
 | Archivo | Qué hace | Recomendación |
 |---|---|---|
@@ -73,15 +77,15 @@ Para abrirlas: ajustes → Archivos → **Carpeta de consolas** (o en la Xbox: s
 
 > `icono.png` y `logo.png` no tienen que venir del mismo tamaño: la app les **recorta los bordes vacíos** (transparentes, o
 > del mismo color del fondo en un `.jpg`) y los agranda o achica para que todos ocupen más o menos la misma superficie.
-> Un logo ancho y uno casi cuadrado se ven parejos. Esto funciona con `.png` y `.jpg`; un `.gif`, `.webp` o `.svg` se usa tal cual.
+> Esto funciona con `.png` y `.jpg`; un `.gif`, `.webp` o `.svg` se usa tal cual.
 
 > **¿El modelo viene acostado?** Haz **clic derecho sobre el modelo** en el selector y elige *Pararlo*, *Ponerlo de
 > costado*, *Darlo vuelta* o *Como venía el modelo*. Se guarda y sigue girando sobre su propio eje. (La PS Vita viene
 > parada por defecto, porque casi todos sus modelos vienen acostados.)
 > Si el modelo no carga (archivo dañado o formato raro), se vuelve a mostrar `icono.png`.
-> Los modelos de Sketchfab traen sus texturas dentro del `.glb`. Muchos usan un tipo de material antiguo
-> ("specular-glossiness") que antes se veía blanco; NostalHub ya lo traduce solo.
-> Si descargas un `.gltf` que viene en una carpeta con texturas, deja **toda la carpeta junta** dentro de `consolas\<consola>\`; lo más simple es elegir el formato **GLB** al descargar, que es un solo archivo.
+> Los modelos de Sketchfab traen sus texturas dentro del `.glb`, y los que usan el material antiguo
+> "specular-glossiness" también se ven bien. Si descargas un `.gltf` que viene en una carpeta con texturas, deja
+> **toda la carpeta junta** dentro de `consolas\<consola>\`; lo más simple es elegir el formato **GLB** al descargar.
 
 ### Música, sonidos y video de inicio
 
@@ -91,90 +95,88 @@ Para abrirlas: ajustes → Archivos → **Carpeta de consolas** (o en la Xbox: s
 | `mover.wav` | Sonido al **pasar el mouse** por algo o **moverte con las flechas** |
 | `elegir.wav` | Sonido al **elegir** (clic o Enter) |
 | `volver.wav` | Sonido al **volver** (Esc) |
-| `pagina.wav` | **Wii y PS Vita**: sonido al **pasar de página** (Wii: menú de canales y Configuración; Vita: páginas de burbujas y al cambiar de tarjeta). Reemplaza al de mover en ese momento |
-| `inicio.wav` | Sonido al **terminar de entrar** a la consola: suena justo después del video de inicio (o al entrar, si no hay video). Pensado para la Wii, pero funciona en cualquier consola donde lo pongas |
-| `gameboot.wav` | **PS3 y Switch**: sonido al **abrir un juego** |
-| `opciones.wav` | **PS3**: sonido al abrir el **menú de opciones** (tecla O) |
-| `error.wav` | **PS3 y Switch**: sonido cuando algo **no se pudo hacer** (por ejemplo, un juego que no abrió) |
-| `borde.wav` | **Switch**: al chocar con el final de la fila |
+| `pagina.wav` | **Wii y PS Vita**: sonido al **pasar de página** (Wii: menú de canales y Configuración; Vita: páginas de burbujas y al cambiar de tarjeta) |
+| `inicio.wav` | Sonido al **terminar de entrar** a la consola: justo después del video de inicio (o al entrar, si no hay video) |
+| `gameboot.wav` | Sonido al **abrir un juego** (PS3, Switch y 3DS) |
+| `opciones.wav` | **PS3**: al abrir el **menú de opciones** (tecla O) |
+| `error.wav` | **PS3, Switch y 3DS**: cuando algo **no se pudo hacer** (por ejemplo, un juego que no abrió) |
+| `borde.wav` | **Switch y 3DS**: al chocar con el final de una fila |
+| `logro.wav` | El sonido del **aviso de logro** que aparece encima del juego (sección 8) |
 | `boton-grupo.wav`, `boton-musica.wav`, `boton-tienda.wav`, `boton-logros.wav`, `boton-software.wav`, `boton-amigos.wav`, `boton-ajustes.wav`, `boton-energia.wav` | **Switch**: el sonido de cada botón redondo al abrirlo (si falta uno, suena `elegir.wav`) |
 | `intro.mp4` | Video que se reproduce **cada vez que entras** a esa consola, por ejemplo el arranque de la Xbox 360 en `consolas\x360\intro.mp4`. Se salta con Enter, Esc, espacio o un clic. También sirven `.webm` y `.mov` |
 
-En los ajustes de cada consola (o en el menú del ícono junto al reloj de Windows) puedes:
-- activar o desactivar la **Música de fondo**, los **Sonidos del menú** y los **Videos de inicio de las consolas**;
-- elegir el **Volumen de la música** y el **Volumen de los sonidos**.
+Cada consola trae **sus propios sonidos hechos con código** (inspirados en los de la consola). Si pones un archivo con
+uno de estos nombres, se usa el tuyo en vez de ese.
+
+En **Ajustes → Sonido** puedes activar o desactivar la **Música de fondo**, los **Sonidos del menú** y los **Videos de
+inicio de las consolas**, y elegir el **volumen** de la música y de los sonidos.
 
 Consejos:
-- Los efectos funcionan mejor cortos (menos de medio segundo) y en `.wav`.
-- Si sacas el audio de un video de YouTube, cualquier conversor a mp3 sirve. Para el sonido de mover, recórtalo
-  para que empiece justo con el sonido, sin silencio al principio.
+- Los efectos funcionan mejor cortos (menos de medio segundo) y en `.wav`. Para el sonido de mover, recórtalo para que
+  empiece justo con el sonido, sin silencio al principio.
 - Se aplican solos al copiar el archivo. Si cambias la música mientras estás en esa consola, se reinicia sola.
-- La **PS3** trae sus propios sonidos hechos con código (el tic al moverse, el encendido y el gameboot). Si pones
-  `mover.wav`, `inicio.wav`, `gameboot.wav`, etc. en `consolas\ps3\`, se usan los tuyos en vez de esos.
-
-Ejemplos de lo que va aquí: el logo de letras de PlayStation 2 → `consolas\ps2\logo.png`;
-una foto de la Wii con fondo transparente → `consolas\wii\icono.png`.
-También sirven `.webp` y `.svg` para el ícono y el logo.
+- Los sonidos originales de las consolas déjalos **solo aquí**, en AppData (no en la carpeta del proyecto).
 
 ---
 
-## 2. Cada juego — `personalizar\<Nombre del juego>\`
+## 2. Imágenes de cada juego — `personalizar\<Nombre del juego>\`
 
 **Lo más fácil, desde la app:** haz **clic derecho sobre un juego** (en cualquier consola) → **Cambiar imágenes**, o
 márcalo y presiona la tecla **I**. Se abre una ventana con el estilo de esa consola que muestra **solo las imágenes que
-se ven en esa consola** (por ejemplo, en la Wii: canal, fondo, logo y video; en la PS Vita: burbuja, fondo y logo).
-En cada una puedes **Elegir archivo**, **arrastrar** una imagen encima (también desde el navegador), **Pegar** una imagen
-copiada ("Copiar imagen" en el navegador) o **volver a la automática**. Abajo está la **descripción** para escribir la
-tuya (si la dejas igual o la borras, se usa la de Steam) y el botón **Ver todas las consolas**. Los cambios se ven al tiro.
+se ven en esa consola**. En cada una puedes **Elegir archivo**, **arrastrar** una imagen encima (también desde el
+navegador), **Pegar** una imagen copiada ("Copiar imagen" en el navegador) o **volver a la automática**. Abajo está la
+**descripción** para escribir la tuya (si la dejas igual o la borras, se usa la de Steam) y el botón **Ver todas las
+consolas**. Los cambios se ven al tiro.
 
-Por dentro, la app guarda esos archivos en una carpeta por juego, con el nombre del juego (ajustes → Archivos →
-**Carpeta de personalización**). También puedes ponerlos a mano:
+Por dentro, la app guarda esos archivos en una carpeta por juego (Ajustes → Archivos → **Carpeta de
+personalización**). También puedes ponerlos a mano:
 
 | Archivo | Dónde se ve | Qué hace |
 |---|---|---|
-| `logo.png` | Wii, PS2, Xbox | El título del juego. **Fondo transparente** para que se vea bien |
-| `fondo.jpg` / `fondo.png` | Wii, PS2 | Imagen de fondo (canal de la Wii y ficha del juego) |
-| `canal.png` / `canal.jpg` / `canal.mp4` | Wii | Reemplaza el **cuadrito completo** del menú, tal cual |
+| `canal.png` / `canal.jpg` / `canal.mp4` | Wii (también PS4 y PS Vita) | Reemplaza el **cuadrito completo** del menú, tal cual (16:9) |
+| `fondo.jpg` / `fondo.png` | Wii, Xbox 360, PS3, PS4, PS Vita, Switch, 3DS | Imagen grande **sin letras** de fondo (ej. 1920×620 o 1920×1080) |
+| `logo.png` | Wii, PS2, Xbox 360, PS4, PS Vita, Switch, 3DS | El título del juego. **Fondo transparente** |
 | `video.mp4` / `video.webm` / `video.gif` | Wii | La animación al entrar al canal (10–20 s, sin audio) |
-| `modelo.glb` / `modelo.gltf` | PS2 | Ícono 3D animado (ver sección 4) |
-| `caratula.jpg` / `caratula.png` | Xbox 360, PS Vita | Carátula vertical de la caja (proporción 2:3, ej. 600×900). En la Vita se usa recortada en círculo para la burbuja |
-| `burbuja.png` / `burbuja.jpg` | PS Vita | La imagen de la **burbuja redonda** (cuadrada, ej. 512×512; se recorta en círculo). Si no está, se usa la carátula |
-| `cuadrado.png` / `cuadrado.jpg` | Nintendo Switch | El **cuadro del juego** en la Switch (cuadrado, ej. 1024×1024). Si no está, se arma con el fondo y el logo del juego |
+| `modelo.glb` / `modelo.gltf` | PS2 | Ícono 3D animado (sección 4) |
+| `caratula.jpg` / `caratula.png` | Xbox 360 (y PS Vita) | Carátula vertical de la caja (2:3, ej. 600×900). En la Vita se usa para la burbuja si no hay `burbuja.png` |
+| `burbuja.png` / `burbuja.jpg` | PS Vita | La imagen de la **burbuja redonda** (cuadrada, ej. 512×512; se recorta en círculo) |
+| `cuadrado.png` / `cuadrado.jpg` | Switch y 3DS | El **cuadro del juego** en la Switch y su **icono** en la 3DS (cuadrado, ej. 1024×1024). Si no está, se arma con el fondo y el logo |
 | `icono.png` / `icono.jpg` | PS3 | El **icono del juego** en el menú de la PS3 (rectangular, **320×176**). Si no está, se usa la cabecera de Steam |
-| `musica.mp3` | PS3 | Música que **suena al quedarte sobre el juego** en la PS3 (como en la consola de verdad). También `.ogg`, `.m4a`, `.wav`. Ideal 30 a 60 segundos; se repite |
+| `musica.mp3` | PS3 | Música que **suena al quedarte sobre el juego** (como en la consola de verdad). También `.ogg`, `.m4a`, `.wav`. Ideal 30 a 60 segundos; se repite |
 | `descripcion.txt` | Todas | La descripción del juego (reemplaza la de Steam) |
 
-Para volver al arte automático, **borra tu archivo**.
+Para volver al arte automático, **borra tu archivo** (o usa *Volver a la automática* en la ventana).
 
 **Dónde conseguir arte:** [SteamGridDB](https://www.steamgriddb.com). Busca el juego y usa estas pestañas:
 - **Logos**: para `logo.png`.
 - **Heroes**: para `fondo.jpg`.
-- **Grids** en formato vertical (600×900): para `caratula.jpg`.
-- **Icons** (cuadrados): para `burbuja.png`.
-- **Grids** en formato horizontal (460×215 o 920×430): sirven para `icono.png` de la PS3 (se recorta un poquito).
+- **Grids** verticales (600×900): para `caratula.jpg`. Los **cuadrados** sirven para `cuadrado.png`.
+- **Icons**: para `burbuja.png`.
+- **Grids** horizontales (460×215 o 920×430): sirven para `icono.png` de la PS3 (se recorta un poquito).
 
 ---
 
-## 3. Clave de API de Steam — `steam-api-key.txt`
+## 3. Conectar Steam — `steam-api-key.txt`
 
-Sirve para ver los **logros** en todas las consolas (Wii: botón redondo *Logros* o ↓ en la pantalla del canal;
-PS2: botón *Logros* en la ficha; Xbox: *Logros* en la ficha; PS4: *Trofeos*), el **total de logros** de la pestaña *social* y el
-nombre y foto de tu perfil. Las **horas jugadas** y **"jugado hace…"** se ven siempre, aunque no tengas clave.
-Sin clave, el nombre y la foto igual se sacan de tu Steam instalado. Lo que no aparece sin clave son los logros.
+Con la clave de Steam se ven los **logros** de cada juego, el **total de logros**, tus **amigos** y tu nombre y foto.
+Las **horas jugadas** y **"jugado hace…"** se ven siempre, aunque no tengas clave (sin clave, el nombre y la foto se
+sacan de tu Steam instalado).
 
-**Lo más fácil, desde la app:** ajustes → **Cuentas** → **Conectar Steam** (en la Xbox también el mosaico *Clave de
-Steam*). Se abre una ventana con los pasos:
+**Desde la app:** Ajustes → **Cuentas** → **Conectar Steam** (en la Xbox también el mosaico *Clave de Steam*). Se abre
+una ventana con los pasos:
 
 1. **Abrir página de Steam** (te lleva a <https://steamcommunity.com/dev/apikey>; inicia sesión si te lo pide).
 2. En "Domain Name" escribe `localhost` (hay un botón para copiarlo), acepta y presiona *Register*.
 3. Copia la clave (32 letras y números), presiona **Pegar** y **Guardar y probar**. La app la prueba con Steam y te
    dice si quedó bien y con qué nombre. Si tu perfil es privado, también te avisa.
 
-(Si prefieres, la clave también se puede pegar a mano en `steam-api-key.txt`; hay un enlace al archivo en esa ventana.)
-
-> **No compartas la clave con nadie**, ni la pegues en el chat.
+> **No compartas la clave con nadie**, ni la pegues en un chat.
 > Si los logros dicen que tu perfil es privado: en Steam → tu perfil → *Editar perfil* → *Privacidad*,
-> pon **"Detalles de juegos"** en **Público**.
+> pon **"Detalles de juegos"** en **Público**. Para los amigos, también la **Lista de amigos** en público.
+
+**Logros y horas al día:** al cerrar un juego de Steam, sus logros y horas se actualizan solos a los pocos segundos
+(también al ganar un logro y al abrir la lista de logros del juego). Las horas se toman de tu Steam y de los
+servidores de Steam (la que esté más al día).
 
 ---
 
@@ -184,7 +186,7 @@ Steam*). Se abre una ventana con los pasos:
 2. Si quieres animación, hazla en la pestaña **Animate** y ponle de nombre `idle`. Se repite en bucle.
 3. **File → Export → Export glTF Model**: formato **binario (.glb)**, con *exportar animaciones* e
    *incrustar texturas* marcados.
-4. Guárdalo como `modelo.glb` en `personalizar\<Nombre del juego>\`.
+4. Guárdalo como `modelo.glb` en `personalizar\<Nombre del juego>\` (o elígelo con clic derecho → Cambiar imágenes).
 
 La app además lo hace girar lento como los íconos originales. Las texturas tipo pixel se ven nítidas.
 
@@ -195,22 +197,28 @@ neón de Geometry Dash) → `logo.png` / logo de Steam → iniciales.
 
 ## 5. Música (Spotify, Apple Music, YouTube Music)
 
-La sección **Música** de cada consola y el panel de la izquierda al jugar muestran lo que suena, con su portada y
+La sección de música de cada consola y el panel de la izquierda al jugar muestran lo que suena, con su portada y
 los botones anterior / pausa / siguiente.
 
 - **Qué app**: Ajustes → Sonido → **App de música**: *Spotify* (la de siempre), *Apple Music*, *YouTube Music* (en
   el navegador) o *Automático* (la que esté sonando). Funciona con los controles multimedia de Windows (los mismos
   que aparecen al subir el volumen). Con YouTube Music en el navegador, si suena un video en otra pestaña, se puede
   mostrar ese.
-- **Portada**: la da Windows. Si no llega, se busca por internet (iTunes y Deezer), pero solo si coincide **la
-  misma canción** del mismo artista; si no, mejor no se muestra ninguna. El registro está en
-  `%APPDATA%\NostalHub\cache\spotify.log`.
+- **Portada**: la da Windows (o Spotify, si está conectado). Si no llega, se busca por internet (iTunes y Deezer),
+  pero solo si coincide **la misma canción** del mismo artista; si no, mejor no se muestra ninguna. El registro está
+  en `cache\spotify.log`.
 
 ### Conectar Spotify (debes tener Premium)
 
-Ajustes → Cuentas → **Conectar Spotify**. Se crea una "app" gratis en Spotify for Developers (los pasos salen en
-pantalla), se pega el **Client ID** y se acepta el permiso en el navegador. Se guarda en
-`%APPDATA%\NostalHub\spotify.json` (no lo compartas). Con Spotify conectado se suman, en todas las consolas:
+Ajustes → Cuentas → **Conectar Spotify**. Spotify pide crear una "app" propia (es gratis, unos 2 minutos):
+
+1. **Abrir Spotify for Developers**, inicia sesión y presiona **Create app**.
+2. Ponle de nombre `NostalHub`. En **Redirect URIs** pega `http://127.0.0.1:8957/callback` (hay un botón para
+   copiarla) y presiona **Add**. Marca **Web API**, acepta los términos y presiona **Save**.
+3. Copia el **Client ID** de tu app, pégalo y presiona **Conectar**. Se abre Spotify en el navegador: **Aceptar**.
+
+Si sale un error de permiso, en tu app de Spotify entra a **User Management** y agrega tu correo de Spotify.
+La conexión queda en `spotify.json` (no lo compartas). Con Spotify conectado se suman, en todas las consolas:
 
 - **Barra de la canción** con el tiempo, y la **canción siguiente**.
 - **Cola de reproducción**: elige una canción para saltar hasta ella.
@@ -219,77 +227,53 @@ pantalla), se pega el **Client ID** y se acepta el permiso en el navegador. Se g
 - **Me gusta** (el corazón), **volumen** de Spotify y **dispositivo** (pasar la música al PC, al teléfono o a un
   parlante). Si suena en el teléfono, también se ve y se controla desde aquí.
 
-| Consola | Dónde |
+| Consola | Dónde está la música |
 | --- | --- |
-| Xbox 360 | Pestaña *home*: la barra y "Siguiente" junto al disco; los botones extra a la derecha |
-| PS4 | Menú rápido (**P**) → Música |
+| Wii y PS2 | En el panel de la izquierda mientras juegas |
+| Xbox 360 | Pestaña *home*: el disco, la barra y "Siguiente"; los botones extra a la derecha |
 | PS3 | Categoría **Música**: cada opción es un elemento del XMB |
+| PS4 | Menú rápido (**P**) → Música |
 | PS Vita | Burbuja **Música** (los botones extra abajo; su nombre aparece al marcarlos) |
 | Switch | Botón **Música** (↓ para la fila de aleatorio, repetir, me gusta…) |
-| 3DS | **Nintendo 3DS Sonido** |
-| Wii y PS2 | En el panel de la izquierda mientras juegas |
+| 3DS | App **Nintendo 3DS Sonido** |
 
-## 6. PlayStation 4, PS Vita y el Grupo (Discord)
+---
 
-**Cómo se usa la PS4:**
-- **Menú principal**: tus 5 juegos más recientes y al final la **Biblioteca**. ← → para moverte, Enter para jugar.
-  - **↓** abre la ficha del juego: horas, trofeos (tus logros de Steam), descripción, *Iniciar* y *Trofeos*.
-  - **↑** muestra la fila de funciones: Tienda y Perfil (abren Steam), Amigos, Grupo, Trofeos, Ajustes y Energía.
-- **Amigos**: tus amigos de Steam como en Steam: primero los que están **jugando** (y a qué), después los **en línea**,
-  los **ausentes** y al final los **desconectados** (con hace cuánto). Se actualiza cada 30 segundos. Enter o clic
-  abre su **perfil** en Steam. Necesita tu clave de API de Steam y que tu **lista de amigos** sea pública en Steam
-  (Editar perfil → Configuración de privacidad).
-- **Biblioteca**: todos tus juegos, con filtros a la izquierda (Todos, Juegos de Steam, Aplicaciones, Jugados
-  recientemente, Con trofeos), **Buscar** (escribe el nombre) y el orden arriba a la derecha (o la tecla **S**).
-- **Menú rápido**: tecla **P** o el botón de abajo a la derecha. Tiene Sonido, Música, Grupo, **Amigos** (los conectados), Juego al azar,
-  Biblioteca, Cambiar de consola, Ajustes y Energía. → entra a las opciones de la derecha.
-- **Con el mouse**: un clic elige un cuadro; con el cuadro ya elegido, clic en *Iniciar* para jugar o en la imagen
-  para ver la ficha.
+## 6. Grupo: tu canal de voz de Discord — `discord.txt`
 
-**Grupo: tu canal de voz de Discord** (en la PS4, y en la Xbox 360 en el mosaico *Grupo* de la pestaña social). Muestra el canal donde estás, el servidor y quiénes están contigo (con un
-brillo azul en quien está hablando y un ícono si tiene el micrófono silenciado). Necesita la **app de escritorio de
-Discord abierta** y estos pasos, una sola vez:
+Muestra el canal de voz donde estás, el servidor y quiénes están contigo (con un brillo en quien está hablando y un
+ícono si tiene el micrófono silenciado). Necesita la **app de escritorio de Discord abierta**.
+
+| Consola | Dónde está el Grupo |
+| --- | --- |
+| Wii y PS2 | En el panel de la derecha mientras juegas |
+| Xbox 360 | Mosaico **Grupo** de la pestaña *social* |
+| PS3 | Categoría **Amigos** |
+| PS4 | **Grupo** en la fila de funciones (↑) y en el menú rápido (**P**) |
+| PS Vita | Burbuja naranja **Grupo** (con un número rojo: cuántas personas hay en tu canal) |
+| Switch | Botón redondo **Grupo** |
+| 3DS | Atajo **Lista de amigos** (arriba en la pantalla de abajo; el número es cuántos hay en tu canal) |
+
+En todas, mientras juegas, también aparece al lado del juego.
+
+**Conectar Discord** (una sola vez):
 
 1. Entra a <https://discord.com/developers/applications> con tu cuenta de Discord y presiona **New Application**.
    Ponle de nombre `NostalHub` y créala.
-2. En el menú de la izquierda entra a **OAuth2** (si tu Discord está en español, puede decir *OAuth2* igual):
-   - copia el **Client ID**. Es el mismo número que aparece como **ID de la aplicación** en la página principal;
+2. En el menú de la izquierda entra a **OAuth2**:
+   - copia el **Client ID** (es el mismo número que el **ID de la aplicación** de la página principal);
    - en **Client Secret** presiona **Reset Secret** y copia el texto que aparece. **Ojo:** la **Clave pública** de la
      página principal *no* es el secret (si la pegas, NostalHub te avisa);
    - en **Redirects** presiona **Add Redirect**, escribe `http://localhost` y guarda con **Save Changes**. Si falta
      este paso, Discord da el error *Missing "redirect_uri"*.
-3. En NostalHub: ajustes → **Cuentas** → **Conectar Discord** (o el botón *Conectar Discord* de la pantalla de
+3. En NostalHub: Ajustes → **Cuentas** → **Conectar Discord** (o el botón *Conectar Discord* de la pantalla de
    Grupo). Pega el Client ID y el Client Secret (botones **Pegar**) y presiona **Guardar y conectar**.
-4. Discord te muestra una ventana para autorizar: acéptala. Solo se pide una vez. La ventana de NostalHub te va
-   diciendo el estado (conectando, falta autorizar, listo).
-
-La misma ventana tiene botones para abrir el portal de Discord y para copiar `http://localhost`.
+4. Discord te muestra una ventana para autorizar: acéptala. Solo se pide una vez.
 
 > **No compartas el Client Secret con nadie.**
-> Discord solo deja usar esta función a la cuenta dueña de la aplicación (y a quienes agregue como testers). Como la
-> aplicación es tuya, debería funcionar directo. Si Discord muestra un error de permisos, revisa que la aplicación
-> la hayas creado con la misma cuenta que tienes abierta en Discord.
-> Si algo falla, el detalle queda en `%APPDATA%\NostalHub\cache\discord.log`.
-
-**PS Vita:** el Grupo es la burbuja naranja de la primera página (con un número rojo: cuántas personas hay en tu
-canal). Usa la misma conexión de Discord.
-
-### Cómo se usa la PS Vita
-
-- **Pantalla de bloqueo**: al entrar, despega la esquina de arriba a la derecha arrastrándola con el mouse, o
-  presiona Enter / haz clic.
-- **Inicio**: páginas de burbujas que se recorren **de arriba a abajo** (puntitos a la izquierda). La primera página
-  tiene las apps: Grupo (Discord), Música (Spotify), Tienda, Amigos y Perfil (abren Steam), Biblioteca, Juego al azar,
-  Trofeos, Ajustes y Consolas. Desde la segunda están tus juegos, los más recientes primero.
-- **Abrir**: la burbuja va al centro, gira y se abre como **tarjeta** (LiveArea). La de un juego tiene la puerta con
-  **Iniciar**, tu actividad, sus trofeos y la descripción.
-- **Tarjetas**: cada app que abres queda a la derecha del inicio (hasta 5; al abrir la sexta se cierra la más
-  antigua). Arriba, en la barra negra, salen sus burbujitas: clic para ir a una. Con el teclado, **Q / E** o ← → en
-  los bordes. Para **cerrar** una tarjeta, **despega su esquina** de arriba a la derecha (arrastrando o con un clic) o
-  presiona **Retroceso**.
-- **Menú rápido** (**P**): sube desde abajo con la música, el volumen (← →), música de fondo y sonidos, Cambiar de
-  consola, Ajustes y Energía.
-- **Avisos** (el círculo azul de la esquina, o **N**): juegos nuevos, cuando entras a un canal de voz y cuánto jugaste.
+> Discord solo deja usar esta función a la cuenta dueña de la aplicación (y a quienes agregue como testers). Si
+> Discord muestra un error de permisos, revisa que la aplicación la hayas creado con la misma cuenta que tienes
+> abierta en Discord. Si algo falla, el detalle queda en `cache\discord.log`.
 
 ---
 
@@ -297,18 +281,18 @@ canal). Usa la misma conexión de Discord.
 
 **Juegos de Steam:** no hay que hacer nada. Los que ya tenías se agregan al abrir NostalHub, y los que descargues
 **mientras NostalHub está abierta aparecen solos** cuando terminan de instalarse (sale un aviso "Nuevo juego").
-Si alguno no aparece: ajustes → Juegos → **Buscar juegos nuevos de Steam**.
+Si alguno no aparece: Ajustes → Juegos → **Buscar juegos nuevos de Steam**.
 
 **Juegos que no son de Steam**, de dos formas:
 
 1. **Agregándolos a Steam** (en Steam: *Juegos* → *Añadir un juego que no es de Steam a mi biblioteca*).
-   NostalHub los toma de ahí solos, igual que los juegos de Steam, con las imágenes que les hayas puesto en Steam
-   (portada, fondo y logo). Se abren directo con su `.exe`, así que al cerrarlos vuelves solo al menú.
-2. **Desde NostalHub:** ajustes → Juegos → **Agregar juego o programa**, y elige su `.exe` o su acceso directo.
+   NostalHub los toma de ahí solos, con las imágenes que les hayas puesto en Steam (portada, fondo y logo). Se abren
+   directo con su `.exe`, así que al cerrarlos vuelves solo al menú.
+2. **Desde NostalHub:** Ajustes → Juegos → **Agregar juego o programa**, y elige su `.exe` o su acceso directo.
 
-Para ponerle arte propio a cualquiera de ellos, usa su carpeta en `personalizar\` (sección 2).
+Para ponerle arte propio a cualquiera de ellos, usa clic derecho → Cambiar imágenes (sección 2).
 
-**A mano en `config.json`** (si prefieres): ajustes → Archivos → **Abrir config.json**. Dentro de
+**A mano en `config.json`** (si prefieres): Ajustes → Archivos → **Abrir config.json**. Dentro de
 `"games": [ ... ]` agrega una entrada:
 
 ```json
@@ -323,30 +307,38 @@ Para ponerle arte propio a cualquiera de ellos, usa su carpeta en `personalizar\
 
 ---
 
-## 8. Ajustes dentro de cada consola
+## 8. Ajustes y funciones de todas las consolas
 
-Las mismas opciones del menú del ícono junto al reloj, con el estilo de cada consola:
+### Dónde están los ajustes
+
+Son las mismas opciones del menú del ícono junto al reloj, con el estilo de cada consola:
 
 | Consola | Cómo se abre | Cómo se usa |
 |---|---|---|
-| Wii | Botón del **engranaje** (abajo a la izquierda) | Pantalla "Configuración de NostalHub" con páginas (General, Juegos, Pantalla, Sonido, Archivos). Al elegir una opción se abre su pantalla con **Atrás / Confirmar** |
-| Xbox 360 | Mosaico **Ajustes** (home o settings) o la tecla **G** | **La Guía**: pestañas con íconos (Q / E o ← →), Enter cambia la opción |
+| Wii | Botón del **engranaje** (abajo a la izquierda) | "Configuración de NostalHub" con una página por sección. Al elegir una opción se abre su pantalla con **Atrás / Confirmar** |
 | PS2 | Botón **Configuración** (abajo a la derecha) o la tecla **C** | "Configuración del sistema": ↑ ↓ elegir, ← → cambiar, Enter aceptar |
-| PS4 | **Ajustes** en la fila de funciones (↑) o en el menú rápido (**P**) | Lista de categorías con íconos; las opciones con casilla se marcan con Enter y las de elegir abren una lista |
-| PS Vita | Burbuja **Ajustes** (primera página) o el menú rápido (**P**) | Se abre como tarjeta: lista clara de categorías → opciones; Esc vuelve a las categorías |
+| Xbox 360 | Mosaico **Ajustes** (home o settings) o la tecla **G** | **La Guía**: pestañas con íconos (Q / E o ← →), Enter cambia la opción |
+| PS3 | Categoría **Ajustes** | Cada opción es un elemento del XMB. Ahí también están los **Ajustes de tema** (color del fondo) |
+| PS4 | **Ajustes** en la fila de funciones (↑) o en el menú rápido (**P**) | Lista de categorías con íconos; las casillas se marcan con Enter y las de elegir abren una lista |
+| PS Vita | Burbuja **Ajustes** o el menú rápido (**P**) | Se abre como tarjeta: categorías → opciones; Esc vuelve a las categorías |
+| Switch | Botón redondo **Ajustes** | Categorías a la izquierda y opciones a la derecha. Ahí está el **Tema** (claro u oscuro) |
+| 3DS | App **Configuración de la consola** (o la casita con el pincel, para el tema) | Tema de las pantallas, color de la carcasa y las opciones de NostalHub |
 
-"Salir de NostalHub" siempre pregunta antes de cerrar. El menú del ícono junto al reloj sigue estando, con las mismas opciones.
+Las secciones son: **General** (cambiar de consola, recargar, abrir este manual, salir), **Juegos** (buscar juegos
+nuevos, agregar un juego, volver a descargar el arte, título encima de cada canal de la Wii, tráileres de Steam),
+**Pantalla**, **Sonido**, **Cuentas** (Steam, Spotify y Discord) y **Archivos** (las carpetas, `config.json` y las
+herramientas de desarrollo). "Salir de NostalHub" siempre pregunta antes de cerrar.
 
 ### Pantalla completa o ventana
 
-En **Ajustes → Pantalla → Modo**:
-- **Pantalla completa** (como siempre). Ahí mismo eliges si **cubre la barra de tareas** de Windows o no.
-  También aparece como **app abierta en la barra de Windows**: si algo la tapa, un clic ahí y vuelve adelante
-  (se apaga con *Mostrar en la barra de Windows*).
-- **Ventana**: se puede mover, cambiar de tamaño y minimizar, y recuerda dónde la dejaste. Arriba hay una barra
-  **escondida**: lleva el mouse al borde de arriba y baja con **minimizar, maximizar y cerrar**. La barra cambia de
-  estilo según dónde estés (selector o cada consola). Arrástrala para mover la ventana; doble clic la maximiza.
-  **Cerrar** sale de NostalHub.
+En **Ajustes → Pantalla**:
+- **Modo → Pantalla completa** (como siempre). Ahí mismo eliges si **cubre la barra de tareas** de Windows o no, y si
+  aparece como **app abierta en la barra de Windows** (si algo la tapa, un clic ahí y vuelve adelante).
+- **Modo → Ventana**: se puede mover, cambiar de tamaño y minimizar, y recuerda dónde la dejaste. Arriba hay una barra
+  **escondida**: lleva el mouse al borde de arriba y baja con **minimizar, maximizar y cerrar** (con el estilo de cada
+  consola). Arrástrala para mover la ventana; doble clic la maximiza. **Cerrar** sale de NostalHub.
+- **Pantalla**: en cuál monitor se muestra (*Automática* = la secundaria).
+- **Iniciar con Windows**.
 
 ### Logros sobre el juego
 
@@ -361,34 +353,83 @@ En **Ajustes → Pantalla → Modo**:
 - Se detecta **al instante** leyendo los archivos de logros que Steam guarda en tu PC (no necesita internet).
 - El juego tiene que estar en **ventana sin bordes** ("Borderless" / "Ventana completa"). En pantalla completa
   "exclusiva" no se ve encima (muchos juegos con DirectX 12 sí funcionan).
-- **Ajustes → Pantalla**: activar o desactivar **Logros sobre el juego** y elegir **en qué pantalla** aparecen.
+- **Ajustes → Pantalla**: activar o desactivar **Logros sobre el juego** y elegir la **Pantalla de los logros**.
 - **Prueba**: **Ctrl + Alt + Shift + L** muestra un logro falso con el estilo de la consola en la que estás.
-- Sonido: el tuyo en `consolas\<consola>\logro.wav` (por ejemplo `consolas\ps3\logro.wav`); si no, uno hecho con código.
+- Sonido: el tuyo en `consolas\<consola>\logro.wav`; si no, uno hecho con código.
 
-### Amigos de Steam (en todas las consolas)
+### Lista de logros de cada juego
 
-Tus amigos de Steam con el estilo de cada consola, ordenados como en Steam: jugando, en línea, ausentes y
-desconectados al final. Puedes abrir su **perfil** o su **chat** de Steam. La lista se actualiza cada 30 segundos.
+| Consola | Dónde |
+| --- | --- |
+| Wii | Botón redondo **Logros** en la pantalla del canal (o ↓) |
+| PS2 | **Logros** en la ficha del juego |
+| Xbox 360 | **Logros** en la ficha del juego |
+| PS3 | **Colección de trofeos** (arriba en *Juego*), o **O** → Logros sobre un juego |
+| PS4 | **Trofeos** en la fila de funciones, o en la ficha del juego (↓) |
+| PS Vita | Burbuja **Trofeos**, y en la tarjeta de cada juego |
+| Switch | Botón redondo **Logros**, o la pestaña *Logros* de cada juego |
+| 3DS | App **Logros**, o el atajo **Notas de juego** |
+
+### Amigos de Steam
+
+Tus amigos de Steam con el estilo de cada consola, ordenados como en Steam: jugando (y a qué), en línea, ausentes y
+al final los desconectados (con hace cuánto). Puedes abrir su **perfil** o su **chat** de Steam. La lista se
+actualiza cada 30 segundos.
 
 | Consola | Dónde está | Perfil / mensaje |
 | --- | --- | --- |
 | Wii | Botón del **sobre** (abajo a la derecha) o tecla **A** | ← → para elegir el botón, Enter |
 | PS2 | Botón **Amigos** abajo o tecla **A** | Enter abre la ventanita con los dos botones |
 | Xbox 360 | Mosaico **Amigos** de la pestaña *social* | ← → para elegir el botón, Enter |
-| PS3 | Categoría **Amigos** (después del Grupo) | Enter: perfil · **O**: opciones (perfil o mensaje) |
+| PS3 | Categoría **Amigos** | Enter: perfil · **O**: opciones (perfil o mensaje) |
 | PS4 | *Amigos* en la fila de funciones, y en el **menú rápido** (P) | ← → para elegir el botón, Enter |
 | PS Vita | Burbuja **Amigos** (se abre como tarjeta) | ← → para elegir el botón, Enter |
-| Switch | Botón **Amigos** de la fila de abajo | Enter abre las opciones |
-| 3DS | Atajo **Lista de amigos** (pantalla de abajo) | Enter abre la ventanita |
+| Switch | Botón redondo **Amigos** | Enter abre las opciones |
+| 3DS | Atajo **Lista de amigos** (arriba en la pantalla de abajo) | Enter abre la ventanita |
 
-- Necesita tu clave de API de Steam y que tu **lista de amigos** sea pública (Steam → Editar perfil → Configuración
-  de privacidad).
+- Necesita tu clave de Steam y que tu **lista de amigos** sea pública (Steam → Editar perfil → Configuración de
+  privacidad).
 - Si un amigo tiene sus juegos en privado, sale "En línea" aunque esté jugando (Steam no dice a qué).
 
-### Cómo se usa la PS3
+### Mientras juegas
 
-- **Categorías** en fila: Usuarios, Ajustes, Música (Spotify), Juego, PlayStation Network (tienda y novedades de
-  Steam) y Amigos (Amigos de Steam y tu canal de voz de Discord). ← → para cambiar, ↑ ↓ para recorrer sus opciones.
+Al abrir un juego, cada consola muestra su pantalla de "jugando" con el tiempo que llevas. A los lados aparecen la
+**música** (izquierda) y tu **Grupo de Discord** (derecha). Al cerrar el juego vuelves solo al menú.
+
+---
+
+## 9. Cómo se usa cada consola
+
+### Wii
+
+- **Menú de canales**: 12 canales por página (4 × 3). ← → o la rueda para pasar de página. Abajo, el reloj y los
+  botones redondos: **engranaje** (ajustes), **sobre** (amigos de Steam) y **dado** (juego al azar).
+- **Pantalla del canal**: al elegir un juego se abre su canal con el fondo, el logo y la animación (`video.mp4` o el
+  tráiler de Steam, si los activaste). Botones **Menú**, **Iniciar** y **Logros** (↓). ← → cambian de canal.
+
+### PlayStation 2
+
+- **Memory Card**: tus juegos en una grilla de 5 columnas, cada uno con su ícono 3D (sección 4) o su logo.
+- **Ficha del juego** (Enter): el ícono grande, horas, barra de logros y descripción, con **Iniciar**, **Logros** y
+  **Volver**.
+- Abajo a la derecha: **Amigos** (tecla **A**) y **Configuración** (tecla **C**).
+
+### Xbox 360
+
+- Tres pestañas que se cambian con **Q / E** (o RePág / AvPág):
+  - **home**: *Jugar* (el último juego), *Al azar*, la **música**, *Recientes*, *Mis juegos*, *Perfil*, *Ajustes* y
+    *Consolas*.
+  - **social**: **Amigos**, **Grupo**, *Tienda*, *Mi perfil*, tu tarjeta con el total de logros y los jugados
+    recientemente.
+  - **settings**: Ajustes, Perfil de Steam, Personalización, Íconos de consolas, Clave de Steam, Manual, Cambiar
+    consola y Apagar.
+- **Mis juegos / Recientes**: estante de carátulas (← →). Enter abre la **ficha**: *Jugar*, *Logros* y *Volver*.
+- **G** abre la **Guía** (ajustes) desde cualquier parte.
+
+### PlayStation 3
+
+- **Categorías** en fila: Usuarios, Ajustes, Música, Juego, PlayStation Network (tienda y novedades de Steam) y
+  Amigos (amigos de Steam y tu Grupo de Discord). ← → para cambiar, ↑ ↓ para recorrer sus opciones.
 - **Juego**: arriba está la **Colección de trofeos** y después tus juegos (los más recientes primero). Si te quedas
   un segundo sobre un juego, aparece su **fondo** a pantalla completa y suena su **música** (`musica.mp3`, si le pusiste).
 - **O** (el triángulo): **opciones** del juego: Iniciar, Información, Logros, Cambiar imágenes y **Ordenar**.
@@ -397,45 +438,91 @@ desconectados al final. Puedes abrir su **perfil** o su **chat** de Steam. La li
 - **Encendido**: al entrar aparece la ola con destellos (Enter o un clic lo salta). Si tienes `intro.mp4` en
   `consolas\ps3\`, o apagaste los videos de inicio, entra directo.
 
-### Cómo se usa la Nintendo 3DS
+### PlayStation 4
+
+- **Menú principal**: tus 5 juegos más recientes y al final la **Biblioteca**. ← → para moverte, Enter para jugar.
+  - **↓** abre la ficha del juego: horas, trofeos (tus logros de Steam), descripción, *Iniciar* y *Trofeos*.
+  - **↑** muestra la fila de funciones: Tienda, Amigos, Grupo, Perfil, Trofeos, Ajustes y Energía.
+- **Biblioteca**: todos tus juegos, con filtros a la izquierda (Todos, Juegos, Aplicaciones, Jugados
+  recientemente, Con trofeos), **Buscar** (escribe el nombre) y el orden arriba a la derecha (o la tecla **S**).
+- **Menú rápido**: tecla **P** o el botón de abajo a la derecha. Tiene Sonido, Música, Grupo, Amigos, Juego al azar,
+  Biblioteca, Cambiar de consola, Ajustes y Energía. → entra a las opciones de la derecha.
+- **Con el mouse**: un clic elige un cuadro; con el cuadro ya elegido, clic en *Iniciar* para jugar o en la imagen
+  para ver la ficha.
+
+### PS Vita
+
+- **Pantalla de bloqueo**: al entrar, despega la esquina de arriba a la derecha arrastrándola con el mouse, o
+  presiona Enter / haz clic.
+- **Inicio**: páginas de burbujas que se recorren **de arriba a abajo** (puntitos a la izquierda). La primera página
+  tiene las apps: Grupo, Música, Tienda, Amigos, Biblioteca, Juego al azar, Trofeos, Perfil, Ajustes y Consolas.
+  Desde la segunda están tus juegos, los más recientes primero.
+- **Abrir**: la burbuja va al centro, gira y se abre como **tarjeta** (LiveArea). La de un juego tiene la puerta con
+  **Iniciar**, tu actividad, sus trofeos y la descripción.
+- **Tarjetas**: cada app que abres queda a la derecha del inicio (hasta 5; al abrir la sexta se cierra la más
+  antigua). Arriba, en la barra negra, salen sus burbujitas: clic para ir a una. Con el teclado, **Q / E** o ← → en
+  los bordes. Para **cerrar** una tarjeta, **despega su esquina** de arriba a la derecha (arrastrando o con un clic) o
+  presiona **Retroceso**.
+- **Menú rápido** (**P**): sube desde abajo con la música, el volumen (← →), música de fondo y sonidos, Cambiar de
+  consola, Ajustes y Energía.
+- **Avisos** (el círculo azul de la esquina, o **N**): juegos nuevos, cuando entras a un canal de voz y cuánto jugaste.
+
+### Nintendo Switch
+
+- **Inicio**: fila con tus 5 juegos más recientes y al final **Todo el software**. ← → para moverte, Enter para jugar.
+- **↓** baja a los **botones redondos**: Grupo, Música, Tienda, Logros, Todo el software, Amigos, Ajustes y Energía.
+- **O** (o +) sobre un juego: sus opciones (Iniciar, Información del software, Logros…). La **ficha** del juego tiene
+  pestañas: *Iniciar*, *Información del software*, *Logros* y *Cambiar imágenes*.
+- **Todo el software**: grilla con todos tus juegos (Enter abre la ficha); **S** cambia el orden.
+- **Tema** claro u oscuro: Ajustes → Tema.
+
+### Nintendo 3DS
 
 - Se ve la consola abierta con sus **dos pantallas**: arriba el banner del icono marcado (con profundidad 3D que
   sigue al mouse; el **deslizador 3D** a la derecha de la pantalla la sube o la apaga) y abajo la cuadrícula de iconos.
 - Primero van las apps: **Configuración de la consola** (tema de las pantallas, color de la carcasa y las opciones de
   NostalHub), **Nintendo eShop** (Steam), **Registro de actividad** (tus horas por juego), **Nintendo 3DS Sonido**
-  (Spotify), **Logros** y **Cambiar de consola**. Después tus juegos, los más recientes primero.
-- Arriba de la pantalla táctil: Notas (logros), **Lista de amigos** (tu canal de Discord), Notificaciones, Navegador
-  (actividad de Steam) y Perfil.
-- Abajo: los botones **− / +** cambian cuántas filas se ven (de 1 a 6) y el pincel abre el **Tema**.
-- Los botones de la carcasa funcionan con clic: cruceta, **A** (abrir), **B** (volver), **X** (opciones del juego),
-  **Y** (más filas), **HOME** (vuelve al menú) y el botón de **encendido** (cambiar de consola o apagar).
+  (la música), **Logros** y **Cambiar de consola**. Después tus juegos, los más recientes primero.
+- **Barra de arriba** de la pantalla de abajo, como en la 3DS:
+  - a la izquierda la **casita con el pincel** (tema);
+  - los accesos chiquitos: **Notas de juego** (logros), **Lista de amigos** (amigos de Steam y tu Grupo de Discord),
+    **Notificaciones**, **Navegador** (actividad de Steam) y **Perfil**;
+  - a la derecha, dos botones para el **tamaño de los íconos**: los cuatro cuadritos los achican y el cuadrado
+    grande los agranda (de 1 a 6 filas). El que ya no sirve se ve apagado.
+- **Abajo** está solo la **barra de páginas**: arrástrala con el mouse, o haz clic donde quieras ir.
+- Los botones de la carcasa funcionan con clic: cruceta, **A** (abrir), **B** (volver), **X** o **START** (opciones
+  del juego), **Y** (íconos más grandes), **SELECT** (íconos más chicos), **HOME** (vuelve al menú) y el botón de
+  **encendido** (cambiar de consola o apagar).
 - El icono de cada juego es la misma imagen cuadrada de la Switch (`cuadrado.png`).
 
 ---
 
-## 9. Teclas
+## 10. Teclas
 
 | Dónde | Teclas |
 |---|---|
-| Selector de consolas | ↑ ↓ elegir · Enter entrar · **O** ordenar las consolas (personalizado, fecha de salida, nombre o empresa; "Mover…" para cambiar una de lugar con ↑ ↓) · **Esc** pregunta si cerrar la app (Esc otra vez = cerrar) |
-| Wii | ← → páginas / juegos · Enter iniciar · Esc volver (en el menú: volver al selector) |
-| PS2 | Flechas moverse · Enter elegir · **C** configuración · Esc volver |
+| Selector de consolas | ↑ ↓ elegir · Enter entrar · **O** ordenar las consolas · **Esc** pregunta si cerrar la app (Esc otra vez = cerrar) |
+| Cualquier consola | **Clic derecho** sobre un juego, o **I** con el juego marcado: cambiar imágenes y descripción · **F3** FPS · **Ctrl + Alt + Shift + L** logro de prueba |
+| Wii | ← → páginas / canales · Enter iniciar · ↓ logros (en el canal) · **A** amigos · Esc volver (en el menú: selector) |
+| PS2 | Flechas moverse · Enter elegir · **A** amigos · **C** configuración · Esc volver (en la Memory Card: selector) |
 | Xbox 360 | Flechas moverse · **Q / E** cambiar de pestaña · **G** la Guía · Enter seleccionar · Esc volver |
-| PS4 | ← → juegos · **↑** funciones · **↓** ficha del juego · Enter jugar · **P** menú rápido · Esc volver (en el menú principal: selector) |
-| Cualquier consola | **Clic derecho** sobre un juego, o la tecla **I** con el juego marcado: cambiar imágenes y descripción |
-| Nintendo Switch | ← → juegos · **↓** botones redondos · Enter iniciar · **O** opciones del juego · **S** ordenar (Todo el software) · Esc volver (en el inicio: selector). Tema claro u oscuro: **Ajustes → Tema** |
-| PS3 | ← → categorías · ↑ ↓ opciones · Enter elegir / iniciar · **O** opciones (el triángulo) · Esc volver (en la barra: selector). Color del fondo: **Ajustes → Ajustes de tema** |
-| Nintendo 3DS | Flechas por la cuadrícula · Enter abrir · **O** (o X) opciones del juego · **+ / −** filas · Esc volver (en el menú: selector) |
-| PS Vita | Flechas entre burbujas (↑ ↓ en los bordes, o la rueda / RePág / AvPág, cambian de página) · Enter abrir · **Q / E** cambiar de tarjeta · **Retroceso** cerrar la tarjeta · **P** menú rápido · **N** avisos · Esc inicio (en el inicio: selector) |
+| PS3 | ← → categorías · ↑ ↓ opciones · Enter elegir / iniciar · **O** opciones (el triángulo) · Esc volver (en la barra: selector) |
+| PS4 | ← → juegos · **↑** funciones · **↓** ficha del juego · Enter jugar · **P** menú rápido · **S** orden (Biblioteca) · Esc volver (en el menú principal: selector) |
+| PS Vita | Flechas entre burbujas (↑ ↓ en los bordes, la rueda o RePág / AvPág cambian de página) · Enter abrir · **Q / E** cambiar de tarjeta · **Retroceso** cerrar la tarjeta · **P** menú rápido · **N** avisos · Esc inicio (en el inicio: selector) |
+| Switch | ← → juegos · **↓** botones redondos · Enter iniciar · **O** opciones del juego · **S** ordenar (Todo el software) · Esc volver (en el inicio: selector) |
+| 3DS | Flechas por la cuadrícula · Enter abrir · **O** o **X** opciones del juego · **+** o **Y** íconos más grandes · **−** íconos más chicos · Esc volver (en el menú: selector) |
 
 ---
 
-## 10. Si algo no se ve bien
+## 11. Si algo no se ve bien
 
-- **Arte raro o faltante:** ajustes → Juegos → *Volver a descargar el arte*.
-- **Juegos nuevos de Steam:** ajustes → Juegos → *Buscar juegos nuevos de Steam*.
-- **La barra de tareas tapa el menú:** ajustes → Pantalla → desactiva *Cubrir la barra de tareas*.
-- **Ver errores:** ajustes → Archivos → *Herramientas de desarrollo*, o `npm run dev`.
+- **Arte raro o faltante:** Ajustes → Juegos → *Volver a descargar el arte*.
+- **Juegos nuevos de Steam:** Ajustes → Juegos → *Buscar juegos nuevos de Steam*.
+- **La barra de tareas tapa el menú:** Ajustes → Pantalla → desactiva *Cubrir la barra de tareas*.
+- **Algo se ve raro:** Ajustes → General → *Recargar*.
+- **La portada de la canción no es la del álbum:** revisa `cache\spotify.log`; con Spotify conectado la portada sale
+  directo de Spotify.
+- **Ver errores:** Ajustes → Archivos → *Herramientas de desarrollo*, o `npm run dev`.
 - **¿Va fluido?** Presiona **F3** en cualquier pantalla: abajo a la izquierda aparecen los **FPS** (cuadros por
   segundo; lo normal es lo mismo que tu monitor, por ejemplo 60) y el cuadro más lento del último segundo. F3 otra vez
   lo esconde.

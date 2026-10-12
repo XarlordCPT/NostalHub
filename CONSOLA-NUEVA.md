@@ -93,4 +93,4 @@ más completas) cuando tengas dudas de cómo se hace algo.
 - [ ] `MANUAL.md`: sección "Cómo se usa la <consola>" (teclas, secciones, imágenes que usa, sonidos).
 - [ ] Probar en el navegador con el mock (`renderer/mock.js`; agregar lo que falte) y en Electron real.
 - [ ] Capturas de cada pantalla antes de entregar.
-- [ ] Sincronizar al PC y comprobar md5; sugerir los comandos de git (Cristóbal hace el commit él mismo).
+- [ ] Darle a Cristóbal los comandos de git (él hace el commit y el push).
