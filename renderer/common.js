@@ -1,5 +1,27 @@
 /* Utilidades compartidas por los temas: textos de tiempo, horas jugadas y logros. */
 (() => {
+  // ---------- Mouse quieto vs. teclado / control ----------
+  // Muchas listas eligen lo que tiene el mouse encima (mouseenter). Al bajar la página con el teclado o el control,
+  // las cosas pasan por debajo del mouse QUIETO y el navegador avisa "el mouse entró aquí": la selección saltaba a
+  // otro lado. Después de una tecla, esos avisos se ignoran hasta que el mouse se mueva de verdad.
+  let lastKeyAt = 0;
+  let lastMouseAt = 0;
+  let mouseX = null;
+  let mouseY = null;
+  // ¿El puntero cambió de lugar? (cuando la página se mueve bajo el mouse quieto, no cambia)
+  const moved = (e) => {
+    if (e.clientX === mouseX && e.clientY === mouseY) return false;
+    mouseX = e.clientX;
+    mouseY = e.clientY;
+    lastMouseAt = performance.now();
+    return true;
+  };
+  window.addEventListener('keydown', () => (lastKeyAt = performance.now()), true);
+  window.addEventListener('mousemove', moved, true);
+  for (const type of ['mouseover', 'mouseenter', 'pointerover', 'pointerenter']) {
+    window.addEventListener(type, (e) => !moved(e) && lastKeyAt > lastMouseAt && e.stopImmediatePropagation(), true);
+  }
+
   const rtf = new Intl.RelativeTimeFormat('es', { numeric: 'auto' });
 
   function ago(ms) {

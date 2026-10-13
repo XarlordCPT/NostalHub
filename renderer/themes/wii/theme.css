@@ -82,13 +82,15 @@
   background-position: 150% 0;
   pointer-events: none;
 }
-.tile.game:hover {
+.tile.game:hover,
+.tile.game.wkf {
   transform: scale(1.045);
   border-color: var(--cyan);
   box-shadow: 0 0 0 4px var(--cyan-soft), 0 10px 24px rgba(0, 0, 0, 0.14);
   z-index: 2;
 }
-.tile.game:hover .tile-inner::after {
+.tile.game:hover .tile-inner::after,
+.tile.game.wkf .tile-inner::after {
   background-position: -50% 0;
   transition: background-position 0.8s ease;
 }
@@ -212,11 +214,13 @@
 .round-btn.left { left: 110px; }
 .round-btn.right { right: 110px; }
 .round-btn svg { width: 64px; height: 64px; fill: #a3a3a3; stroke: #a3a3a3; }
-.round-btn:hover {
+.round-btn:hover,
+.round-btn.wkf {
   transform: scale(1.06);
   box-shadow: 0 0 0 6px var(--cyan), 0 0 0 12px var(--cyan-soft), 0 8px 18px rgba(0, 0, 0, 0.14);
 }
-.round-btn:hover svg { fill: #6fb9d6; stroke: #6fb9d6; }
+.round-btn:hover svg,
+.round-btn.wkf svg { fill: #6fb9d6; stroke: #6fb9d6; }
 
 /* ============ Pantalla de canal ============ */
 #channel,
@@ -518,9 +522,12 @@ body.playing .theme-wii .ch-media .hero { animation-play-state: paused; }
   filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.55));
   transition: transform 0.25s var(--ease);
 }
-.tile.game:hover .tile-inner.composed .tile-bg { transform: scale(1.08); }
+.tile.game:hover .tile-inner.composed .tile-bg,
+.tile.game.wkf .tile-inner.composed .tile-bg { transform: scale(1.08); }
 .tile.game:hover .tile-title img,
-.tile.game:hover .tile-title .title-text { transform: scale(1.05); }
+.tile.game:hover .tile-title .title-text,
+.tile.game.wkf .tile-title img,
+.tile.game.wkf .tile-title .title-text { transform: scale(1.05); }
 
 .title-text.small {
   white-space: normal;
@@ -1000,7 +1007,8 @@ body.playing .theme-wii .ch-media .hero { animation-play-state: paused; }
 /* ============ Amigos (de Steam) ============ */
 .round-btn.small { width: 112px; height: 112px; top: 132px; right: 300px; }
 .round-btn.small svg { width: 54px; height: 54px; fill: none; }
-.round-btn.small:hover svg { fill: none; }
+.round-btn.small:hover svg,
+.round-btn.small.wkf svg { fill: none; }
 .wf-badge { position: absolute; right: -6px; top: -6px; min-width: 40px; height: 40px; padding: 0 8px; border-radius: 20px; background: var(--cyan); color: #fff; font-size: 24px; font-weight: 800; line-height: 40px; font-style: normal; text-align: center; box-shadow: 0 0 0 4px #fff; }
 .wf-badge[hidden] { display: none; }
 #wii-fr { position: absolute; inset: 0; z-index: 30; }

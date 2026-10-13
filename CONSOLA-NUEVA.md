@@ -52,6 +52,9 @@ más completas) cuando tengas dudas de cómo se hace algo.
 - [ ] **Avisos** con `ctx.toast(texto)` (o uno propio con el estilo de la consola).
 - [ ] Teclado **y** mouse: flechas, Enter, Esc/Retroceso, rueda; todo clickeable (cuidado con capas
       transparentes que tapan clics → `pointer-events`).
+- [ ] **Control** (`renderer/gamepad.js`): si la consola usa teclas propias para pestañas, menú u ordenar, agregarla
+      en `BY_CONSOLE` (L1/R1, Options, Create). Si dibuja pistas de teclas, agregar su selector en `HINT_KEYS`
+      para que muestren ✕ ○ △ □ al usar el control.
 
 ## 3. Editor de imágenes por juego (clic derecho)
 

@@ -86,7 +86,8 @@ function isGame(appId, name) {
 }
 
 // Devuelve [{ appId, name, installDir, library }] de los juegos instalados.
-async function listInstalledGames() {
+// { all: true }: también los que se están descargando o actualizando (para saber cuáles se desinstalaron)
+async function listInstalledGames({ all = false } = {}) {
   const steamPath = await findSteamPath();
   if (!steamPath) return [];
   const games = new Map();
@@ -104,7 +105,7 @@ async function listInstalledGames() {
       if (!st || !st.appid) continue;
       if (!isGame(st.appid, st.name)) continue;
       // Si todavía se está descargando, se agrega cuando termine
-      if (st.StateFlags !== undefined && !(Number(st.StateFlags) & 4)) continue;
+      if (!all && st.StateFlags !== undefined && !(Number(st.StateFlags) & 4)) continue;
       games.set(st.appid, {
         appId: String(st.appid),
         name: st.name || `App ${st.appid}`,

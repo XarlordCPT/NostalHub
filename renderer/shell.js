@@ -415,6 +415,9 @@
     startMusic(id) {
       this.stopMusic(true);
       this.ducked = false;
+      // Consola recién abierta: no hay juego (si se cambió de consola con un juego abierto, quedaba marcado
+      // "en pausa por juego" y en el siguiente juego la música seguía sonando)
+      this.pausedForGame = false;
       const url = assets[id] && assets[id].music;
       this.musicId = id;
       if (!url || !settings.music) return;
@@ -823,7 +826,8 @@
 
   window.addEventListener('keydown', (e) => {
     if (mode === 'confirm') {
-      if (e.key === 'Escape') doQuit();
+      // Esc otra vez = cerrar; con el control (○ = volver) cancela, para no cerrar la app sin querer
+      if (e.key === 'Escape') e.isTrusted ? doQuit() : closeQuit();
       else if (e.key === 'Enter' || e.key === ' ') quitChoice === 0 ? doQuit() : closeQuit();
       else if (e.key === 'ArrowLeft' || e.key === 'ArrowRight' || e.key === 'Tab') {
         e.preventDefault();

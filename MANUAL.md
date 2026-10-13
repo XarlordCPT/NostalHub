@@ -129,7 +129,9 @@ navegador), **Pegar** una imagen copiada ("Copiar imagen" en el navegador) o **v
 consolas**. Los cambios se ven al tiro.
 
 Por dentro, la app guarda esos archivos en una carpeta por juego (Ajustes → Archivos → **Carpeta de
-personalización**). También puedes ponerlos a mano:
+personalización**). La carpeta de un juego aparece cuando le cambias algo desde la app (o con **Abrir carpeta** en
+esa ventana); también puedes crearla tú con el nombre del juego. Las carpetas vacías se borran solas al abrir
+NostalHub. También puedes poner los archivos a mano:
 
 | Archivo | Dónde se ve | Qué hace |
 |---|---|---|
@@ -282,6 +284,8 @@ En todas, mientras juegas, también aparece al lado del juego.
 **Juegos de Steam:** no hay que hacer nada. Los que ya tenías se agregan al abrir NostalHub, y los que descargues
 **mientras NostalHub está abierta aparecen solos** cuando terminan de instalarse (sale un aviso "Nuevo juego").
 Si alguno no aparece: Ajustes → Juegos → **Buscar juegos nuevos de Steam**.
+Los que **desinstalas** desaparecen de los menús solos, y vuelven (con su arte, sus horas y tus imágenes) cuando los
+instalas de nuevo y terminan de descargarse.
 
 **Juegos que no son de Steam**, de dos formas:
 
@@ -406,7 +410,8 @@ puede saber cuándo terminan: usa **Volver al menú**.
 
 ### Wii
 
-- **Menú de canales**: 12 canales por página (4 × 3). ← → o la rueda para pasar de página. Abajo, el reloj y los
+- **Menú de canales**: 12 canales por página (4 × 3). Las flechas eligen un canal (↓ desde la última fila baja a los
+  botones de abajo); **RePág / AvPág** (L1 / R1 en el control) o la rueda pasan de página. Abajo, el reloj y los
   botones redondos: **engranaje** (ajustes), **sobre** (amigos de Steam) y **dado** (juego al azar).
 - **Pantalla del canal**: al elegir un juego se abre su canal con el fondo, el logo y la animación (`video.mp4` o el
   tráiler de Steam, si los activaste). Botones **Menú**, **Iniciar** y **Logros** (↓). ← → cambian de canal.
@@ -501,13 +506,42 @@ puede saber cuándo terminan: usa **Volver al menú**.
 
 ---
 
-## 10. Teclas
+## 10. Control (PS5, PS4, Xbox…)
+
+Conecta tu control (por cable o Bluetooth) y úsalo en el selector y en todas las consolas. Funciona cuando
+NostalHub está **activa**: haz clic en ella una vez (o ábrela desde el ícono junto al reloj). Así nunca se mueve sola
+mientras usas el control en otra cosa o en un juego.
+
+| Botón | Qué hace |
+|---|---|
+| Cruceta o stick izquierdo | Moverse (mantenerlo apretado = repetir) |
+| ✕ | Aceptar (Enter) |
+| ○ | Volver (Esc). En "¿Cerrar NostalHub?", ○ **cancela** |
+| △ | Opciones del juego (tecla O) |
+| □ | Cambiar imágenes del juego (tecla I) |
+| L1 / R1 | Pestaña, página o tarjeta anterior / siguiente (Xbox 360 y PS Vita: Q / E) |
+| L2 / R2 | Subir / bajar rápido (RePág / AvPág) |
+| Options | Menú de la consola: Guía (Xbox 360), menú rápido (PS4 y PS Vita), Configuración (PS2), ordenar (selector) |
+| Create | Ordenar (tecla S); en la Wii y la PS2, Amigos |
+| Stick derecho | Como la rueda del mouse |
+
+- Cuando usas el control, las pistas de la pantalla muestran sus botones (✕ ○ △ □); si vuelves al teclado,
+  vuelven las teclas.
+- Mientras juegas, solo ✕ y ○ funcionan (para **Volver al menú**), y solo si NostalHub está activa.
+- Si Steam también convierte tu control en teclas (su "configuración de escritorio"), NostalHub lo nota y no
+  cuenta cada botón dos veces.
+- **Con Steam abierto** el control de PS5 igual funciona: Steam lo cambia a un modo que Windows no muestra como
+  control, así que NostalHub lo lee directo (solo lo lee, no cambia nada del control).
+
+---
+
+## 11. Teclas
 
 | Dónde | Teclas |
 |---|---|
 | Selector de consolas | ↑ ↓ elegir · Enter entrar · **O** ordenar las consolas · **Esc** pregunta si cerrar la app (Esc otra vez = cerrar) |
 | Cualquier consola | **Clic derecho** sobre un juego, o **I** con el juego marcado: cambiar imágenes y descripción · **F3** FPS · **Ctrl + Alt + Shift + L** logro de prueba |
-| Wii | ← → páginas / canales · Enter iniciar · ↓ logros (en el canal) · **A** amigos · Esc volver (en el menú: selector) |
+| Wii | Flechas elegir canal (↓ a los botones de abajo) · RePág / AvPág páginas · ← → cambiar de canal (dentro de un canal) · Enter abrir / iniciar · ↓ logros (en el canal) · **A** amigos · Esc volver (en el menú: selector) |
 | PS2 | Flechas moverse · Enter elegir · **A** amigos · **C** configuración · Esc volver (en la Memory Card: selector) |
 | Xbox 360 | Flechas moverse · **Q / E** cambiar de pestaña · **G** la Guía · Enter seleccionar · Esc volver |
 | PS3 | ← → categorías · ↑ ↓ opciones · Enter elegir / iniciar · **O** opciones (el triángulo) · Esc volver (en la barra: selector) |
@@ -518,7 +552,7 @@ puede saber cuándo terminan: usa **Volver al menú**.
 
 ---
 
-## 11. Si algo no se ve bien
+## 12. Si algo no se ve bien
 
 - **Arte raro o faltante:** Ajustes → Juegos → *Volver a descargar el arte*.
 - **Juegos nuevos de Steam:** Ajustes → Juegos → *Buscar juegos nuevos de Steam*.

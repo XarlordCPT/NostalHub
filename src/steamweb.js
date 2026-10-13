@@ -18,6 +18,8 @@ class SteamWeb {
     this.keyFile = path.join(dataDir, 'steam-api-key.txt');
     this.cacheFile = path.join(dataDir, 'cache', 'logros.json');
     this.memo = new Map(); // respuestas recientes { url -> { t, data } }
+    this.failed = {}; // appId -> cuándo falló (para no preguntar cada 2 minutos)
+    this.privateUntil = 0; // perfil privado: se vuelve a probar más tarde
     this.totals = this.loadTotals();
   }
 
@@ -59,6 +61,8 @@ class SteamWeb {
     fs.mkdirSync(path.dirname(this.keyFile), { recursive: true });
     fs.writeFileSync(this.keyFile, KEY_TEMPLATE + key + '\r\n', 'utf8');
     this.memo.clear();
+    this.failed = {};
+    this.privateUntil = 0;
     const p = steamId && data && data.response && data.response.players && data.response.players[0];
     return {
       ok: true,
@@ -248,14 +252,23 @@ class SteamWeb {
   // Recorre tus juegos en segundo plano para sumar los logros (sin repetir los recientes)
   // lastPlayed: { appId: ms } — si jugaste un juego después de la última consulta, se vuelve a pedir
   async refreshTotals(appIds, steamId, onProgress, lastPlayed = {}) {
-    if (!this.key || !steamId || this.refreshing) return;
+    if (!this.key || !steamId || this.refreshing || Date.now() < this.privateUntil) return;
     this.refreshing = true;
     try {
       for (const appId of appIds) {
         const prev = this.totals[appId];
         if (prev && Date.now() - prev.t < 6 * 3600 * 1000 && !((lastPlayed[appId] || 0) > prev.t)) continue;
+        // Si falló hace poco, se vuelve a intentar en una hora (salvo que lo hayas jugado después)
+        if (this.failed[appId] && Date.now() - this.failed[appId] < 3600 * 1000 && !((lastPlayed[appId] || 0) > this.failed[appId])) continue;
         const r = await this.achievements(appId, steamId);
         if (r.status === 'none') this.setTotal(appId, 0, 0);
+        if (r.status === 'private') {
+          // Perfil privado: falla igual para todos los juegos; se vuelve a probar en 30 minutos
+          this.privateUntil = Date.now() + 30 * 60 * 1000;
+          break;
+        }
+        if (r.status === 'ok') delete this.failed[appId];
+        else if (r.status === 'error') this.failed[appId] = Date.now();
         if (onProgress) onProgress(this.summary());
         await new Promise((res) => setTimeout(res, 300));
       }

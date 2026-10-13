@@ -212,40 +212,56 @@ function customFilesFor(game) {
   return { ...byId, ...byName };
 }
 
+// La carpeta de personalización y su LEEME. La carpeta de cada juego ya no se crea sola: aparece cuando
+// eliges una imagen desde la app (clic derecho → Cambiar imágenes → Abrir carpeta) o la creas tú.
 function ensureCustomFolders() {
   fs.mkdirSync(CUSTOM_DIR, { recursive: true });
-  for (const g of config.games) {
-    const dir = path.join(CUSTOM_DIR, folderName(g));
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-  }
   const readme = path.join(CUSTOM_DIR, 'LEEME.txt');
-  if (!fs.existsSync(readme)) {
-    fs.writeFileSync(
-      readme,
-      [
-        'Cada carpeta corresponde a un juego. Deja aquí los archivos que quieras usar en vez del arte automático:',
-        '',
-        '  video.mp4 / video.webm / video.gif  -> animación de la pantalla de canal',
-        '  fondo.jpg / fondo.png               -> fondo de la pantalla de canal',
-        '  logo.png                            -> título (mejor con fondo transparente)',
-        '  canal.jpg / canal.png / canal.mp4   -> cuadrito del juego en el menú',
-        '  modelo.glb / modelo.gltf            -> modelo 3D (tema PS2), por ejemplo exportado desde Blockbench',
-        '  descripcion.txt                     -> descripción propia del juego (reemplaza la de Steam)',
-        '  icono.png                           -> icono del juego en la PS3 (320×176)',
-        '  musica.mp3                          -> música que suena al quedarte sobre el juego en la PS3',
-        '',
-        'Los cambios se aplican solos al guardar el archivo. Para volver al arte automático, borra el archivo.',
-        '',
-      ].join('\r\n'),
-      'utf8'
-    );
-  }
+  const text = [
+    'Una carpeta por juego, con el nombre del juego. Se crea sola al cambiar una imagen desde la app',
+    '(clic derecho sobre el juego -> Cambiar imágenes), o puedes crearla tú. Deja ahí los archivos que',
+    'quieras usar en vez del arte automático:',
+    '',
+    '  video.mp4 / video.webm / video.gif  -> animación de la pantalla de canal',
+    '  fondo.jpg / fondo.png               -> fondo de la pantalla de canal',
+    '  logo.png                            -> título (mejor con fondo transparente)',
+    '  canal.jpg / canal.png / canal.mp4   -> cuadrito del juego en el menú',
+    '  modelo.glb / modelo.gltf            -> modelo 3D (tema PS2), por ejemplo exportado desde Blockbench',
+    '  descripcion.txt                     -> descripción propia del juego (reemplaza la de Steam)',
+    '  icono.png                           -> icono del juego en la PS3 (320×176)',
+    '  musica.mp3                          -> música que suena al quedarte sobre el juego en la PS3',
+    '',
+    'Los cambios se aplican solos al guardar el archivo. Para volver al arte automático, borra el archivo.',
+    '',
+  ].join('\r\n');
+  try {
+    if (!fs.existsSync(readme) || fs.readFileSync(readme, 'utf8') !== text) fs.writeFileSync(readme, text, 'utf8');
+  } catch {}
+}
+
+// Borra las carpetas de juegos que están completamente vacías (las creaba la app antes, una por juego).
+// Las que tienen cualquier archivo no se tocan.
+function removeEmptyCustomFolders() {
+  let removed = 0;
+  try {
+    for (const e of fs.readdirSync(CUSTOM_DIR, { withFileTypes: true })) {
+      if (!e.isDirectory()) continue;
+      const dir = path.join(CUSTOM_DIR, e.name);
+      try {
+        if (fs.readdirSync(dir).length === 0) {
+          fs.rmdirSync(dir); // rmdir solo funciona si está vacía
+          removed++;
+        }
+      } catch {}
+    }
+  } catch {}
+  return removed;
 }
 
 // Lo que ve la interfaz (rutas convertidas a file:// y prioridades resueltas).
 function gamesView() {
   return config.games
-    .filter((g) => !g.hidden)
+    .filter((g) => !g.hidden && !g.uninstalled)
     .map((g) => {
       const c = { ...customFilesFor(g), ...pickExisting(g.custom) };
       const m = g.media || {};
@@ -447,6 +463,26 @@ async function importSteamGames() {
   const addedNames = [];
   const installed = await steam.listInstalledGames();
   const known = new Set(config.games.filter((g) => g.type === 'steam').map((g) => g.appId));
+
+  // Desinstalados: se ocultan solos (sin borrarlos) y vuelven, con su arte y sus horas, cuando los
+  // reinstalas y terminan de descargarse. Los que se están descargando o actualizando no se tocan.
+  let installChanged = false;
+  const present = new Set((await steam.listInstalledGames({ all: true })).map((g) => g.appId));
+  const ready = new Set(installed.map((g) => g.appId));
+  if (present.size) {
+    for (const g of config.games) {
+      if (g.type !== 'steam' || !g.appId) continue;
+      if (!present.has(g.appId) && !g.uninstalled) {
+        g.uninstalled = true;
+        installChanged = true;
+      } else if (ready.has(g.appId) && g.uninstalled) {
+        delete g.uninstalled;
+        installChanged = true;
+        addedNames.push(g.name);
+      }
+    }
+  }
+
   for (const s of installed) {
     if (known.has(s.appId)) continue;
     config.games.push({
@@ -492,7 +528,7 @@ async function importSteamGames() {
     console.warn('No se pudieron leer los accesos directos de Steam:', e.message);
   }
 
-  if (addedNames.length || changed) config.save();
+  if (addedNames.length || changed || installChanged) config.save();
   ensureCustomFolders();
   return addedNames;
 }
@@ -569,9 +605,10 @@ async function refreshMedia({ force = false } = {}) {
   mediaRunning = true;
   try {
     for (const g of config.games) {
-      if (g.type !== 'steam') continue;
+      if (g.type !== 'steam' || g.uninstalled) continue;
+      const before = JSON.stringify(g);
       const changed = await media.ensureSteamMedia(g, MEDIA_DIR, { force });
-      config.save();
+      if (JSON.stringify(g) !== before) config.save(); // solo si cambió algo (antes se guardaba una vez por juego)
       if (changed) pushGamesSoon();
     }
   } finally {
@@ -1452,7 +1489,7 @@ ipcMain.handle('app:open', (_e, what) => {
 function refreshAchievementTotals() {
   if (!steamUser || !steamWeb.key) return;
   const ids = config.games
-    .filter((g) => g.type === 'steam' && g.appId && !g.hidden)
+    .filter((g) => g.type === 'steam' && g.appId && !g.hidden && !g.uninstalled)
     .sort((a, b) => ((localStats[b.appId] || {}).lastPlayed || 0) - ((localStats[a.appId] || {}).lastPlayed || 0))
     .map((g) => g.appId);
   const last = {};
@@ -1481,6 +1518,7 @@ app.whenReady().then(async () => {
   config.load();
   fs.mkdirSync(MEDIA_DIR, { recursive: true });
   ensureCustomFolders();
+  removeEmptyCustomFolders();
 
   // Los tráileres de Steam vienen de otro dominio: les permitimos cargar en la ventana.
   session.defaultSession.webRequest.onHeadersReceived({ urls: ['https://*.steamstatic.com/*'] }, (details, cb) => {
@@ -1491,6 +1529,10 @@ app.whenReady().then(async () => {
     headers['Access-Control-Allow-Origin'] = ['*'];
     cb({ responseHeaders: headers });
   });
+
+  // Control de PS5 leído directo (renderer/gamepad.js): con Steam abierto, el navegador no lo ve como control.
+  // Solo se da permiso a los controles de Sony, y solo para leerlos.
+  session.defaultSession.setDevicePermissionHandler((d) => d.deviceType === 'hid' && !!d.device && d.device.vendorId === 0x054c);
 
   createWindow();
   createTray();

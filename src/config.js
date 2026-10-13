@@ -103,7 +103,8 @@ function normalizeGame(g, i) {
     appId: appId ? String(appId) : undefined,
     target: g.target || undefined, // ruta del .lnk/.exe o URL
     args: g.args || [],
-    hidden: !!g.hidden,
+    hidden: !!g.hidden, // lo ocultaste tú
+    uninstalled: g.uninstalled ? true : undefined, // juego de Steam desinstalado: no se muestra hasta que lo reinstales
     media: g.media || {},   // lo que se descarga solo
     custom: g.custom || {}, // lo que eliges tú (tiene prioridad)
     mediaCheckedAt: g.mediaCheckedAt || 0,

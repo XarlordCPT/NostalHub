@@ -127,6 +127,13 @@ async function ensureSteamMedia(game, mediaRoot, { force = false } = {}) {
   const dir = path.join(mediaRoot, safeId(game.id));
   fs.mkdirSync(dir, { recursive: true });
   const before = JSON.stringify(m);
+  // "Volver a descargar el arte": las imágenes se piden de nuevo; si alguna no se puede bajar, queda la anterior
+  const prev = force ? { ...m } : null;
+  if (force) {
+    for (const k of ['tile', 'hero', 'logo', 'cover', 'header']) delete m[k];
+    delete m.coverTried;
+    delete m.headerTried;
+  }
 
   // 1. Caché local de Steam
   const local = await steam.findLocalArt(game.appId);
@@ -170,7 +177,10 @@ async function ensureSteamMedia(game, mediaRoot, { force = false } = {}) {
     if (!fileOk(m.hero) && details.background_raw) m.hero = await downloadImage(details.background_raw, path.join(dir, 'hero'));
   }
 
-  for (const k of ['tile', 'hero', 'logo', 'cover', 'header']) if (!fileOk(m[k])) delete m[k];
+  for (const k of ['tile', 'hero', 'logo', 'cover', 'header']) {
+    if (!fileOk(m[k]) && prev && fileOk(prev[k])) m[k] = prev[k];
+    if (!fileOk(m[k])) delete m[k];
+  }
   game.mediaCheckedAt = Date.now();
   return JSON.stringify(m) !== before;
 }

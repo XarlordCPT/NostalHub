@@ -76,6 +76,10 @@ renderer/index.html     Carga todo (un <script> y un <link> por tema)
 renderer/shell.js/.css  Selector de consolas, escalado del escenario, sonidos, barra de ventana, F3
 renderer/consoles.js    Lista de consolas (id, empresa, nombre, año, colores)
 renderer/common.js      window.NostalHubUtil: helpers compartidos (ver abajo)
+renderer/gamepad.js     Control (PS5/Xbox): convierte botones en las teclas de cada tema (BY_CONSOLE) y cambia
+                        las pistas a ✕ ○ △ □ (HINT_KEYS). Solo con la ventana activa; filtra el doble de Steam Input.
+                        El DualSense se lee además directo por WebHID (parseDualSense): con Steam abierto queda en
+                        modo 0x31 y la Gamepad API no lo ve. Permiso HID solo para Sony en main.js
 renderer/setup.js       Ventana "Conectar Steam / Discord / Spotify"
 renderer/game-editor.js Editor de imágenes por juego (clic derecho o tecla I): BY_CONSOLE, SLOTS
 renderer/console-model.js, models/   Modelos 3D (Three.js) del selector y de los íconos de la PS2
@@ -122,8 +126,9 @@ descripción), `cache\` (arte descargado, `spotify.log`, `discord.log`) y las cl
    Sirve para capturas con Playwright a 1920×1080.
 2. **De verdad**: `npm run dev`. Ahí funcionan Steam, la música por PowerShell, Discord y los sonidos de AppData.
 3. **Logro de prueba**: Ctrl + Alt + Shift + L (con el estilo de la consola actual). **F3** muestra los FPS.
-4. Prueba con **teclado y mouse** (flechas, Enter, Esc/Retroceso, rueda, clic) y revisa que ninguna capa
-   transparente tape clics (`pointer-events`).
+4. Prueba con **teclado, mouse y control** (flechas, Enter, Esc/Retroceso, rueda, clic) y revisa que ninguna capa
+   transparente tape clics (`pointer-events`). El control llega como teclas simuladas (`isTrusted` = false): los
+   temas no deben depender de `isTrusted` ni de la acción por defecto del navegador.
 
 ## Cosas aprendidas (para no repetir errores)
 
@@ -137,6 +142,11 @@ descripción), `cache\` (arte descargado, `spotify.log`, `discord.log`) y las cl
 - La portada de la canción solo se busca por internet si coincide la **misma canción**; si no, mejor ninguna.
 - Discord solo funciona para la cuenta dueña de la aplicación (y sus testers).
 - Battle.net no tiene API pública de amigos: no se puede.
+- Elegir con `mouseenter` + mover la lista con el teclado = la selección salta al elemento que pasa bajo el mouse
+  quieto. `common.js` ya ignora esos avisos después de una tecla (hasta que el mouse se mueva de verdad).
+- Toda pantalla tiene que poder usarse solo con flechas + Enter + Esc (el control llega así). Filas de botones
+  horizontales se mueven con ← → (ver `moveQmSub` en la PS4), no con ↑ ↓.
+- Con Steam abierto, el DualSense queda en modo 0x31 y la Gamepad API no lo ve: por eso `gamepad.js` lo lee por HID.
 
 ## Decisiones de Cristóbal
 

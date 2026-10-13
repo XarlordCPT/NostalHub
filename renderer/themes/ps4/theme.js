@@ -1393,7 +1393,7 @@
       qmSel = i;
       if (['sound', 'music', 'party', 'friends', 'power'].includes(q.id)) {
         qmCol = 'sub';
-        setQmSub(0);
+        setQmSub(qmFirst());
         return;
       }
       closeQm();
@@ -1421,16 +1421,47 @@
         else if (k === 'ArrowUp') moveQm(-1);
         else if (k === 'ArrowRight' && qmSubItems.length) {
           qmCol = 'sub';
-          setQmSub(0);
+          setQmSub(qmFirst());
         } else if (k === 'Enter') qmActivate(qmSel);
       } else {
-        if (k === 'ArrowDown') setQmSub(qmSubSel + 1);
-        else if (k === 'ArrowUp') setQmSub(qmSubSel - 1);
+        if (k.startsWith('Arrow')) moveQmSub(k);
+        else if (k === 'Enter' && qmSubItems[qmSubSel]) qmSubItems[qmSubSel].run();
+      }
+    }
+    // Las opciones de la derecha van en filas: los botones redondos (anterior / pausa / siguiente, volumen) son una
+    // fila horizontal (← →), y ↑ ↓ pasa de una fila a la otra. ← en el primero de la fila vuelve a la lista.
+    function qmGroups() {
+      const groups = [];
+      qmSubItems.forEach((s, i) => {
+        const row = s.el.parentElement && s.el.parentElement.classList.contains('p4-qm-btnrow') ? s.el.parentElement : null;
+        const last = groups[groups.length - 1];
+        if (row && last && last.row === row) last.items.push(i);
+        else groups.push({ row, items: [i] });
+      });
+      return groups;
+    }
+    // En una fila se entra por el botón grande (pausa), si tiene
+    const groupEntry = (g) => g.items.find((i) => qmSubItems[i].el.classList.contains('big')) ?? g.items[0];
+    function qmFirst() {
+      const g = qmGroups()[0];
+      return g ? groupEntry(g) : 0;
+    }
+    function moveQmSub(k) {
+      const groups = qmGroups();
+      const gi = groups.findIndex((g) => g.items.includes(qmSubSel));
+      if (gi < 0) return;
+      const g = groups[gi];
+      if (k === 'ArrowLeft' || k === 'ArrowRight') {
+        const j = g.items.indexOf(qmSubSel) + (k === 'ArrowRight' ? 1 : -1);
+        if (g.row && j >= 0 && j < g.items.length) setQmSub(g.items[j]);
         else if (k === 'ArrowLeft') {
           qmCol = 'list';
           setQmSub(qmSubSel);
-        } else if (k === 'Enter' && qmSubItems[qmSubSel]) qmSubItems[qmSubSel].run();
+        }
+        return;
       }
+      const next = groups[(gi + (k === 'ArrowDown' ? 1 : -1) + groups.length) % groups.length];
+      setQmSub(groupEntry(next));
     }
     $('.p4-qm-btn').addEventListener('click', () => (qmOpen ? closeQm() : openQm()));
     $('.p4-qm').addEventListener('pointerdown', (e) => {

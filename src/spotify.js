@@ -104,7 +104,14 @@ class Spotify {
         this.helper = null;
         this.helperQueue.splice(0).forEach((cb) => cb(null));
         finish(false);
-        if (this.mode === 'smtc') this.mode = 'basic'; // si se cae, seguimos con el respaldo
+        if (this.mode === 'smtc') {
+          // Si se cae, seguimos con el respaldo y se vuelve a abrir en unos segundos (hasta 5 veces seguidas)
+          this.mode = 'basic';
+          clearTimeout(this.helperOkTimer);
+          this.helperFails = (this.helperFails || 0) + 1;
+          if (!this.disposed) this.log('el ayudante de PowerShell se cerró');
+          this.reviveHelper();
+        }
       });
       this.helper.stdout.setEncoding('utf8');
       this.helper.stdout.on('data', (chunk) => {
@@ -129,6 +136,26 @@ class Spotify {
       });
       setTimeout(() => finish(false), 10000); // si en 10 s no responde, usamos el respaldo
     });
+  }
+
+  reviveHelper() {
+    if (this.disposed || this.reviving || (this.helperFails || 0) >= 5 || !this.state.supported) return;
+    this.reviving = true;
+    setTimeout(async () => {
+      if (this.disposed) return;
+      const ok = !this.helper && (await this.startHelper());
+      this.reviving = false;
+      if (ok) {
+        this.mode = 'smtc';
+        this.log('el ayudante de PowerShell volvió a funcionar');
+        // si funciona más de un minuto, se perdonan las caídas anteriores
+        clearTimeout(this.helperOkTimer);
+        this.helperOkTimer = setTimeout(() => (this.helperFails = 0), 60000);
+      } else {
+        this.helperFails = (this.helperFails || 0) + 1;
+        this.reviveHelper();
+      }
+    }, 5000);
   }
 
   ask(cmd) {
@@ -423,6 +450,8 @@ class Spotify {
   }
 
   dispose() {
+    this.disposed = true;
+    clearTimeout(this.helperOkTimer);
     if (this.timer) clearInterval(this.timer);
     for (const p of [this.keyProc, this.helper]) {
       if (!p) continue;

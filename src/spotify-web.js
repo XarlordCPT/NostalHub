@@ -108,7 +108,7 @@ class SpotifyWeb {
           this.save();
           res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' }).end(page('¡Listo!', 'Spotify quedó conectado. Ya puedes cerrar esta pestaña y volver a NostalHub.'));
           this.set({ status: 'ok', message: '', user: this.cfg.user });
-          if (this.watchers) this.poll();
+          this.syncTimer(); // si alguna pantalla ya lo estaba mostrando, empieza a actualizarse solo
           finish({ ok: true, user: this.cfg.user });
         } catch (e) {
           res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' }).end(page('No se conectó', 'Vuelve a NostalHub e inténtalo de nuevo.'));
@@ -130,6 +130,7 @@ class SpotifyWeb {
     this.access = null;
     this.save();
     this.set({ status: this.cfg.clientId ? 'need-auth' : 'no-config', message: '', user: null, playback: null, queue: [], liked: null });
+    this.syncTimer();
   }
 
   async tokenRequest(params) {
@@ -209,10 +210,15 @@ class SpotifyWeb {
   // ---------- Lectura periódica (solo mientras alguna pantalla la muestra) ----------
   watch(on) {
     this.watchers = Math.max(0, this.watchers + (on ? 1 : -1));
+    this.syncTimer();
+  }
+
+  // Consulta cada 2 s mientras alguna pantalla lo muestra y está conectado
+  syncTimer() {
     if (this.watchers && !this.timer && this.connected) {
       this.poll();
       this.timer = setInterval(() => this.poll(), 2000);
-    } else if (!this.watchers && this.timer) {
+    } else if ((!this.watchers || !this.connected) && this.timer) {
       clearInterval(this.timer);
       this.timer = null;
     }

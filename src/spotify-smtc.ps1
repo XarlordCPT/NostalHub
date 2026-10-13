@@ -22,6 +22,7 @@ try {
   }
   [Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager, Windows.Media.Control, ContentType = WindowsRuntime] | Out-Null
   [Windows.Storage.Streams.IRandomAccessStreamWithContentType, Windows.Storage.Streams, ContentType = WindowsRuntime] | Out-Null
+  $asStreamForRead = [System.IO.WindowsRuntimeStreamExtensions].GetMethod('AsStreamForRead', [type[]]@([Windows.Storage.Streams.IInputStream]))
   $manager = Await ([Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager]::RequestAsync()) ([Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager])
   Send @{ ready = $true }
 } catch {
@@ -81,14 +82,16 @@ while ($true) {
       if ($props.Thumbnail) {
         try {
           $stream = Await ($props.Thumbnail.OpenReadAsync()) ([Windows.Storage.Streams.IRandomAccessStreamWithContentType])
-          $net = [System.IO.WindowsRuntimeStreamExtensions]::AsStreamForRead($stream)
+          # PowerShell ve el stream como un objeto COM sin sus métodos: se llama por reflexión
+          # (AsStreamForRead($stream) directo fallaba siempre con "No se encuentra ninguna sobrecarga")
+          $net = $asStreamForRead.Invoke($null, @($stream))
           $ms = New-Object System.IO.MemoryStream
           $net.CopyTo($ms)
           $bytes = $ms.ToArray()
           $net.Dispose()
           if ($bytes.Length -gt 200) {
             $res.thumb = [Convert]::ToBase64String($bytes)
-            $res.thumbType = $stream.ContentType
+            $res.thumbType = [Windows.Storage.Streams.IContentTypeProvider].GetProperty('ContentType').GetValue($stream)
             $thumbTries = 0
           }
         } catch { $res.thumbError = $_.Exception.Message }

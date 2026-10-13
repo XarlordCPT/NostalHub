@@ -179,6 +179,8 @@
     let current = -1; // índice del juego abierto
     let hls = null;
     let playTimer = null;
+    const BAR = ['#btn-settings', '#btn-friends', '#btn-random']; // botones de abajo, de izquierda a derecha
+    const kf = { area: 'grid', index: 0, btn: 0, on: false }; // selección con teclado o control (ver paintKf)
 
     // ---------- Reloj ----------
     const pad = (n) => String(n).padStart(2, '0');
@@ -215,6 +217,8 @@
         grid.appendChild(el);
       }
       setPage(Math.min(page, pageCount() - 1), false);
+      kfToPage();
+      paintKf();
     }
 
     function gameTile(g, index) {
@@ -298,6 +302,68 @@
 
     $('#page-prev').addEventListener('click', () => setPage(page - 1));
     $('#page-next').addEventListener('click', () => setPage(page + 1));
+
+    // ---------- Selección con teclado o control ----------
+    // Flechas: entre los canales de la página (↓ desde la última fila baja a los botones de abajo).
+    // RePág / AvPág (L1 / R1 del control): cambiar de página. Se ve solo después de usar las flechas.
+    function paintKf() {
+      root.querySelectorAll('.wkf').forEach((el) => el.classList.remove('wkf'));
+      if (!kf.on || view !== 'menu') return;
+      const el = kf.area === 'grid' ? tileFor(kf.index) : $(BAR[kf.btn]);
+      if (el) el.classList.add('wkf');
+    }
+    // Que la selección quede en la página que se ve (misma fila y columna, o el último canal de esa página)
+    function kfToPage() {
+      if (kf.area !== 'grid' || !games.length) return;
+      const within = kf.index % PER_PAGE;
+      kf.index = Math.min(page * PER_PAGE + within, games.length - 1);
+      if (Math.floor(kf.index / PER_PAGE) !== page) kf.index = Math.min(page * PER_PAGE, games.length - 1);
+    }
+    function menuKey(k) {
+      if (!kf.on) {
+        // La primera flecha solo muestra dónde estás
+        kf.on = true;
+        kfToPage();
+        return paintKf();
+      }
+      if (kf.area === 'bar') {
+        if (k === 'ArrowLeft') kf.btn = Math.max(0, kf.btn - 1);
+        else if (k === 'ArrowRight') kf.btn = Math.min(BAR.length - 1, kf.btn + 1);
+        else if (k === 'ArrowUp' && games.length) kf.area = 'grid';
+        return paintKf();
+      }
+      if (!games.length) {
+        kf.area = 'bar';
+        return paintKf();
+      }
+      const base = page * PER_PAGE;
+      const within = kf.index - base;
+      const r = Math.floor(within / COLS);
+      const c = within % COLS;
+      const last = Math.min(games.length - 1, base + PER_PAGE - 1);
+      if (k === 'ArrowLeft' && c > 0) kf.index--;
+      else if (k === 'ArrowRight' && c < COLS - 1 && kf.index + 1 <= last) kf.index++;
+      else if (k === 'ArrowUp' && r > 0) kf.index -= COLS;
+      else if (k === 'ArrowDown') {
+        if (r < ROWS - 1 && kf.index + COLS <= last) kf.index += COLS;
+        else {
+          kf.area = 'bar';
+          kf.btn = c <= 1 ? 0 : c === 2 ? 1 : 2; // el botón que está más abajo de esa columna
+        }
+      }
+      paintKf();
+    }
+    // Con el mouse se esconde (el mouse ya marca lo que tiene encima). Solo si el puntero se movió de verdad:
+    // al cambiar de página, los canales pasan bajo el mouse quieto y el navegador también avisa "se movió".
+    let lastPointer = '';
+    menu.addEventListener('mousemove', (e) => {
+      const at = `${e.clientX},${e.clientY}`;
+      if (at === lastPointer) return;
+      lastPointer = at;
+      if (!kf.on) return;
+      kf.on = false;
+      paintKf();
+    });
 
     let wheelLock = 0;
     menu.addEventListener('wheel', (e) => {
@@ -391,6 +457,8 @@
       zoomer.remove();
       channel.classList.remove('leave');
       view = 'menu';
+      if (current >= 0) Object.assign(kf, { area: 'grid', index: current }); // queda marcado el canal del que vienes
+      paintKf();
     }
 
     function px(r) {
@@ -1041,9 +1109,15 @@
         else if (e.key === 'ArrowLeft') switchChannel(-1);
         else if (e.key === 'ArrowRight') switchChannel(1);
       } else if (view === 'menu') {
-        if (e.key === 'ArrowLeft' || e.key === 'PageUp') setPage(page - 1);
-        else if (e.key === 'ArrowRight' || e.key === 'PageDown') setPage(page + 1);
-        else if (e.key === 'Escape') ctx.openSelector();
+        if (e.key === 'PageUp' || e.key === 'PageDown') {
+          setPage(page + (e.key === 'PageUp' ? -1 : 1));
+          kfToPage();
+          paintKf();
+        } else if (e.key.startsWith('Arrow')) menuKey(e.key);
+        else if (e.key === 'Enter' && kf.on) {
+          if (kf.area === 'grid') openChannel(kf.index);
+          else $(BAR[kf.btn]).click();
+        } else if (e.key === 'Escape') ctx.openSelector();
         else if (e.key === 'a' || e.key === 'A') openFriends(); // el sobre: amigos
       }
     }
