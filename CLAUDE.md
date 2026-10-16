@@ -147,6 +147,10 @@ descripción), `cache\` (arte descargado, `spotify.log`, `discord.log`) y las cl
 - Toda pantalla tiene que poder usarse solo con flechas + Enter + Esc (el control llega así). Filas de botones
   horizontales se mueven con ← → (ver `moveQmSub` en la PS4), no con ↑ ↓.
 - Con Steam abierto, el DualSense queda en modo 0x31 y la Gamepad API no lo ve: por eso `gamepad.js` lo lee por HID.
+- **El instalador quita las carpetas `examples` de `node_modules`** (regla de electron-builder), y ahí están los
+  addons de Three.js (GLTFLoader…). Por eso van con un bloque `{ from, to, filter }` en `build.files` de
+  `package.json`. Si usas otro addon de `three/addons/`, agrégalo a ese `filter` y revisa la app empaquetada
+  (`npx electron-builder --win --dir`): en `npm start` siempre funciona aunque al instalador le falte.
 
 ## Decisiones de Cristóbal
 

@@ -14,9 +14,14 @@
     start: performance.now(),
     drag: null,
 
+    // Espera a que cargue Three.js (models/three-bridge.mjs). Si no carga en 8 s (por ejemplo, le falta un archivo
+    // al instalador), se rinde y el selector muestra la imagen; antes se quedaba esperando sin mostrar nada.
     ready() {
       if (window.THREE && window.THREE_ADDONS) return Promise.resolve();
-      return new Promise((res) => window.addEventListener('three-ready', () => res(), { once: true }));
+      return new Promise((res, rej) => {
+        window.addEventListener('three-ready', () => res(), { once: true });
+        setTimeout(() => (window.THREE && window.THREE_ADDONS ? res() : rej(new Error('Three.js no cargó'))), 8000);
+      });
     },
 
     ensureRenderer() {
@@ -58,7 +63,12 @@
     // container: el cuadro del ícono. onFail: se llama si el modelo no carga (para mostrar la imagen)
     // tilt: cómo pararlo, para modelos que vienen acostados ('0', 'x90', 'x-90', 'x180', 'z90', 'z-90')
     async attach(container, url, onFail, tilt = '0') {
-      await this.ready();
+      try {
+        await this.ready();
+      } catch (e) {
+        console.warn('Sin 3D: se usa la imagen', e);
+        return onFail && onFail();
+      }
       const THREE = window.THREE;
       if (!this.ensureRenderer()) return onFail && onFail();
       let gltf;

@@ -41,6 +41,16 @@
       "!node_modules/**/*.d.ts",
       "!node_modules/**/*.md",
       "!node_modules/three/src/**",
+      {
+        "from": "node_modules/three/examples/jsm",
+        "to": "node_modules/three/examples/jsm",
+        "filter": [
+          "loaders/GLTFLoader.js",
+          "utils/BufferGeometryUtils.js",
+          "utils/SkeletonUtils.js",
+          "environments/RoomEnvironment.js"
+        ]
+      },
       "!node_modules/hls.js/src/**",
       "!node_modules/hls.js/dist/!(hls.light.min.js)"
     ],
