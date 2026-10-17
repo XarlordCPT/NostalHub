@@ -193,7 +193,8 @@ servidores de Steam (la que esté más al día).
 La app además lo hace girar lento como los íconos originales. Las texturas tipo pixel se ven nítidas.
 
 Prioridad del ícono en la PS2: tu `modelo.glb` → modelo hecho en código (`renderer\models\`, ej. el bloque
-neón de Geometry Dash) → `logo.png` / logo de Steam → iniciales.
+neón de Geometry Dash) → `logo.png` / logo de Steam → iniciales. El logo y las iniciales se convierten solos en una
+**pieza 3D sólida** (con su borde oscuro), así que se ven bien desde cualquier ángulo al girar.
 
 ---
 
@@ -364,6 +365,10 @@ En **Ajustes → Pantalla**:
 - Sonido: el tuyo en `consolas\<consola>\logro.wav`; si no, uno hecho con código.
 
 ### Lista de logros de cada juego
+
+Cuando consigues **todos** los logros de un juego, aparece un sello especial en su ícono, en su ficha y en la lista
+de logros: **trofeo de platino** (PS3, PS4 y PS Vita), **medalla dorada** (Xbox 360), **estrella dorada**
+(PS2 y 3DS), **sello dorado** (Wii) y **corona dorada** (Switch).
 
 | Consola | Dónde |
 | --- | --- |

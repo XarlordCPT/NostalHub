@@ -263,6 +263,7 @@
   }
 
   // Caja del juego: carátula vertical, o una armada con el fondo y el logo si no hay
+  let doneIds = new Set(); // appId de los juegos al 100 % (lo pone loadSummary): su caja lleva medalla dorada
   function buildCase(g, size = '') {
     const el = document.createElement('div');
     el.className = `xb-case ${size}`;
@@ -288,6 +289,7 @@
     }
     el.innerHTML = '<div class="xb-case-spine"></div><div class="xb-case-gloss"></div>';
     el.prepend(art);
+    if (g.appId && doneIds.has(String(g.appId))) el.insertAdjacentHTML('beforeend', window.NostalHubUtil.completeBadge('medal', 'on-icon'));
     return el;
   }
 
@@ -556,8 +558,17 @@
       }
       $('.xb-me-ph').hidden = !!p.avatar;
     }
+    let doneKey = '';
     async function loadSummary(s) {
       summary = s || (await call('getAchievementSummary')) || summary;
+      // Juegos al 100 %: si cambian, se vuelven a dibujar las cajas con su medalla
+      const k = window.NostalHubUtil.completeKey(summary);
+      if (k !== doneKey) {
+        doneKey = k;
+        doneIds = new Set(k ? k.split(',') : []);
+        setGames(games);
+        if (view === 'shelf') renderShelf();
+      }
       if (current && (view === 'detail' || stack.includes('detail'))) paintDetailInfo(current);
       const el = $('.xb-me-score');
       if (!summary.hasKey) {
@@ -583,7 +594,7 @@
           const per = summary.perGame && g.appId && summary.perGame[g.appId];
           t.innerHTML = `<div class="xb-recent-name">${escapeHtml(g.name)}</div><div class="xb-recent-meta">${escapeHtml(
             [ago(g.lastPlayed), per && per.total ? `${per.done}/${per.total} logros` : ''].filter(Boolean).join(' · ')
-          )}</div>`;
+          )}${window.NostalHubUtil.isComplete(per) ? ` <span class="nh-done-text">${window.NostalHubUtil.completeBadge('medal')} Completado</span>` : ''}</div>`;
           row.appendChild(t);
           row.addEventListener('click', () => view === 'home' && openDetail(g));
           list.appendChild(row);
@@ -661,13 +672,14 @@
       if (!g) return;
       $('.xb-flow-name').textContent = g.name;
       const per = summary.perGame && g.appId && summary.perGame[g.appId];
-      $('.xb-flow-meta').textContent = [
+      const meta = [
         g.lastPlayed ? `Jugado ${ago(g.lastPlayed)}` : 'Sin jugar todavía',
         hours(g.playtimeMin),
         per && per.total ? `${per.done} de ${per.total} logros` : '',
       ]
         .filter(Boolean)
         .join('   ·   ');
+      $('.xb-flow-meta').innerHTML = escapeHtml(meta) + (window.NostalHubUtil.isComplete(per) ? `   ·   <span class="nh-done-text">${window.NostalHubUtil.completeBadge('medal')} Completado</span>` : '');
       $('.xb-flow-count').textContent = `${shelfSel + 1} de ${shelfList.length}`;
     }
     let wheelLock = 0;
@@ -714,8 +726,11 @@
       const prog = $('.xb-detail-progress');
       prog.hidden = !(per && per.total);
       if (per && per.total) {
+        const done = window.NostalHubUtil.isComplete(per);
+        prog.classList.toggle('done', done); // 100 %: barra y texto dorados, con medalla
         prog.querySelector('i').style.width = `${(per.done / per.total) * 100}%`;
-        prog.querySelector('span').textContent = `${per.done} de ${per.total} logros`;
+        prog.querySelector('span').innerHTML = done ? `${window.NostalHubUtil.completeBadge('medal')} Completado · ${per.done} de ${per.total} logros` : `${per.done} de ${per.total} logros`;
+        prog.querySelector('span').classList.toggle('nh-done-text', done);
       }
     }
     $$('[data-dact]').forEach((b) =>

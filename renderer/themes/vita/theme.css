@@ -770,3 +770,8 @@ body.playing .theme-vita .v-lock-hint { animation-play-state: paused; }
 .v-mu-next { margin-top: 12px; padding: 12px 26px; border-radius: 30px; background: rgba(255, 255, 255, 0.18); font-size: 26px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .v-mu-next small { font-size: 20px; opacity: 0.8; margin-right: 12px; text-transform: uppercase; letter-spacing: 1px; }
 .v-round.sm.on { color: #1a8fe0 !important; }
+
+/* Juego al 100 %: trofeo de platino */
+.v-bub .nh-done.on-icon { width: 66px; height: 66px; top: 2px; right: 2px; }
+.v-prog.plat i { background: linear-gradient(90deg, #c9d6e6, #ffffff, #b4c3d8); }
+.v-tr-count .nh-done { font-size: 34px; }

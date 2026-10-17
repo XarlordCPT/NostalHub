@@ -279,7 +279,7 @@
           el.classList.add('full');
           el.dataset.i = i;
           if (it.game) el.dataset.gameId = it.game.id; // clic derecho → cambiar imágenes
-          el.innerHTML = `<div class="b-icon">${itemIconHtml(it)}</div>`;
+          el.innerHTML = `<div class="b-icon">${itemIconHtml(it)}${it.game && U.isComplete(trophiesOf(it.game)) ? U.completeBadge('star', 'on-icon') : ''}</div>`; // 100 %: estrella
           el.addEventListener('click', () => {
             if (view !== 'home' || dlg) return;
             if (sel === i) return openItem();
@@ -542,7 +542,7 @@
           ? list
               .map(
                 (r, i) =>
-                  `<button class="ba-row${r.dim ? ' dim' : ''}${r.on ? ' on' : ''}" data-i="${i}">${r.svg ? `<span class="ba-ic np">${r.svg}</span>` : r.img !== undefined ? `<span class="ba-img${r.dot ? ` fr ${r.dot}` : ''}"${r.img ? ` style="background-image:url('${esc(r.img)}')"` : ''}>${r.dot ? '<i></i>' : ''}${r.ini && !r.img ? `<b>${esc(r.ini)}</b>` : ''}</span>` : r.icon ? `<span class="ba-ic">${ic(r.icon)}</span>` : ''}<span class="ba-l">${esc(r.label)}</span>${r.value != null ? `<span class="ba-v">${esc(r.value)}</span>` : ''}</button>`
+                  `<button class="ba-row${r.dim ? ' dim' : ''}${r.on ? ' on' : ''}" data-i="${i}">${r.svg ? `<span class="ba-ic np">${r.svg}</span>` : r.img !== undefined ? `<span class="ba-img${r.dot ? ` fr ${r.dot}` : ''}"${r.img ? ` style="background-image:url('${esc(r.img)}')"` : ''}>${r.dot ? '<i></i>' : ''}${r.ini && !r.img ? `<b>${esc(r.ini)}</b>` : ''}</span>` : r.icon ? `<span class="ba-ic">${ic(r.icon)}</span>` : ''}<span class="ba-l">${esc(r.label)}</span>${r.value != null ? `<span class="ba-v${r.badge ? ' nh-done-text' : ''}">${r.badge || ''}${esc(r.value)}</span>` : ''}</button>`
               )
               .join('')
           : `<div class="ba-empty">${app.empty || 'No hay nada aquí.'}</div>`
@@ -706,7 +706,7 @@
             });
           return gamesWith().map((g) => {
             const tp = trophiesOf(g);
-            return { img: g.square || g.cover || g.hero || '', label: g.name, value: `${tp.done}/${tp.total}`, g, run: () => openGameTrophies(g) };
+            return { img: g.square || g.cover || g.hero || '', label: g.name, value: `${tp.done}/${tp.total}`, badge: U.isComplete(tp) ? U.completeBadge('star') : '', g, run: () => openGameTrophies(g) };
           });
         },
         top(r) {
@@ -714,7 +714,8 @@
           const g = r && r.g;
           if (!g) return `<div class="ta-desc"><b>${esc(profile.name || 'Jugador')}</b>${summary.hasKey ? `${summary.done || 0} de ${summary.total || 0} logros` : ''}</div>`;
           const tp = trophiesOf(g);
-          return `<div class="ta-desc"><b>${esc(g.name)}</b>${tp.done} de ${tp.total} logros (${Math.round((tp.done / tp.total) * 100)} %)<i class="ta-prog"><i style="width:${(tp.done / tp.total) * 100}%"></i></i></div>`;
+          const done = U.isComplete(tp);
+          return `<div class="ta-desc"><b>${esc(g.name)}</b>${done ? `<span class="nh-done-text">${U.completeBadge('star')} ¡Completado! ${tp.done} de ${tp.total} logros</span>` : `${tp.done} de ${tp.total} logros (${Math.round((tp.done / tp.total) * 100)} %)`}<i class="ta-prog${done ? ' done' : ''}"><i style="width:${(tp.done / tp.total) * 100}%"></i></i></div>`;
         },
         back() {
           if (st.game) return (self.sel = Math.max(0, gamesWith().indexOf(st.game))), (st.game = null), (st.list = null), (self.depth = 0), true;
@@ -1033,7 +1034,18 @@
     offs.push(api.onGameEnded(({ reason }) => endPlaying(reason)));
     if (api.onSpotify) offs.push(api.onSpotify(setSpotify));
     if (api.onDiscord) offs.push(api.onDiscord(setDiscord));
-    if (api.onSteamSummary) offs.push(api.onSteamSummary((s) => ((summary = s || summary), view === 'home' && paintBanner())));
+    // Juegos al 100 %: si cambian, se vuelven a dibujar los íconos con su estrella
+    let doneKey = '';
+    function onSummary(s) {
+      summary = s || summary;
+      const k = U.completeKey(summary);
+      const changed = k !== doneKey;
+      doneKey = k;
+      if (view !== 'home') return;
+      if (changed) (buildItems(), renderGrid());
+      paintBanner();
+    }
+    if (api.onSteamSummary) offs.push(api.onSteamSummary(onSummary));
     if (api.onSteamChanged)
       offs.push(
         api.onSteamChanged(async () => {
@@ -1045,7 +1057,7 @@
     call('discordWatch', true).then((s) => s && setDiscord(s));
     call('getMenu').then((m) => (menuModel = m || []));
     call('getSteamProfile').then((p) => p && (profile = p));
-    call('getAchievementSummary').then((s) => s && ((summary = s), view === 'home' && (buildItems(), paintBanner())));
+    call('getAchievementSummary').then((s) => s && onSummary(s));
     buildItems();
     renderGrid();
     api.getState().then((s) => {

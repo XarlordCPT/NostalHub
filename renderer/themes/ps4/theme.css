@@ -738,3 +738,10 @@ body.playing .theme-ps4 .p4-spin { animation-play-state: paused; }
 .p4-qm-sb .np-ic { width: 36px; height: 36px; flex: none; }
 .p4-qm-sb.on .np-ic { color: #7dff8a; }
 .p4-qm-sb .p4s-l { flex: 1; }
+
+/* Juego al 100 %: trofeo de platino */
+.p4-tart .nh-done.on-icon { width: 58px; height: 58px; top: 8px; right: 8px; }
+.p4t-row .p4-tart .nh-done.on-icon { width: 36px; height: 36px; top: 4px; right: 4px; }
+.p4-play-art .p4-tart .nh-done.on-icon { width: 64px; height: 64px; top: 12px; right: 12px; }
+.p4-bar.plat i { background: linear-gradient(90deg, #c9d6e6, #ffffff, #b4c3d8); }
+.p4t-count .nh-done { font-size: 34px; }

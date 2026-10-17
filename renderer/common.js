@@ -76,6 +76,78 @@
     };
   }
 
+  // ---------- Juego completado (100 % de los logros): un sello distinto en cada consola ----------
+  // isComplete(per): per = summary.perGame[appId] ({ done, total }).
+  // completeBadge(tipo, clase): 'platinum' (PS3, PS4, Vita), 'medal' (Xbox 360), 'ps2star', 'seal' (Wii),
+  // 'crown' (Switch), 'star' (3DS). Dibujos propios (sin logos). Con la clase 'on-icon' va en la esquina del juego.
+  function isComplete(per) {
+    return !!(per && per.total > 0 && per.done >= per.total);
+  }
+  // Qué juegos están completos (para redibujar los íconos solo cuando eso cambia)
+  function completeKey(summary) {
+    const per = (summary && summary.perGame) || {};
+    return Object.keys(per)
+      .filter((id) => isComplete(per[id]))
+      .sort()
+      .join(',');
+  }
+  let badgeSeq = 0;
+  // Degradado metálico: colores de arriba a abajo
+  const metal = (id, stops) =>
+    `<linearGradient id="${id}" x1="0" y1="0" x2="0.35" y2="1">${stops.map((c, i) => `<stop offset="${Math.round((i / (stops.length - 1)) * 100)}%" stop-color="${c}"/>`).join('')}</linearGradient>`;
+  const GOLD = ['#fff6c4', '#ffd84a', '#e3a91b', '#a86d08'];
+  const PLAT = ['#ffffff', '#e3ebf5', '#a9b8cc', '#6f8098'];
+  const STAR5 = (cx, cy, R, r) =>
+    Array.from({ length: 10 }, (_, i) => {
+      const a = -Math.PI / 2 + (i * Math.PI) / 5;
+      const rad = i % 2 ? r : R;
+      return `${(cx + rad * Math.cos(a)).toFixed(1)},${(cy + rad * Math.sin(a)).toFixed(1)}`;
+    }).join(' ');
+  const BADGES = {
+    // Copa con asas, tallo y base, como el trofeo de platino
+    platinum: (g) => `<defs>${metal(g, PLAT)}</defs>
+      <path d="M14 7h20v9c0 7-4.5 12-10 12S14 23 14 16Z" fill="url(#${g})" stroke="#5b6b82" stroke-width="1.6"/>
+      <path d="M14 10H8.5c0 6 2.5 9 6.5 10M34 10h5.5c0 6-2.5 9-6.5 10" fill="none" stroke="url(#${g})" stroke-width="3" stroke-linecap="round"/>
+      <path d="M21.5 28h5v6h-5Z" fill="url(#${g})" stroke="#5b6b82" stroke-width="1.2"/>
+      <path d="M15 34h18l2 7H13Z" fill="url(#${g})" stroke="#5b6b82" stroke-width="1.6" stroke-linejoin="round"/>
+      <path d="M18 10c0 6 1 10 3.5 12" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" opacity="0.85"/>`,
+    // Medalla redonda dorada con cintas
+    medal: (g) => `<defs>${metal(g, GOLD)}</defs>
+      <path d="M15 3h8l4 14h-8ZM33 3h-8l-4 14h8Z" fill="#2f9e3a" stroke="#1d6b25" stroke-width="1.2" stroke-linejoin="round"/>
+      <circle cx="24" cy="30" r="14" fill="url(#${g})" stroke="#8a5a06" stroke-width="1.6"/>
+      <circle cx="24" cy="30" r="10" fill="none" stroke="#fff3b8" stroke-width="1.4" opacity="0.9"/>
+      <polygon points="${STAR5(24, 30.5, 7, 3)}" fill="#fffbe6" stroke="#b07c0c" stroke-width="0.8"/>`,
+    // Estrella dorada (el brillo azul va por CSS, como los íconos de la Memory Card)
+    ps2star: (g) => `<defs>${metal(g, GOLD)}</defs>
+      <polygon points="${STAR5(24, 25.5, 21, 9)}" fill="url(#${g})" stroke="#9a6406" stroke-width="1.6" stroke-linejoin="round"/>
+      <path d="M17 18l5-2" stroke="#fff" stroke-width="2" stroke-linecap="round" opacity="0.9"/>`,
+    // Sello redondo de borde ondulado con estrella blanca
+    seal: (g) => `<defs>${metal(g, GOLD)}</defs>
+      <polygon points="${Array.from({ length: 32 }, (_, i) => {
+        const a = (i * Math.PI) / 16;
+        const rad = i % 2 ? 19.5 : 22;
+        return `${(24 + rad * Math.cos(a)).toFixed(1)},${(24 + rad * Math.sin(a)).toFixed(1)}`;
+      }).join(' ')}" fill="url(#${g})" stroke="#9a6406" stroke-width="1.2" stroke-linejoin="round"/>
+      <circle cx="24" cy="24" r="15" fill="none" stroke="#fff6c4" stroke-width="1.6"/>
+      <polygon points="${STAR5(24, 25, 10, 4.3)}" fill="#fff" stroke="#c98d10" stroke-width="0.8"/>`,
+    // Corona con tres puntas y joyas
+    crown: (g) => `<defs>${metal(g, GOLD)}</defs>
+      <path d="M6 15l9 9 9-14 9 14 9-9-4 22H10Z" fill="url(#${g})" stroke="#9a6406" stroke-width="1.6" stroke-linejoin="round"/>
+      <path d="M10 37h28v5H10Z" fill="url(#${g})" stroke="#9a6406" stroke-width="1.4"/>
+      <circle cx="6" cy="14" r="2.6" fill="#ffd84a" stroke="#9a6406"/><circle cx="24" cy="9" r="2.8" fill="#ffd84a" stroke="#9a6406"/><circle cx="42" cy="14" r="2.6" fill="#ffd84a" stroke="#9a6406"/>
+      <circle cx="17" cy="31" r="2.2" fill="#e8344a"/><circle cx="24" cy="30" r="2.6" fill="#2f7fe8"/><circle cx="31" cy="31" r="2.2" fill="#2fb34a"/>`,
+    // Estrella dorada con destellos
+    star: (g) => `<defs>${metal(g, GOLD)}</defs>
+      <polygon points="${STAR5(23, 26, 19, 8)}" fill="url(#${g})" stroke="#9a6406" stroke-width="1.6" stroke-linejoin="round"/>
+      <path d="M40 4v8M36 8h8M42 36v6M39 39h6" stroke="#fff3a0" stroke-width="2" stroke-linecap="round"/>
+      <path d="M16 19l5-2" stroke="#fff" stroke-width="2" stroke-linecap="round" opacity="0.9"/>`,
+  };
+  function completeBadge(kind, cls = '') {
+    const draw = BADGES[kind] || BADGES.star;
+    const id = `nhg${++badgeSeq}`; // cada dibujo con su propio degradado (si se repite el id, al borrar uno se pierde en los demás)
+    return `<span class="nh-done nh-done-${kind}${cls ? ` ${cls}` : ''}" title="¡Completado al 100 %!"><svg viewBox="0 0 48 48" aria-hidden="true">${draw(id)}</svg></span>`;
+  }
+
   // ---------- Menú de opciones (el mismo en las tres consolas, cada una lo dibuja a su manera) ----------
   // Cada opción: { id, type: 'action' | 'toggle' | 'choice', label, desc, value, options, closes, confirm }
   function optionValueText(it) {
@@ -585,6 +657,9 @@
     achievementMessage,
     sortAchievements,
     achievementTexts,
+    isComplete,
+    completeBadge,
+    completeKey,
     optionValueText,
     optionNextValue,
   };

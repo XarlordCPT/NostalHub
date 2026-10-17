@@ -264,6 +264,8 @@
         inner.appendChild(nameLabel(g.name));
       }
       btn.appendChild(inner);
+      const per = g.appId && summary.perGame && summary.perGame[g.appId];
+      if (window.NostalHubUtil.isComplete(per)) btn.insertAdjacentHTML('beforeend', window.NostalHubUtil.completeBadge('seal', 'on-icon')); // 100 %
       btn.addEventListener('click', () => openChannel(index));
       return btn;
     }
@@ -514,7 +516,7 @@
 
       const desc = channel.querySelector('.ch-desc');
     const stats = statsLine(g);
-    channel.querySelector('.ch-stats').textContent = stats;
+    paintStats(g);
     channel.querySelector('.ch-desc-text').textContent = g.description || '';
     desc.hidden = !g.description && !stats;
     $('#btn-ach').hidden = g.type !== 'steam';
@@ -682,13 +684,27 @@
         .filter(Boolean)
         .join('   ·   ');
     }
-    if (api.getAchievementSummary) api.getAchievementSummary().then((s) => s && (summary = s));
+    if (api.getAchievementSummary) api.getAchievementSummary().then((s) => s && ((summary = s), redrawDone()));
     const offSummary = api.onSteamSummary
       ? api.onSteamSummary((s) => {
           summary = s || summary;
-          if ((view === 'channel' || view === 'ach') && current >= 0 && games[current]) channel.querySelector('.ch-stats').textContent = statsLine(games[current]);
+          if ((view === 'channel' || view === 'ach') && current >= 0 && games[current]) paintStats(games[current]);
+          redrawDone();
         })
       : null;
+    // Juego al 100 %: sello dorado en la línea de datos del canal y en su cuadro del menú
+    function paintStats(g) {
+      const el = channel.querySelector('.ch-stats');
+      const per = summary.perGame && g.appId && summary.perGame[g.appId];
+      el.innerHTML = U.escapeHtml(statsLine(g)) + (U.isComplete(per) ? `   <span class="nh-done-text">${U.completeBadge('seal')} Completado</span>` : '');
+    }
+    let doneKey = '';
+    function redrawDone() {
+      const k = U.completeKey(summary);
+      if (k === doneKey) return;
+      doneKey = k;
+      if (games.length) renderGrid();
+    }
 
     const ACH_COLS = 12;
     let achList = [];
@@ -719,7 +735,8 @@
       }
       msg.hidden = true;
       achList = U.sortAchievements(res.list);
-      $('.wa-count').textContent = `${res.done} / ${res.total}`;
+      const all = res.total > 0 && res.done >= res.total;
+      $('.wa-count').innerHTML = all ? `<span class="nh-done-text">${U.completeBadge('seal')} ${res.done} / ${res.total}</span>` : `${res.done} / ${res.total}`;
       $('.wa-bar i').style.width = `${res.total ? (res.done / res.total) * 100 : 0}%`;
       const grid = $('.wa-grid');
       achList.forEach((a, i) => {

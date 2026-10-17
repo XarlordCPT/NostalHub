@@ -620,7 +620,7 @@ void main(){
           const img = it.game ? gameIconHtml(it.game) : it.img ? `<img src="${esc(it.img)}" alt="" draggable="false" />` : '';
           const inner = img + (it.game ? `<span class="p3-noicon">${esc(it.title)}</span>` : it.svg || ic(it.icon));
           return `<div class="p3-it${it.game ? ' is-game' : ''}${it.on ? ' on' : ''}${it.svg ? ' np' : ''}${it.round ? ' round' : ''}${it.rsq ? ' rsq' : ''}${it.talking ? ' talking' : ''}${it.img ? ' has-img' : ''}" data-i="${i}"${it.game ? ` data-game-id="${esc(it.game.id)}"` : ''}>
-            <div class="p3-ic" style="width:${z.w}px;height:${z.h}px">${inner}${it.dot ? `<i class="p3-fdot ${it.dot}"></i>` : ''}</div>
+            <div class="p3-ic" style="width:${z.w}px;height:${z.h}px">${inner}${it.dot ? `<i class="p3-fdot ${it.dot}"></i>` : ''}${it.game && U.isComplete(trophiesOf(it.game)) ? U.completeBadge('platinum', 'on-icon') : ''}</div>
             <div class="p3-tx"><b>${esc(it.title)}</b>${it.sub ? `<small>${esc(it.sub)}</small>` : ''}${it.extra || ''}</div></div>`;
         })
         .join('');
@@ -820,6 +820,7 @@ void main(){
               (r, i) => `<div class="p3-row${r.dim ? ' dim' : ''}${r.on ? ' on' : ''}" data-i="${i}"${r.gameId ? ` data-game-id="${esc(r.gameId)}"` : ''}>
             ${r.img !== undefined || r.icon ? `<span class="p3-r-ic${r.wide ? ' wide' : ''}">${r.img ? `<img src="${esc(r.img)}" alt="" draggable="false" />` : r.icon ? ic(r.icon) : ''}</span>` : ''}
             <span class="p3-r-t"><b>${esc(r.title)}</b>${r.desc ? `<small>${esc(r.desc)}</small>` : ''}${r.bar != null ? `<i class="p3-bar"><i style="width:${Math.round(r.bar * 100)}%"></i></i>` : ''}</span>
+            ${r.badge ? `<span class="p3-r-badge">${r.badge}</span>` : ''}
             ${r.adjust ? `<span class="p3-r-v p3-adj"><i data-d="-1">◀</i>${esc(r.value)}<i data-d="1">▶</i></span>` : r.value != null ? `<span class="p3-r-v">${esc(r.value)}</span>` : ''}</div>`
             )
             .join('')
@@ -1098,7 +1099,8 @@ void main(){
             .sort((a, b) => (b.lastPlayed || 0) - (a.lastPlayed || 0))
             .map((g) => {
               const tp = trophiesOf(g);
-              return { img: icon0(g), wide: true, gameId: g.id, title: g.name, desc: `Progreso ${Math.round((tp.done / tp.total) * 100)} %  ·  ${tp.done} de ${tp.total}`, bar: tp.done / tp.total, sub: true, run: () => openSub(gameTrophies(g)) };
+              const plat = U.isComplete(tp); // 100 %: trofeo de platino
+              return { img: icon0(g), wide: true, gameId: g.id, title: g.name, desc: plat ? `Platino  ·  100 %  ·  ${tp.done} de ${tp.total}` : `Progreso ${Math.round((tp.done / tp.total) * 100)} %  ·  ${tp.done} de ${tp.total}`, bar: tp.done / tp.total, badge: plat ? U.completeBadge('platinum') : '', sub: true, run: () => openSub(gameTrophies(g)) };
             }),
       };
     }
@@ -1110,7 +1112,8 @@ void main(){
         empty: 'Cargando…',
         head: () => {
           const tp = trophiesOf(g);
-          return `<span class="p3-head-ic" data-game-current="${esc(g.id)}"${icon0(g) ? ` style="background-image:url('${esc(icon0(g))}')"` : ''}></span><b>${esc(g.name)}</b>${tp && tp.total ? `<em>${tp.done} de ${tp.total}  ·  ${Math.round((tp.done / tp.total) * 100)} %</em>` : ''}`;
+          const plat = U.isComplete(tp);
+          return `<span class="p3-head-ic" data-game-current="${esc(g.id)}"${icon0(g) ? ` style="background-image:url('${esc(icon0(g))}')"` : ''}></span><b>${esc(g.name)}</b>${tp && tp.total ? `<em${plat ? ' class="nh-done-text plat"' : ''}>${plat ? `${U.completeBadge('platinum')} Platino  ·  ` : ''}${tp.done} de ${tp.total}  ·  ${Math.round((tp.done / tp.total) * 100)} %</em>` : ''}`;
         },
         async load(self) {
           const res = (await call('getAchievements', g.appId)) || { status: 'error' };
@@ -1236,7 +1239,7 @@ void main(){
           ${row('Tipo', type)}
           ${row('Tiempo de juego', U.hours(g.playtimeMin) || 'Todavía no lo juegas')}
           ${row('Última vez', g.lastPlayed ? U.ago(g.lastPlayed) : 'Nunca')}
-          ${g.type === 'steam' ? row('Logros', tp && tp.total ? `${tp.done} de ${tp.total} (${Math.round((tp.done / tp.total) * 100)} %)` : summary.hasKey ? 'Sin datos todavía' : 'Conecta tu Steam para verlos') : ''}
+          ${g.type === 'steam' && U.isComplete(tp) ? `<div class="p3-inf-r"><span>Logros</span><b class="nh-done-text plat">${U.completeBadge('platinum')} Platino · ${tp.done} de ${tp.total} (100 %)</b></div>` : g.type === 'steam' ? row('Logros', tp && tp.total ? `${tp.done} de ${tp.total} (${Math.round((tp.done / tp.total) * 100)} %)` : summary.hasKey ? 'Sin datos todavía' : 'Conecta tu Steam para verlos') : ''}
           ${g.appId && g.type === 'steam' ? row('Número en Steam', g.appId) : ''}
         </div>
         <div class="p3-inf-desc">${esc(g.description || 'Sin descripción. Puedes escribir una con clic derecho → Editar descripción.')}</div>

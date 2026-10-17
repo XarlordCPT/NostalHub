@@ -323,3 +323,9 @@
 .ta-mprog .mp-bar i { background: var(--acc); }
 .ta-next { margin-top: 8px; padding: 5px 8px; border-radius: 7px; background: var(--card); box-shadow: inset 0 0 0 1px var(--cardb); font-size: 9.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ta-next small { color: var(--acc); font-weight: 800; margin-right: 6px; }
+
+/* Juego al 100 %: estrella dorada (medidas en píxeles de la 3DS) */
+.theme-3ds .b-icon .nh-done.on-icon { width: 13px; height: 13px; top: -4px; right: -4px; }
+.theme-3ds .ta-prog.done > i { background: linear-gradient(90deg, #e3a91b, #ffe27a, #e3a91b); }
+.theme-3ds .ba-v .nh-done, .theme-3ds .ta-desc .nh-done { font-size: 1.2em; margin-right: 2px; }
+.theme-3ds .nh-done-text { text-shadow: none; color: #c98d10 !important; }

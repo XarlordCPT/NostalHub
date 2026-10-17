@@ -649,3 +649,17 @@ body[data-console='3ds'] .wb-close:hover { background: #fde8e8; color: #e2402a; 
 .theme-wii .ms-overlay { --ms-bg: linear-gradient(to bottom, #ffffff, #f2f4f5); --ms-fg: #555; --ms-acc: #34bfed; --ms-on-acc: #fff; --ms-line: rgba(92, 198, 236, 0.5); --ms-border: 5px; --ms-sel: #eef7fb; --ms-radius: 40px; --ms-font: 'M PLUS Rounded 1c', 'Segoe UI', sans-serif; }
 .theme-ps2 .ms-overlay { --ms-bg: linear-gradient(135deg, rgba(14, 30, 78, 0.97), rgba(2, 6, 20, 0.97)); --ms-fg: #e8f0ff; --ms-acc: #8fb4ff; --ms-on-acc: #061033; --ms-line: rgba(120, 170, 255, 0.4); --ms-sel: rgba(80, 140, 255, 0.25); --ms-radius: 6px; --ms-font: 'M PLUS Rounded 1c', 'Segoe UI', sans-serif; }
 #theme-root .np-music > * { flex-shrink: 0; }
+
+/* ============ Juego completado al 100 % (NostalHubUtil.completeBadge) ============ */
+.nh-done { display: inline-block; width: 1.1em; height: 1.1em; vertical-align: -0.2em; flex: none; line-height: 0; }
+.nh-done svg { width: 100%; height: 100%; display: block; overflow: visible; filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.35)); }
+.nh-done-ps2star svg { filter: drop-shadow(0 0 5px rgba(90, 170, 255, 0.95)) drop-shadow(0 0 2px rgba(255, 255, 255, 0.8)); }
+.nh-done-platinum svg { filter: drop-shadow(0 0 4px rgba(200, 225, 255, 0.85)) drop-shadow(0 1px 2px rgba(0, 0, 0, 0.4)); }
+/* En la esquina del ícono del juego */
+.nh-done.on-icon { position: absolute; top: 8px; right: 8px; width: 46px; height: 46px; z-index: 3; pointer-events: none; }
+/* El texto "100 %" / "Completado" en dorado o platino */
+.nh-done-text { color: #f2c230 !important; font-weight: 700; text-shadow: 0 0 8px rgba(242, 194, 48, 0.45); }
+.nh-done-text.plat { color: #dfe8f3 !important; text-shadow: 0 0 8px rgba(190, 215, 245, 0.7); }
+/* El platino es claro: en la esquina de un ícono lleva un círculo oscuro detrás para que se vea sobre cualquier imagen */
+.nh-done-platinum.on-icon svg { width: 76%; height: 76%; margin: 12%; } /* (el % del margen es del círculo; el de padding sería del juego) */
+.nh-done-platinum.on-icon { border-radius: 50%; background: radial-gradient(circle at 50% 40%, rgba(40, 52, 74, 0.92), rgba(12, 18, 30, 0.92)); box-shadow: 0 0 0 2px rgba(220, 232, 248, 0.85), 0 3px 8px rgba(0, 0, 0, 0.45); }

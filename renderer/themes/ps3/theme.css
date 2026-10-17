@@ -254,3 +254,8 @@
 .p3-prog { display: none; width: 520px; margin-top: 12px; }
 .p3-it.sel .p3-prog { display: flex; }
 .p3-prog .mp-bar { height: 4px; }
+
+/* Juego al 100 %: trofeo de platino en la fila de la Colección de trofeos */
+.p3-r-badge { flex: none; font-size: 58px; line-height: 0; margin-left: auto; }
+.p3-sub-head em .nh-done, .p3-inf-r .nh-done { font-size: 1.25em; }
+.p3-ic .nh-done.on-icon { width: 25%; height: auto; aspect-ratio: 1; top: 6%; right: 3%; }

@@ -328,3 +328,8 @@ body.playing .theme-switch .sw-tile.sel, body.playing .theme-switch .sw-all.sel 
 .sw-mu:has(.sw-mu-extra) .sw-mu-cover { width: 460px; height: 460px; }
 .sw-mu:has(.sw-mu-extra) .sw-mu-t { font-size: 56px; }
 .sw-mu:has(.sw-mu-extra) .sw-btnrow:first-of-type { margin-top: 18px; }
+
+/* Juego al 100 %: corona dorada */
+.sw-art .nh-done.on-icon { width: 54px; height: 54px; top: 8px; right: 8px; }
+.sw-bar.done i { background: linear-gradient(90deg, #e3a91b, #ffe27a, #e3a91b); }
+.sw-g-line .nh-done, .sw-li-v .nh-done { font-size: 1.25em; }

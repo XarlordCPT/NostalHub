@@ -106,7 +106,9 @@ renderer/themes/<id>/   theme.js + theme.css de cada consola
     música a la izquierda, Grupo a la derecha), `SHUFFLE_LABEL`, `REPEAT_LABEL`.
   - Amigos: `friendsFeed(api)` → `{ data, list, online, watch(on), onChange, profile(f), chat(f), dispose }`,
     `friendsGrouped`, `friendClass`, `friendStatus`, `friendsMessage`.
-  - Logros: `achievementMessage`, `sortAchievements`, `achievementTexts`.
+  - Logros: `achievementMessage`, `sortAchievements`, `achievementTexts`. Juego al 100 %: `isComplete(per)`,
+    `completeBadge(tipo, 'on-icon')` (platinum, medal, ps2star, seal, crown, star) y `completeKey(summary)` para
+    redibujar los íconos solo cuando cambia qué juegos están completos.
   - Otros: `partyView`, `hours`, `ago`, `playLine`, `escapeHtml`, `npIcon`, `fmtTime`.
 - Datos en vivo: `api.onGamesUpdated`, `api.onGameEnded`, `api.onSteamSummary`, `api.onSteamChanged`,
   `api.onSpotify`, `api.onSpotifyWeb`, `api.onDiscord`. Las fichas de juego tienen que **repintarse** cuando llega
@@ -147,6 +149,9 @@ descripción), `cache\` (arte descargado, `spotify.log`, `discord.log`) y las cl
 - Toda pantalla tiene que poder usarse solo con flechas + Enter + Esc (el control llega así). Filas de botones
   horizontales se mueven con ← → (ver `moveQmSub` en la PS4), no con ↑ ↓.
 - Con Steam abierto, el DualSense queda en modo 0x31 y la Gamepad API no lo ve: por eso `gamepad.js` lo lee por HID.
+- PS2: el logo es una pieza 3D sólida (`logoDef` / `logoParts`: cara + una pared por cada píxel del contorno). No
+  pongas una "cara de atrás" con el logo al derecho: desde atrás el canto se ve en espejo y no calza (salían líneas
+  fantasma). Se usa siempre el frente y la pieza da media vuelta cuando está de canto.
 - **El instalador quita las carpetas `examples` de `node_modules`** (regla de electron-builder), y ahí están los
   addons de Three.js (GLTFLoader…). Por eso van con un bloque `{ from, to, filter }` en `build.files` de
   `package.json`. Si usas otro addon de `three/addons/`, agrégalo a ese `filter` y revisa la app empaquetada

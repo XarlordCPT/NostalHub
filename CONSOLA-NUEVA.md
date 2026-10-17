@@ -33,6 +33,9 @@ más completas) cuando tengas dudas de cómo se hace algo.
       o de amigos, usar también `api.onSpotify` / `api.onDiscord` (ver PS3, PS4, 3DS).
 - [ ] **Pestaña / sección de Logros SIEMPRE** (lista de logros del juego): `api.getAchievements(appId)`,
       `api.getAchievementSummary`, `NostalHubUtil.achievementMessage / sortAchievements / achievementTexts`.
+- [ ] **Juego al 100 %**: sello propio de la consola (`U.completeBadge(tipo)`, agregar un dibujo en `BADGES` de
+      `common.js` si ninguno calza) en el ícono del juego (`'on-icon'`), en su ficha y en la lista de logros; texto en
+      dorado con `.nh-done-text`. Redibujar los íconos cuando cambia `U.completeKey(summary)`.
 - [ ] **Amigos de Steam** con el estilo de la consola, usando `const feed = U.friendsFeed(api)`:
       `feed.watch(true/false)` mientras se ve (se actualiza cada 30 s), `feed.onChange(repintar)`, `feed.data.status`,
       `feed.list`, `feed.online`, `feed.profile(f)` y `feed.chat(f)` (abren el perfil o el chat en Steam) y

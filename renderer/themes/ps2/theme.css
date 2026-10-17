@@ -813,3 +813,8 @@ body.playing .theme-ps2 .ps-big * { animation-play-state: running !important; }
 .pf-empty { display: flex; flex-direction: column; align-items: center; gap: 22px; padding-top: 120px; text-align: center; }
 .pf-empty b { font-size: 52px; font-weight: 800; color: #eaf2ff; text-shadow: 0 0 14px rgba(150, 200, 255, 0.8); }
 .pf-empty span { font-size: 32px; color: rgba(200, 220, 255, 0.8); max-width: 1200px; line-height: 1.4; }
+
+/* Juego al 100 %: estrella dorada con el brillo azul de la Memory Card */
+.ps-cell .nh-done.on-icon { width: 52px; height: 52px; top: 6px; right: 26px; }
+.ps-achline.done .ps-achbar i { background: linear-gradient(90deg, #e3a91b, #ffe27a, #e3a91b); }
+.ps-achnum .nh-done { font-size: 1.3em; }

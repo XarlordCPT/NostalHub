@@ -431,6 +431,7 @@
           label.textContent = entry.label;
           b.appendChild(label);
           if (entry.sys === 'party') b.insertAdjacentHTML('beforeend', '<span class="v-badge" hidden></span>');
+          if (entry.game && U.isComplete(trophiesOf(entry.game))) b.insertAdjacentHTML('beforeend', U.completeBadge('platinum', 'on-icon')); // 100 %: platino
           b.addEventListener('mouseenter', () => {
             if (view === 'home' && !busy && p === page) setSel(i);
           });
@@ -825,7 +826,9 @@
           <button class="v-li" data-f="troph"${g.type === 'steam' ? '' : ' hidden'}>
             <div class="v-li-h">${icon('trophy')}<span>Trofeos</span>${icon('chevron', 'v-li-go')}</div>
             ${
-              tp && tp.total
+              U.isComplete(tp)
+                ? `<div class="v-li-t nh-done-text plat">${U.completeBadge('platinum')} Platino · ${tp.done} de ${tp.total}</div><div class="v-prog plat"><i style="width:100%"></i></div>`
+                : tp && tp.total
                 ? `<div class="v-li-t">${tp.done} de ${tp.total} · ${Math.round((tp.done / tp.total) * 100)} %</div><div class="v-prog"><i style="width:${(tp.done / tp.total) * 100}%"></i></div>`
                 : `<div class="v-li-t dim">${summary.hasKey ? 'Ver sus trofeos' : 'Agrega tu clave de Steam'}</div>`
             }
@@ -1159,7 +1162,7 @@
         info.querySelector('.v-tr-gn').textContent = g.name;
         const cnt = document.createElement('div');
         cnt.className = 'v-tr-count';
-        cnt.innerHTML = `${icon('trophy')}<span>${tp.done} / ${tp.total}</span>`;
+        cnt.innerHTML = U.isComplete(tp) ? `${U.completeBadge('platinum')}<span class="nh-done-text plat">${tp.done} / ${tp.total}</span>` : `${icon('trophy')}<span>${tp.done} / ${tp.total}</span>`;
         r.append(b, info, cnt);
         r.addEventListener('click', () => {
           if (cards[at] !== card) return;
@@ -1732,8 +1735,14 @@
       profile = (await call('getSteamProfile')) || profile;
       cards.filter((c) => c.kind === 'trophies').forEach(refreshCard);
     }
+    let doneKey = ''; // juegos al 100 % (si cambia, se redibujan las burbujas con su platino)
     async function loadSummary(s) {
       summary = s || (await call('getAchievementSummary')) || summary;
+      const k = U.completeKey(summary);
+      if (k !== doneKey && games.length) {
+        doneKey = k;
+        buildPages();
+      }
       cards.filter((c) => c.kind === 'trophies' || c.kind === 'game').forEach(refreshCard);
     }
     function renderSpotify(s) {

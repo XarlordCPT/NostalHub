@@ -186,6 +186,9 @@
           continue;
         }
         if (paused || h.canvas.closest('.away, [hidden]')) continue;
+        // Los que están fuera de la pantalla (filas de más abajo) no se dibujan
+        const box = h.canvas.getBoundingClientRect();
+        if (box.bottom < 0 || box.top > window.innerHeight || box.width === 0) continue;
         const r = this.renderer;
         const size = r.getSize(new window.THREE.Vector2());
         if (size.x !== h.canvas.width || size.y !== h.canvas.height) r.setSize(h.canvas.width, h.canvas.height, false);
@@ -201,10 +204,10 @@
     dispose(h) {
       h.scene.traverse((o) => {
         if (o.userData.shared) return; // piezas de un .glb: se comparten entre íconos, no se borran
-        if (o.geometry) o.geometry.dispose();
+        if (o.geometry && !o.userData.sharedGeometry) o.geometry.dispose();
         const mats = o.material ? (Array.isArray(o.material) ? o.material : [o.material]) : [];
         mats.forEach((m) => {
-          if (m.map) m.map.dispose();
+          if (m.map && !o.userData.sharedMap) m.map.dispose(); // la imagen de un logo 3D se comparte
           m.dispose();
         });
       });
@@ -284,6 +287,167 @@
     };
   }
 
+  // ---------- Logo convertido en pieza 3D sólida ----------
+  // Antes el logo eran 6 copias una detrás de otra, y al girar de lado se veían los cortes entre copias.
+  // Ahora es una pieza de verdad (como los ítems de Minecraft): adelante y atrás el logo, y en los bordes
+  // una pared por cada píxel del contorno, del color de ese píxel pero más oscuro. Se ve sólido desde cualquier lado.
+  const MASK = 180; // resolución del contorno (lado más largo, en píxeles)
+  const logoCache = new Map(); // url -> Promise<{ faceTex, backTex, sides, w, h }> (compartido por los íconos)
+  function loadImage(url) {
+    return new Promise((resolve, reject) => {
+      const im = new Image();
+      im.onload = () => resolve(im);
+      im.onerror = () => reject(new Error('no cargó ' + url));
+      im.src = url;
+    });
+  }
+  function logoParts(url, THREE) {
+    if (logoCache.has(url)) return logoCache.get(url);
+    const p = loadImage(url).then((im) => {
+      // 1) Recorta los bordes vacíos (transparentes)
+      const full = document.createElement('canvas');
+      full.width = im.naturalWidth;
+      full.height = im.naturalHeight;
+      const fx = full.getContext('2d', { willReadFrequently: true });
+      fx.drawImage(im, 0, 0);
+      const px = fx.getImageData(0, 0, full.width, full.height).data;
+      let x0 = full.width, y0 = full.height, x1 = -1, y1 = -1;
+      for (let y = 0; y < full.height; y++)
+        for (let x = 0; x < full.width; x++)
+          if (px[(y * full.width + x) * 4 + 3] > 40) {
+            if (x < x0) x0 = x;
+            if (x > x1) x1 = x;
+            if (y < y0) y0 = y;
+            if (y > y1) y1 = y;
+          }
+      if (x1 < 0) throw new Error('logo vacío');
+      const tw = x1 - x0 + 1;
+      const th = y1 - y0 + 1;
+      // 2) La cara: el logo recortado, con buena resolución
+      const k = Math.min(1, 1024 / Math.max(tw, th));
+      const face = document.createElement('canvas');
+      face.width = Math.max(1, Math.round(tw * k));
+      face.height = Math.max(1, Math.round(th * k));
+      face.getContext('2d').drawImage(full, x0, y0, tw, th, 0, 0, face.width, face.height);
+      const faceTex = new THREE.CanvasTexture(face);
+      faceTex.colorSpace = THREE.SRGBColorSpace;
+      faceTex.anisotropy = 4;
+      // 3) El contorno, a menor resolución, para armar las paredes del canto
+      const m = MASK / Math.max(tw, th);
+      const mw = Math.max(2, Math.round(tw * m));
+      const mh = Math.max(2, Math.round(th * m));
+      const mask = document.createElement('canvas');
+      mask.width = mw;
+      mask.height = mh;
+      const mx = mask.getContext('2d', { willReadFrequently: true });
+      mx.drawImage(full, x0, y0, tw, th, 0, 0, mw, mh);
+      const md = mx.getImageData(0, 0, mw, mh).data;
+      const solid = (x, y) => x >= 0 && y >= 0 && x < mw && y < mh && md[(y * mw + x) * 4 + 3] > 110;
+      // Tamaño en el mundo 3D: cabe en el ícono (2,4 de ancho por 1,65 de alto), grosor fijo
+      const s = Math.min(2.4 / mw, 1.65 / mh);
+      const W = mw * s;
+      const H = mh * s;
+      const D = 0.16;
+      const pos = [];
+      const col = [];
+      const quad = (ax, ay, bx, by, c, shade) => {
+        // se oscurece en sRGB (como el brightness() del canto de antes) y después se pasa al color de la pantalla
+        const k = new THREE.Color(c.r * shade, c.g * shade, c.b * shade).convertSRGBToLinear();
+        const r = k.r;
+        const g = k.g;
+        const b = k.b;
+        // pared vertical entre (ax,ay) y (bx,by), de atrás (−D/2) a adelante (+D/2)
+        const X = (v) => v * s - W / 2;
+        const Y = (v) => H / 2 - v * s;
+        const A = [X(ax), Y(ay)];
+        const B = [X(bx), Y(by)];
+        pos.push(A[0], A[1], D / 2, B[0], B[1], D / 2, B[0], B[1], -D / 2, A[0], A[1], D / 2, B[0], B[1], -D / 2, A[0], A[1], -D / 2);
+        for (let i = 0; i < 6; i++) col.push(r, g, b);
+      };
+      for (let y = 0; y < mh; y++) {
+        for (let x = 0; x < mw; x++) {
+          if (!solid(x, y)) continue;
+          const i = (y * mw + x) * 4;
+          // el canto: el color del borde, oscurecido (como las capas oscuras de antes)
+          // (sin luces: el tono va fijo, un poco más claro arriba y más oscuro abajo, como si la luz viniera de arriba)
+          const c = { r: md[i] / 255, g: md[i + 1] / 255, b: md[i + 2] / 255 };
+          if (!solid(x, y - 1)) quad(x + 1, y, x, y, c, 0.46);
+          if (!solid(x, y + 1)) quad(x, y + 1, x + 1, y + 1, c, 0.22);
+          if (!solid(x - 1, y)) quad(x, y, x, y + 1, c, 0.32);
+          if (!solid(x + 1, y)) quad(x + 1, y + 1, x + 1, y, c, 0.32);
+        }
+      }
+      const sides = new THREE.BufferGeometry();
+      sides.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+      sides.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+      sides.computeVertexNormals();
+      return { faceTex, sides, W, H, D };
+    });
+    logoCache.set(url, p);
+    p.catch(() => logoCache.delete(url));
+    return p;
+  }
+  // Las iniciales (juegos sin logo) dibujadas como imagen, con el mismo estilo de antes: degradado del color del
+  // juego y borde oscuro. Así también salen como pieza sólida.
+  const initialsCache = new Map();
+  function initialsImage(g) {
+    if (initialsCache.has(g.name)) return initialsCache.get(g.name);
+    const txt = initials(g.name);
+    const hue = hueOf(g.name);
+    const size = txt.length >= 3 ? 92 : txt.length === 2 ? 120 : 150;
+    const c = document.createElement('canvas');
+    c.width = 460;
+    c.height = 320;
+    const x = c.getContext('2d');
+    x.font = `italic 800 ${size * 2}px 'M PLUS Rounded 1c', 'Arial Black', sans-serif`;
+    x.textAlign = 'center';
+    x.textBaseline = 'middle';
+    const gr = x.createLinearGradient(0, 160 - size, 0, 160 + size);
+    gr.addColorStop(0, `hsl(${hue}, 95%, 88%)`);
+    gr.addColorStop(0.45, `hsl(${hue}, 85%, 62%)`);
+    gr.addColorStop(1, `hsl(${hue}, 75%, 38%)`);
+    x.lineJoin = 'round';
+    x.lineWidth = 12;
+    x.strokeStyle = `hsl(${hue}, 60%, 18%)`;
+    x.strokeText(txt, 230, 165, 440);
+    x.fillStyle = gr;
+    x.fillText(txt, 230, 165, 440);
+    const url = c.toDataURL('image/png');
+    initialsCache.set(g.name, url);
+    return url;
+  }
+  function logoDef(url, onFail) {
+    return {
+      id: 'logo',
+      build(THREE) {
+        const group = new THREE.Group();
+        logoParts(url, THREE)
+          .then(({ faceTex, sides, W, H, D }) => {
+            const front = new THREE.Mesh(new THREE.PlaneGeometry(W, H), new THREE.MeshBasicMaterial({ map: faceTex, alphaTest: 0.45 }));
+            front.position.z = D / 2 + 0.001;
+            const edge = new THREE.Mesh(sides, new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.DoubleSide }));
+            // la imagen y el canto son del logo (compartidos entre íconos): no se borran al quitar uno
+            front.userData.sharedMap = true;
+            edge.userData.sharedGeometry = true;
+            group.add(front, edge);
+          })
+          .catch((e) => {
+            console.warn('No se pudo armar el logo 3D', url, e);
+            if (onFail) onFail();
+          });
+        return {
+          object: group,
+          // Siempre se ve el frente (el logo al derecho), como en los íconos de antes: cuando el giro pasa de
+          // lado (justo cuando está de canto, así no se nota), la pieza da media vuelta. Una cara de atrás no sirve:
+          // desde atrás el canto se ve en espejo y no calzaba con el logo.
+          update(t) {
+            group.rotation.y = Math.cos((t / 12) * Math.PI * 2) >= 0 ? 0 : Math.PI;
+          },
+        };
+      },
+    };
+  }
+
   function buildModelIcon(g, def, big) {
     const icon = document.createElement('div');
     icon.className = 'ps-icon is-model';
@@ -309,6 +473,11 @@
       def = gltfDef(g.model, () => iconRef && iconRef.isConnected && iconRef.replaceWith(buildIcon({ ...g, model: null }, big)));
     } else if (window.PS2Models && window.THREE) {
       def = window.PS2Models.find(g);
+    }
+    // Sin modelo: el logo (o las iniciales) como pieza 3D sólida. Si falla, el ícono de capas de antes.
+    if (!def && window.THREE && !g.flat) {
+      const src = g.logo || initialsImage(g);
+      def = logoDef(src, () => iconRef && iconRef.isConnected && iconRef.replaceWith(buildIcon({ ...g, flat: true }, big)));
     }
     if (def && Models.ensure()) {
       try {
@@ -428,6 +597,8 @@
         cell.dataset.gameId = g.id; // clic derecho → cambiar imágenes
         cell.style.setProperty('--d', `${(Math.floor(i / COLS) % ROWS_VISIBLE) * 90 + (i % COLS) * 45}ms`);
         cell.appendChild(buildIcon(g));
+        const per = g.appId && summary.perGame && summary.perGame[g.appId];
+        if (window.NostalHubUtil.isComplete(per)) cell.insertAdjacentHTML('beforeend', window.NostalHubUtil.completeBadge('ps2star', 'on-icon')); // 100 %
         cell.addEventListener('mouseenter', () => setSel(i, false));
         cell.addEventListener('click', () => openDetail(i));
         grid.appendChild(cell);
@@ -617,13 +788,22 @@
     // ---------- Horas jugadas y logros ----------
     const U = window.NostalHubUtil;
     let summary = { perGame: {} };
-    if (api.getAchievementSummary) api.getAchievementSummary().then((s) => s && (summary = s));
+    if (api.getAchievementSummary) api.getAchievementSummary().then((s) => s && ((summary = s), redrawDone()));
     const offSummary = api.onSteamSummary
       ? api.onSteamSummary((s) => {
           summary = s || summary;
           if ((view === 'detail' || view === 'playing') && current >= 0 && games[current]) fillStats(games[current]);
+          redrawDone();
         })
       : null;
+    // Juegos al 100 %: si cambian, se vuelve a dibujar la Memory Card con sus estrellas
+    let doneKey = '';
+    function redrawDone() {
+      const k = U.completeKey(summary);
+      if (k === doneKey) return;
+      doneKey = k;
+      if (games.length) renderGrid();
+    }
 
     function fillStats(g) {
       $('.ps-sub').textContent = [typeLabel(g), U.playLine(g)].filter(Boolean).join('  ·  ');
@@ -631,8 +811,10 @@
       const line = $('.ps-achline');
       line.hidden = !(per && per.total);
       if (per && per.total) {
+        const done = U.isComplete(per); // 100 %: estrella dorada y barra dorada
+        line.classList.toggle('done', done);
         line.querySelector('i').style.width = `${(per.done / per.total) * 100}%`;
-        line.querySelector('.ps-achnum').textContent = `${per.done} / ${per.total}`;
+        line.querySelector('.ps-achnum').innerHTML = done ? `<span class="nh-done-text">${U.completeBadge('ps2star')} ${per.done} / ${per.total}</span>` : `${per.done} / ${per.total}`;
       }
     }
     function detailActions(g) {

@@ -263,8 +263,14 @@
       $('.p4-qm-foot .n').textContent = profile.name || 'Jugador';
       $('.p4t-name').textContent = profile.name || 'Jugador';
     }
+    let doneKey = ''; // juegos al 100 % (si cambia, se redibujan los cuadros con su platino)
     async function loadSummary(s) {
       summary = s || (await call('getAchievementSummary')) || summary;
+      const k = U.completeKey(summary);
+      if (k !== doneKey) {
+        doneKey = k;
+        setGames(games);
+      }
       $('.p4-st-troph b').textContent = summary.hasKey ? String(summary.done || 0) : '—';
       if (view === 'home') renderTeaser();
       if (current && view === 'game') paintGameTrophies(current);
@@ -299,6 +305,8 @@
           el.appendChild(t);
         }
       }
+      // Juego al 100 %: trofeo de platino en la esquina
+      if (U.isComplete(trophiesOf(g))) el.insertAdjacentHTML('beforeend', U.completeBadge('platinum', 'on-icon'));
       return el;
     }
 
@@ -378,7 +386,9 @@
       box.innerHTML = `
         <div class="p4-panel"><div class="p4-panel-h">${icon('clock')} Tu actividad</div><div class="p4-panel-t">${esc(act)}</div></div>
         <div class="p4-panel"><div class="p4-panel-h">${icon('trophy')} Trofeos</div>${
-          tp && tp.total
+          U.isComplete(tp)
+            ? `<div class="p4-panel-t nh-done-text plat">${U.completeBadge('platinum')} Platino · ${tp.done} de ${tp.total}</div><div class="p4-bar plat"><i style="width:100%"></i></div>`
+            : tp && tp.total
             ? `<div class="p4-panel-t">${tp.done} de ${tp.total} · ${Math.round((tp.done / tp.total) * 100)} %</div><div class="p4-bar"><i style="width:${(tp.done / tp.total) * 100}%"></i></div>`
             : `<div class="p4-panel-t dim">${g.type === 'steam' ? (summary.hasKey ? 'Sin datos todavía' : 'Agrega tu clave de Steam') : 'No es de Steam'}</div>`
         }</div>
@@ -500,7 +510,9 @@
         body.innerHTML = '<div class="p4-panel-t dim">Este juego no es de Steam, así que no tiene trofeos.</div>';
         return;
       }
-      body.innerHTML = tp && tp.total
+      body.innerHTML = U.isComplete(tp)
+        ? `<div class="p4-panel-t nh-done-text plat">${U.completeBadge('platinum')} Platino · ${tp.done} de ${tp.total} · 100 %</div><div class="p4-bar plat"><i style="width:100%"></i></div><div class="p4g-icons"></div>`
+        : tp && tp.total
         ? `<div class="p4-panel-t">${tp.done} de ${tp.total} · ${Math.round((tp.done / tp.total) * 100)} %</div><div class="p4-bar"><i style="width:${(tp.done / tp.total) * 100}%"></i></div><div class="p4g-icons"></div>`
         : '<div class="p4-panel-t dim">Cargando…</div><div class="p4g-icons"></div>';
       const token = ++gameToken;
@@ -764,7 +776,8 @@
         info.querySelector('.p4t-gname').textContent = g.name;
         const cnt = document.createElement('div');
         cnt.className = 'p4t-count';
-        cnt.innerHTML = `${icon('trophy')}<span>${tp.done} / ${tp.total}</span>`;
+        const plat = U.isComplete(tp);
+        cnt.innerHTML = plat ? `${U.completeBadge('platinum')}<span class="nh-done-text plat">${tp.done} / ${tp.total}</span>` : `${icon('trophy')}<span>${tp.done} / ${tp.total}</span>`;
         r.append(art, info, cnt);
         r.addEventListener('mouseenter', () => setTrophy(i, false));
         r.addEventListener('click', () => openTrophyList(g));

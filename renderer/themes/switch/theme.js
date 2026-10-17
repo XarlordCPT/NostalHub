@@ -196,6 +196,7 @@
         else if (!g.heroIsReal) el.classList.add('fit');
         else el.innerHTML = `<div class="sw-art-name">${esc(g.name)}</div>`;
       } else el.innerHTML = `<div class="sw-art-name">${esc(g.name)}</div>`;
+      if (U.isComplete(trophiesOf(g))) el.insertAdjacentHTML('beforeend', U.completeBadge('crown', 'on-icon')); // 100 %: corona
       return el;
     }
 
@@ -445,8 +446,8 @@
           <div class="sw-g-h">Actividad de juego</div>
           ${infoLine('Tiempo de juego', U.hours(g.playtimeMin) || 'Todavía no lo juegas')}
           ${infoLine('Última vez', g.lastPlayed ? U.ago(g.lastPlayed) : 'Nunca')}
-          ${g.type === 'steam' ? infoLine('Logros', tp && tp.total ? `${tp.done} de ${tp.total} (${Math.round((tp.done / tp.total) * 100)} %)` : summary.hasKey ? 'Sin datos todavía' : 'Conecta tu Steam para verlos') : ''}
-          ${tp && tp.total ? `<div class="sw-bar"><i style="width:${(tp.done / tp.total) * 100}%"></i></div>` : ''}
+          ${g.type === 'steam' && U.isComplete(tp) ? `<div class="sw-g-line"><span>Logros</span><b class="nh-done-text">${U.completeBadge('crown')} Completado · ${tp.done} de ${tp.total}</b></div>` : g.type === 'steam' ? infoLine('Logros', tp && tp.total ? `${tp.done} de ${tp.total} (${Math.round((tp.done / tp.total) * 100)} %)` : summary.hasKey ? 'Sin datos todavía' : 'Conecta tu Steam para verlos') : ''}
+          ${tp && tp.total ? `<div class="sw-bar${U.isComplete(tp) ? ' done' : ''}"><i style="width:${(tp.done / tp.total) * 100}%"></i></div>` : ''}
           <div class="sw-g-h">Información del software</div>
           ${infoLine('Tipo', typeLabel(g))}
           ${g.appId && g.type === 'steam' ? infoLine('Número en Steam', g.appId) : ''}
@@ -525,7 +526,8 @@
         ? achGames
             .map((g, i) => {
               const tp = trophiesOf(g) || { done: 0, total: 0 };
-              return `<button class="sw-li" data-i="${i}"><span class="sw-li-t">${esc(g.name)}</span><span class="sw-li-v">${tp.total ? `${tp.done}/${tp.total}` : ''}</span></button>`;
+              const done = U.isComplete(tp);
+              return `<button class="sw-li" data-i="${i}"><span class="sw-li-t">${esc(g.name)}</span><span class="sw-li-v${done ? ' nh-done-text' : ''}">${done ? `${U.completeBadge('crown')} ` : ''}${tp.total ? `${tp.done}/${tp.total}` : ''}</span></button>`;
             })
             .join('')
         : '<div class="sw-msg small">Todavía no hay datos de logros. Se cargan solos en unos minutos.</div>';
@@ -1051,8 +1053,15 @@
       profile = (await call('getSteamProfile')) || profile;
       paintUsers();
     }
+    let doneKey = ''; // juegos al 100 % (si cambia, se redibujan los cuadros con su corona)
     async function loadSummary(s) {
       summary = s || (await call('getAchievementSummary')) || summary;
+      const k = U.completeKey(summary);
+      if (k !== doneKey) {
+        doneKey = k;
+        setGames(games);
+        return;
+      }
       if (view === 'game' && gameCur) paintGameMain();
     }
     function renderSpotify(s) {
