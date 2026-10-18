@@ -453,6 +453,7 @@
   opacity: 0.75;
   font-variant-numeric: tabular-nums;
 }
+.theme-wii .np-clock { margin-top: 14px; font-size: 32px; font-weight: 500; opacity: 0.75; }
 .pl-time::before {
   content: '';
   display: inline-block;

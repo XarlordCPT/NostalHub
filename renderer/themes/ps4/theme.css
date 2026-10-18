@@ -540,7 +540,9 @@
 .p4-play-art { position: relative; width: 360px; height: 360px; box-shadow: 0 0 0 4px #fff, 0 24px 60px rgba(0, 0, 0, 0.5); }
 .p4-play-label { font-size: 32px; opacity: 0.8; }
 .p4-play-name { font-size: 76px; font-weight: 300; max-width: 960px; line-height: 1.1; margin-top: 6px; }
-.p4-play-time { font-size: 46px; font-weight: 300; margin: 20px 0 40px; font-variant-numeric: tabular-nums; }
+.p4-play-time { font-size: 46px; font-weight: 300; margin: 20px 0 12px; font-variant-numeric: tabular-nums; }
+.p4-playing .np-clock { justify-content: flex-start; font-size: 30px; font-weight: 300; margin-bottom: 40px; }
+.p4-playing .np-clock-time { font-weight: 400; }
 
 /* ============ Pie ============ */
 .p4-foot { position: absolute; right: 90px; bottom: 44px; z-index: 6; }

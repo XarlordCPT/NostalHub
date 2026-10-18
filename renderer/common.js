@@ -527,6 +527,34 @@
     };
   }
 
+  // Hora y fecha de la pantalla "Jugando a…": "04:35 PM" y "Domingo 18-Oct-2026".
+  // Cada tema pone clockHtml() donde quiera; un solo reloj actualiza todos los .np-clock cada segundo.
+  const DAYS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+  const MONTHS = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+  function clockTexts(d = new Date()) {
+    const two = (n) => String(n).padStart(2, '0');
+    const h = d.getHours();
+    return {
+      time: `${two(h % 12 || 12)}:${two(d.getMinutes())} ${h < 12 ? 'AM' : 'PM'}`,
+      date: `${DAYS[d.getDay()]} ${two(d.getDate())}-${MONTHS[d.getMonth()]}-${d.getFullYear()}`,
+    };
+  }
+  function clockHtml(cls = '') {
+    const c = clockTexts();
+    return `<div class="np-clock${cls ? ` ${cls}` : ''}"><b class="np-clock-time">${c.time}</b><span class="np-clock-date">${c.date}</span></div>`;
+  }
+  setInterval(() => {
+    const els = document.querySelectorAll('.np-clock');
+    if (!els.length) return;
+    const c = clockTexts();
+    els.forEach((el) => {
+      const t = el.querySelector('.np-clock-time');
+      const d = el.querySelector('.np-clock-date');
+      if (t && t.textContent !== c.time) t.textContent = c.time;
+      if (d && d.textContent !== c.date) d.textContent = c.date;
+    });
+  }, 1000);
+
   // ---------- Amigos de Steam (lo comparten todas las consolas) ----------
   // Grupos en el orden de Steam. 'on' incluye a los "ocupados".
   const FRIEND_GROUPS = [
@@ -632,6 +660,8 @@
 
   window.NostalHubUtil = {
     nowPlaying,
+    clockHtml,
+    clockTexts,
     fmtTime,
     progressHtml,
     nextText,

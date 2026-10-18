@@ -46,6 +46,7 @@
 .ps-name,
 .ps-label,
 .ps-sub,
+.ps-clock,
 .ps-caption,
 .ps-hint {
   text-shadow:
@@ -655,6 +656,8 @@ body.playing .theme-ps2 .ps-big * { animation-play-state: running !important; }
 .theme-ps2.is-playing .ps-info { left: 540px; right: 540px; top: 570px; bottom: 60px; justify-content: flex-start; align-items: center; text-align: center; }
 .theme-ps2.is-playing .ps-info > * { flex-shrink: 0; }
 .theme-ps2.is-playing .ps-name { font-size: 66px; }
+.theme-ps2 .ps-clock { display: none; }
+.theme-ps2.is-playing .ps-clock { display: flex; margin-top: 10px; font-size: 30px; color: #dfe6ff; }
 .theme-ps2.is-playing .ps-actions { margin-top: 30px; }
 .theme-ps2 .np-panel { display: none; }
 .theme-ps2.is-playing .np-panel {

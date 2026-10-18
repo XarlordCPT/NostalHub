@@ -161,6 +161,7 @@
       <div class="p4-play-label">Jugando a</div>
       <div class="p4-play-name"></div>
       <div class="p4-play-time">0:00</div>
+      ${window.NostalHubUtil.clockHtml()}
       <button class="p4-btn sel" data-p="stop">${icon('swap')}<span>Volver al menú</span></button>
     </div>
   </div>

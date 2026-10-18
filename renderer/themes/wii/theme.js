@@ -110,6 +110,7 @@
     <div class="pl-label">Jugando a</div>
     <div class="pl-name"></div>
     <div class="pl-time">0:00</div>
+    ${window.NostalHubUtil.clockHtml()}
   </div>
   <div class="ch-bottom">
     <button class="pill wide" id="btn-stop">Volver al menú</button>

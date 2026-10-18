@@ -25,6 +25,7 @@
     <div class="ps-label"></div>
     <div class="ps-name"></div>
     <div class="ps-sub"></div>
+    ${window.NostalHubUtil.clockHtml('ps-clock')}
     <div class="ps-achline" hidden><span class="ps-achlabel">Logros</span><div class="ps-achbar"><i></i></div><span class="ps-achnum"></span></div>
     <div class="ps-desc"></div>
     <div class="ps-actions"></div>

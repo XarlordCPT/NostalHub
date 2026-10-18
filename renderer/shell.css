@@ -596,6 +596,11 @@ body[data-console='3ds'] .wb-b { border-radius: 8px; background: #fff; box-shado
 body[data-console='3ds'] .wb-b:hover { background: #e3f4fc; color: #29a8e0; box-shadow: inset 0 0 0 2px #29a8e0; }
 body[data-console='3ds'] .wb-close:hover { background: #fde8e8; color: #e2402a; box-shadow: inset 0 0 0 2px #e2402a; }
 
+/* ============ Hora y fecha en "Jugando a…" (clockHtml en common.js; cada tema ajusta tamaño y márgenes) ============ */
+.np-clock { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: center; gap: 0.2em 0.6em; font-size: 28px; line-height: 1.2; font-variant-numeric: tabular-nums; }
+.np-clock-time { font-weight: 700; }
+.np-clock-date { opacity: 0.75; }
+
 /* ============ Música: barra de avance, "Siguiente" y botones extra (panel "Jugando a…" y menús) ============ */
 .mp-prog { display: flex; align-items: center; gap: 12px; font-size: 20px; font-variant-numeric: tabular-nums; }
 .mp-bar { flex: 1; height: 6px; border-radius: 3px; background: color-mix(in srgb, currentColor 22%, transparent); overflow: hidden; }

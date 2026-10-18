@@ -179,6 +179,7 @@
     <div class="v-play-label">Jugando a</div>
     <div class="v-play-name"></div>
     <div class="v-play-time">0:00</div>
+    ${window.NostalHubUtil.clockHtml()}
     <button class="v-pill sel" data-p="stop"><span>Volver al menú</span></button>
   </div>
 </section>

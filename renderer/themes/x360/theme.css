@@ -647,7 +647,9 @@
 }
 .xb-play-label { font-size: 34px; color: var(--green-hi); }
 .xb-play-name { font-size: 70px; font-weight: 300; line-height: 1.05; max-width: 820px; }
-.xb-play-time { margin: 14px 0 32px; font-size: 40px; opacity: 0.85; font-variant-numeric: tabular-nums; }
+.xb-play-time { margin: 14px 0 8px; font-size: 40px; opacity: 0.85; font-variant-numeric: tabular-nums; }
+.xb-playing .np-clock { justify-content: flex-start; font-size: 28px; margin-bottom: 32px; }
+.xb-playing .np-clock-time { font-weight: 400; color: var(--green-hi); }
 .xb-play-info .xb-tile.act { width: 330px; }
 /* Mientras juegas se pausan las animaciones que no paran nunca */
 body.playing .theme-x360 .xb-sheen,

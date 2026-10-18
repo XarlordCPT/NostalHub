@@ -196,6 +196,7 @@
       <div class="xb-play-label">Jugando a</div>
       <div class="xb-play-name"></div>
       <div class="xb-play-time">0:00</div>
+      ${window.NostalHubUtil.clockHtml()}
       <button class="xb-tile act green" data-nav data-pact="stop">${icon('swap')}<span class="xb-label">Volver al menú</span></button>
     </div>
   </div>

@@ -181,7 +181,9 @@
 .p3-play-icon { width: 480px; height: 264px; display: grid; place-items: center; padding: 20px; font-size: 40px; background: rgba(0, 0, 0, 0.3) center / cover; box-shadow: 0 0 30px rgba(255, 255, 255, 0.22), 0 10px 30px rgba(0, 0, 0, 0.45); }
 .p3-play-label { margin-top: 40px; font-size: 30px; opacity: 0.8; }
 .p3-play-name { max-width: 860px; font-size: 52px; line-height: 1.15; }
-.p3-play-time { font-size: 42px; font-weight: 300; margin: 12px 0 34px; font-variant-numeric: tabular-nums; }
+.p3-play-time { font-size: 42px; font-weight: 300; margin: 12px 0 10px; font-variant-numeric: tabular-nums; }
+.p3-playing .np-clock { font-size: 28px; font-weight: 300; margin-bottom: 34px; }
+.p3-playing .np-clock-time { font-weight: 400; }
 .theme-ps3 .p3-play-btn { height: 66px; padding: 0 44px; font-size: 28px; border: 2px solid #fff !important; border-radius: 8px !important; background: rgba(255, 255, 255, 0.2) !important; box-shadow: 0 0 18px rgba(255, 255, 255, 0.3); }
 .p3-playing .np-panel { position: absolute; top: 150px; bottom: 150px; width: 430px; display: flex; flex-direction: column; padding: 28px; background: linear-gradient(180deg, rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0.72)); border: 1px solid rgba(255, 255, 255, 0.25); color: #fff; font-family: var(--p3-font); }
 .p3-playing .np-music { left: 80px; }

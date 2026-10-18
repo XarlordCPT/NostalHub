@@ -116,6 +116,7 @@
     <div class="sw-play-label">Jugando a</div>
     <div class="sw-play-name"></div>
     <div class="sw-play-time">0:00</div>
+    ${window.NostalHubUtil.clockHtml()}
     <button class="sw-pill sel" data-p="stop">Volver al menú</button>
   </div>
 </section>`;

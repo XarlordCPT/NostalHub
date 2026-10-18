@@ -109,6 +109,8 @@ renderer/themes/<id>/   theme.js + theme.css de cada consola
   - Logros: `achievementMessage`, `sortAchievements`, `achievementTexts`. Juego al 100 %: `isComplete(per)`,
     `completeBadge(tipo, 'on-icon')` (platinum, medal, ps2star, seal, crown, star) y `completeKey(summary)` para
     redibujar los íconos solo cuando cambia qué juegos están completos.
+  - Hora y fecha en "Jugando a…": `clockHtml(clase)` (`04:35 PM` + `Domingo 18-Oct-2026`); un solo reloj en
+    `common.js` actualiza todos los `.np-clock`. Cada tema le da tamaño y márgenes en su CSS.
   - Otros: `partyView`, `hours`, `ago`, `playLine`, `escapeHtml`, `npIcon`, `fmtTime`.
 - Datos en vivo: `api.onGamesUpdated`, `api.onGameEnded`, `api.onSteamSummary`, `api.onSteamChanged`,
   `api.onSpotify`, `api.onSpotifyWeb`, `api.onDiscord`. Las fichas de juego tienen que **repintarse** cuando llega

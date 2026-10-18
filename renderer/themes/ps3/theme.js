@@ -115,6 +115,7 @@
     <div class="p3-play-label">Jugando a</div>
     <div class="p3-play-name"></div>
     <div class="p3-play-time">0:00</div>
+    ${window.NostalHubUtil.clockHtml()}
     <button class="p3-play-btn" data-p="stop">Volver al menú</button>
   </div>
 </section>`;

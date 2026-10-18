@@ -916,7 +916,7 @@
       $('.t-app').innerHTML = `<div class="tp-ban"${u ? ` style="background-image:url('${esc(u)}')"` : ''}>${g.logo ? `<img src="${esc(g.logo)}" alt="" />` : ''}</div><div class="t-label tp-label"><b>${esc(g.name)}</b><small class="tp-time">0:00</small></div>`;
       $('.b-app').hidden = false;
       $('.b-home').hidden = true;
-      $('.b-app').innerHTML = `<div class="bp"><div class="bp-ic">${squareHtml(g)}</div><div class="bp-t">Jugando a</div><div class="bp-n">${esc(g.name)}</div><button class="bp-btn">Volver al menú HOME</button></div>`;
+      $('.b-app').innerHTML = `<div class="bp"><div class="bp-ic">${squareHtml(g)}</div><div class="bp-t">Jugando a</div><div class="bp-n">${esc(g.name)}</div>${U.clockHtml()}<button class="bp-btn">Volver al menú HOME</button></div>`;
       $('.b-app .bp-btn').addEventListener('click', () => {
         call('dismissPlaying');
         endPlaying('manual');

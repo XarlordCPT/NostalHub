@@ -404,7 +404,8 @@ actualiza cada 30 segundos.
 
 ### Mientras juegas
 
-Al abrir un juego, cada consola muestra su pantalla de "jugando" con el tiempo que llevas. A los lados aparecen la
+Al abrir un juego, cada consola muestra su pantalla de "jugando" con el tiempo que llevas y, debajo, la hora y la fecha
+(por ejemplo `04:35 PM  Domingo 18-Oct-2026`). A los lados aparecen la
 **música** (izquierda) y tu **Grupo de Discord** (derecha). Al cerrar el juego vuelves solo al menú (también con
 los accesos directos `.lnk` a un `.exe`). Con los que se abren por un enlace de otro launcher (Epic, etc.) no se
 puede saber cuándo terminan: usa **Volver al menú**.
