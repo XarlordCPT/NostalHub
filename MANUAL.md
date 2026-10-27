@@ -297,11 +297,32 @@ instalas de nuevo y terminan de descargarse.
 
 Para ponerle arte propio a cualquiera de ellos, usa clic derecho → Cambiar imágenes (sección 2).
 
+**Minecraft (Java Edition)**, con sus progresos como logros:
+
+1. Ten instalado el **launcher oficial** de Minecraft (el de la Microsoft Store / app de Xbox, o el instalador de
+   minecraft.net) y juega con Minecraft **en inglés**.
+2. En NostalHub: Ajustes → Juegos → **Agregar Minecraft (Java)**. Aparece "Minecraft" en tus juegos.
+3. Ponle arte propio con clic derecho → Cambiar imágenes (NostalHub no trae imágenes de Minecraft).
+
+Al abrirlo se abre el launcher; cuando apretas **Jugar** y después cierras el juego, vuelves solo al menú. Cada
+progreso que consigas sale encima del juego con el estilo de tu consola: un progreso normal es **bronce**, una
+meta es **plata** y un desafío es **oro**. Funciona en tus mundos y en servidores (si el servidor anuncia los
+progresos en el chat); los de otros jugadores no salen. Si usas otro launcher (Prism, CurseForge…), no funciona.
+Cada aviso trae el ícono del progreso (el mismo objeto que en el juego), sacado de tu Minecraft instalado; los
+progresos que agregan los mods salen con la copa.
+
+**Si juegas en pantalla completa:**
+- La pantalla completa normal de Minecraft (F11) no deja que nada se vea encima: ahí los avisos no salen.
+- Con un mod de pantalla completa sin bordes, en tarjetas NVIDIA: Panel de control de NVIDIA → Administrar la
+  configuración 3D → pestaña de programas → `javaw.exe` → **Método de presentación de Vulkan/OpenGL** →
+  **Preferir capas en la cadena de intercambio DXGI** (*Prefer layered on DXGI Swapchain*).
+- Lo más seguro: en Ajustes → Pantalla → **Pantalla de los logros**, elige tu otra pantalla (la de NostalHub).
+
 **A mano en `config.json`** (si prefieres): Ajustes → Archivos → **Abrir config.json**. Dentro de
 `"games": [ ... ]` agrega una entrada:
 
 ```json
-{ "name": "Minecraft", "target": "C:\\Users\\Xarlord\\Desktop\\Minecraft.lnk" }
+{ "name": "Mi juego", "target": "C:\\Users\\Xarlord\\Desktop\\Mi juego.lnk" }
 ```
 
 - `target` puede ser un acceso directo `.lnk`, un `.exe` o una URL de otro launcher.

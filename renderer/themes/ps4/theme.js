@@ -502,7 +502,7 @@
       paintGameTrophies(g);
     }
     function typeLabel(g) {
-      return { steam: 'Steam', exe: 'Programa', shortcut: 'Acceso directo', url: 'Otro launcher' }[g.type] || '';
+      return { steam: 'Steam', exe: 'Programa', shortcut: 'Acceso directo', url: 'Otro launcher', minecraft: 'Launcher de Minecraft' }[g.type] || '';
     }
     async function paintGameTrophies(g) {
       const body = $('.p4g-tp-body');
@@ -550,8 +550,8 @@
     // ---------- Biblioteca ----------
     const LIB_CATS = [
       { id: 'all', label: 'Todos', icon: 'grid', filter: () => true },
-      { id: 'steam', label: 'Juegos', icon: 'pad', filter: (g) => g.type === 'steam' },
-      { id: 'apps', label: 'Aplicaciones', icon: 'apps', filter: (g) => g.type !== 'steam' },
+      { id: 'steam', label: 'Juegos', icon: 'pad', filter: (g) => g.type === 'steam' || g.type === 'minecraft' },
+      { id: 'apps', label: 'Aplicaciones', icon: 'apps', filter: (g) => g.type !== 'steam' && g.type !== 'minecraft' },
       { id: 'recent', label: 'Jugados recientemente', icon: 'clock', filter: (g) => !!g.lastPlayed, mine: true },
       { id: 'troph', label: 'Con trofeos', icon: 'trophy', filter: (g) => !!trophiesOf(g), mine: true },
     ];

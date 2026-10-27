@@ -7,6 +7,7 @@ const { shell } = require('electron');
 const steam = require('./steam');
 
 const STEAM_START_TIMEOUT_MS = 3 * 60 * 1000; // si en 3 min no arranca, se asume que se canceló
+const MC_START_TIMEOUT_MS = 10 * 60 * 1000; // en Minecraft eliges versión o mods en el launcher antes de jugar
 const POLL_MS = 3000;
 // El aviso de "terminó" nunca llega antes de esto: así no se pierde durante la animación de abrir el juego
 // (si llegaba en medio, la pantalla "Jugando" quedaba pegada)
@@ -56,6 +57,16 @@ class Launcher {
         return { ok: true, tracking: true };
       }
 
+      // Minecraft Java: se abre el launcher y se vigila el juego (javaw.exe), que arranca cuando apretas Jugar
+      case 'minecraft': {
+        const t = game.target || '';
+        if (/^shell:/i.test(t)) spawn('explorer.exe', [t], { detached: true, stdio: 'ignore' }).unref();
+        else if (fs.existsSync(t)) spawn(t, [], { cwd: path.dirname(t), detached: true, stdio: 'ignore' }).unref();
+        else return { ok: false, error: 'No se encontró el launcher de Minecraft' };
+        this.watchProcess(game, 'javaw.exe', MC_START_TIMEOUT_MS);
+        return { ok: true, tracking: true };
+      }
+
       case 'shortcut':
       default: {
         const err = await shell.openPath(game.target);
@@ -98,8 +109,8 @@ class Launcher {
   }
 
   // Vigila un programa por su nombre: cuando aparece y después se cierra, el juego terminó.
-  // Si no aparece en 3 minutos se deja de vigilar (queda el botón "Volver al menú").
-  watchProcess(game, exeName) {
+  // Si no aparece en 3 minutos (o el tiempo que se pida) se deja de vigilar (queda el botón "Volver al menú").
+  watchProcess(game, exeName, startTimeout = STEAM_START_TIMEOUT_MS) {
     let seenRunning = false;
     let checking = false;
     const timer = setInterval(async () => {
@@ -110,7 +121,7 @@ class Launcher {
       if (!this.session || this.session.timer !== timer) return;
       if (running) seenRunning = true;
       else if (running === false && seenRunning) this.end(game.id, 'exited');
-      else if (!seenRunning && Date.now() - this.startedAt > STEAM_START_TIMEOUT_MS) this.stopWatching();
+      else if (!seenRunning && Date.now() - this.startedAt > startTimeout) this.stopWatching();
     }, POLL_MS);
     this.session = { gameId: game.id, timer };
   }

@@ -717,7 +717,7 @@
     // Horas, "jugado hace…" y logros de la ficha (también cuando llegan datos nuevos con la ficha abierta)
     function paintDetailInfo(g) {
       $('.xb-detail-meta').textContent = [
-        { steam: 'Steam', exe: 'Programa', shortcut: 'Acceso directo', url: 'Launcher' }[g.type] || '',
+        { steam: 'Steam', exe: 'Programa', shortcut: 'Acceso directo', url: 'Launcher', minecraft: 'Launcher de Minecraft' }[g.type] || '',
         hours(g.playtimeMin),
         g.lastPlayed ? `Jugado ${ago(g.lastPlayed)}` : '',
       ]

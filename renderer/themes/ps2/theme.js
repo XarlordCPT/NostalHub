@@ -663,7 +663,7 @@
     }
 
     function typeLabel(g) {
-      return { steam: 'Steam', exe: 'Programa', shortcut: 'Acceso directo', url: 'Launcher' }[g.type] || '';
+      return { steam: 'Steam', exe: 'Programa', shortcut: 'Acceso directo', url: 'Launcher', minecraft: 'Launcher de Minecraft' }[g.type] || '';
     }
 
     async function openDetail(i) {

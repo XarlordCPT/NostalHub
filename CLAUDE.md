@@ -66,7 +66,11 @@ src/steam.js, vdf.js    Encuentra Steam, lee la biblioteca (.acf/.vdf), horas lo
 src/steamweb.js         Web API de Steam (con clave): logros, totales, perfil, amigos, horas (GetOwnedGames)
 src/achievements.js     Detecta logros nuevos al instante leyendo los archivos de Steam (trophyTier, platino)
 src/overlay.js          Ventana transparente encima del juego para el aviso de logro (POS por consola)
-src/launcher.js         Abre los juegos y avisa cuando terminan
+src/minecraft.js        Minecraft Java (launcher oficial): findLauncher y progresos al instante leyendo
+                        .minecraft\logs\latest.log ("[CHAT] <nombre> has made the advancement [X]", solo inglés)
+src/minecraft-icons.js  Ícono de cada progreso desde el .jar del juego (advancement JSON + en_us.json + textura
+                        16×16 agrandada sin suavizar), guardado en cache\minecraft\<versión>\
+src/launcher.js         Abre los juegos y avisa cuando terminan (Minecraft: abre el launcher y vigila javaw.exe)
 src/media.js            Descarga el arte de Steam y busca el arte propio (CUSTOM_FILES)
 src/spotify.js          Música por los controles multimedia de Windows (SMTC) + datos de la Web API
 src/spotify-smtc.ps1    Ayudante de PowerShell para SMTC (Spotify / Apple Music / YouTube Music / auto)
@@ -145,7 +149,9 @@ descripción), `cache\` (arte descargado, `spotify.log`, `discord.log`) y las cl
   `GET /me/library/contains` y `PUT/DELETE /me/library`. El aleatorio inteligente solo se puede leer.
 - La portada de la canción solo se busca por internet si coincide la **misma canción**; si no, mejor ninguna.
 - Discord solo funciona para la cuenta dueña de la aplicación (y sus testers).
-- Battle.net no tiene API pública de amigos: no se puede.
+- Battle.net no tiene API pública de amigos: no se puede. YouTube Music tampoco tiene API oficial: se queda con SMTC.
+- Para probar la app con otra carpeta de datos **no sirve** cambiar `APPDATA`: Electron pide la carpeta a Windows
+  directo y usa el `config.json` real de Cristóbal (solo `src/minecraft.js` sí lee `APPDATA`).
 - Elegir con `mouseenter` + mover la lista con el teclado = la selección salta al elemento que pasa bajo el mouse
   quieto. `common.js` ya ignora esos avisos después de una tecla (hasta que el mouse se mueva de verdad).
 - Toda pantalla tiene que poder usarse solo con flechas + Enter + Esc (el control llega así). Filas de botones

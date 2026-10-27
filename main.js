@@ -12,6 +12,8 @@ const media = require('./src/media');
 const { Launcher } = require('./src/launcher');
 const { SteamWeb } = require('./src/steamweb');
 const { AchievementWatcher, gamerscore, trophyTier } = require('./src/achievements');
+const minecraft = require('./src/minecraft');
+const { MinecraftIcons } = require('./src/minecraft-icons');
 const { Overlay } = require('./src/overlay');
 const { Spotify, MUSIC_APPS } = require('./src/spotify');
 const { SpotifyWeb } = require('./src/spotify-web');
@@ -179,6 +181,33 @@ const achWatcher = new AchievementWatcher({
   },
   log: (...m) => console.warn(...m),
 });
+// Minecraft Java: los progresos salen en su log (src/minecraft.js). Solo se vigila si lo agregaste.
+// El ícono de cada progreso sale del .jar del juego (src/minecraft-icons.js); si no se encuentra, va la copa.
+const mcIcons = new MinecraftIcons({ gameDir: minecraft.GAME_DIR, cacheDir: path.join(DATA_DIR, 'cache', 'minecraft'), log: (...m) => console.warn(...m) });
+const mcWatcher = new minecraft.MinecraftWatcher({
+  onUnlock: async (a) => {
+    const icon = await mcIcons.iconFor(a.name, a.version).catch(() => null);
+    showAchievement({ ...a, icon: icon ? fileUrl(icon) : null });
+  },
+  log: (...m) => console.warn(...m),
+});
+function syncMinecraftWatcher() {
+  if (config.games.some((g) => g.type === 'minecraft' && !g.hidden)) {
+    if (!mcWatcher.timer) setTimeout(() => mcIcons.index(mcWatcher.version), 20000); // deja listos los nombres antes del primer progreso
+    mcWatcher.start();
+  } else mcWatcher.stop();
+}
+async function addMinecraft() {
+  if (config.games.some((g) => g.type === 'minecraft')) return send('toast', 'Minecraft ya está en la lista');
+  const target = minecraft.findLauncher();
+  if (!target) return send('toast', 'No se encontró el launcher oficial de Minecraft');
+  config.games.push({ id: 'minecraft', name: 'Minecraft', type: 'minecraft', target, args: [], hidden: false, media: {}, custom: {}, mediaCheckedAt: 0 });
+  config.save();
+  ensureCustomFolders();
+  syncMinecraftWatcher();
+  pushGamesSoon();
+  send('toast', 'Se agregó Minecraft');
+}
 // Logro de prueba (atajo escondido: Ctrl + Alt + Shift + L), funciona aunque estés dentro de un juego
 const FAKE = ['Primeros pasos', 'Coleccionista incansable', 'Sin un rasguño', 'Maestro de la velocidad', 'El más rápido del oeste', 'Leyenda de NostalHub'];
 global.nostalhubTestAchievement = (o) => testAchievement(o); // (para pruebas automáticas)
@@ -781,6 +810,7 @@ let isQuitting = false;
 app.on('before-quit', () => {
   globalShortcut.unregisterAll();
   achWatcher.stop();
+  mcWatcher.stop();
   overlay.destroy();
   isQuitting = true;
   spotify.dispose();
@@ -872,6 +902,13 @@ function menuSections() {
           label: 'Agregar juego o programa',
           desc: 'Elige el .exe o el acceso directo de un juego que no es de Steam.',
           run: () => addGameFromFile(),
+        },
+        {
+          id: 'add-minecraft',
+          type: 'action',
+          label: 'Agregar Minecraft (Java)',
+          desc: 'Con el launcher oficial. Sus progresos salen como logros encima del juego (Minecraft en inglés).',
+          run: () => addMinecraft(),
         },
         {
           id: 'art',
@@ -1519,6 +1556,7 @@ app.whenReady().then(async () => {
   fs.mkdirSync(MEDIA_DIR, { recursive: true });
   ensureCustomFolders();
   removeEmptyCustomFolders();
+  syncMinecraftWatcher();
 
   // Los tráileres de Steam vienen de otro dominio: les permitimos cargar en la ventana.
   session.defaultSession.webRequest.onHeadersReceived({ urls: ['https://*.steamstatic.com/*'] }, (details, cb) => {
@@ -1567,6 +1605,7 @@ app.whenReady().then(async () => {
     if (config.broken) return warnBrokenConfig();
     if (wasBroken) send('toast', 'config.json quedó bien de nuevo');
     ensureCustomFolders();
+    syncMinecraftWatcher();
     applyAutoStart();
     send('settings:changed', soundSettings());
     placeWindow();

@@ -431,7 +431,7 @@
         bg.classList.toggle('cover', !g.heroIsReal && !!g.cover);
         fg.innerHTML = g.logo ? `<img src="${esc(g.logo)}" alt="" draggable="false" />` : `<div class="t-ban-name">${esc(g.name)}</div>`;
         label.querySelector('b').textContent = g.name;
-        label.querySelector('small').textContent = [U.hours(g.playtimeMin), g.lastPlayed ? `Jugado ${U.ago(g.lastPlayed)}` : ''].filter(Boolean).join(' · ') || { steam: 'Steam', exe: 'Programa', shortcut: 'Acceso directo', url: 'Otro launcher' }[g.type] || '';
+        label.querySelector('small').textContent = [U.hours(g.playtimeMin), g.lastPlayed ? `Jugado ${U.ago(g.lastPlayed)}` : ''].filter(Boolean).join(' · ') || { steam: 'Steam', exe: 'Programa', shortcut: 'Acceso directo', url: 'Otro launcher', minecraft: 'Launcher de Minecraft' }[g.type] || '';
       } else {
         bg.style.backgroundImage = '';
         bg.classList.remove('cover');

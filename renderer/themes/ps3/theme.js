@@ -1229,7 +1229,7 @@ void main(){
     // ---------- Información del juego ----------
     function openInfo(g) {
       const tp = trophiesOf(g);
-      const type = { steam: 'Steam', exe: 'Programa', shortcut: 'Acceso directo', url: 'Otro launcher' }[g.type] || '—';
+      const type = { steam: 'Steam', exe: 'Programa', shortcut: 'Acceso directo', url: 'Otro launcher', minecraft: 'Launcher de Minecraft' }[g.type] || '—';
       const row = (l, v) => (v ? `<div class="p3-inf-r"><span>${esc(l)}</span><b>${esc(v)}</b></div>` : '');
       const el = $('.p3-info');
       el.dataset.gameCurrent = g.id;
