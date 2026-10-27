@@ -821,3 +821,11 @@ body.playing .theme-ps2 .ps-big * { animation-play-state: running !important; }
 .ps-cell .nh-done.on-icon { width: 52px; height: 52px; top: 6px; right: 26px; }
 .ps-achline.done .ps-achbar i { background: linear-gradient(90deg, #e3a91b, #ffe27a, #e3a91b); }
 .ps-achnum .nh-done { font-size: 1.3em; }
+
+/* ============ Ordenar (pie) ============ */
+.ps-sort-btn svg { animation: none; stroke-linejoin: round; }
+.ps-sort-t { display: flex; flex-direction: column; line-height: 1.05; }
+.ps-sort-t small { font-size: 22px; font-weight: 700; opacity: 0.8; }
+.ps-sort-btn { position: absolute; right: 80px; top: 64px; z-index: 3; }
+.ps-sort-btn { transition: opacity 0.3s ease, transform 0.18s ease; }
+.ps-grid-view.away ~ .ps-sort-btn, .theme-ps2.is-playing .ps-sort-btn { opacity: 0; pointer-events: none; }

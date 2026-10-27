@@ -6,7 +6,17 @@ Un lanzador con estética de menú de consola: se abre con Windows, se queda en 
 y cada juego es un "canal". Al hacer clic se abre la pantalla del canal con su animación, y
 **Iniciar** lo abre desde Steam (o desde su acceso directo).
 
-## Primera vez
+## Instalar y actualizar (para tus amigos)
+
+1. Abre `NostalHub-Setup-<versión>.exe` (sale en `dist\` con `npm run dist`).
+2. Si Windows muestra **"Windows protegió su PC"**: **Más información → Ejecutar de todas formas**. Sale porque el
+   instalador no tiene firma digital (es pagada); no es un virus.
+3. **Siguiente** hasta el final. Al terminar se puede abrir NostalHub al tiro.
+
+**Actualizar**: abre el instalador de la versión nueva encima, sin desinstalar nada. Tus juegos, ajustes, fondos,
+sonidos y claves no se pierden (están en `%APPDATA%\NostalHub`). Al desinstalar tampoco se borran.
+
+## Primera vez (para programar)
 
 Abre una terminal en esta carpeta (en el Explorador: clic derecho → "Abrir en Terminal") y escribe:
 

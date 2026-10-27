@@ -18,6 +18,10 @@
   <div class="ps-scroll up" hidden></div>
   <div class="ps-scroll down" hidden></div>
 </section>
+<button class="ps-cfg-btn ps-sort-btn" title="Cambiar el orden de los juegos (tecla O)">
+  <svg viewBox="0 0 48 48" aria-hidden="true"><path d="M15 9v30M8 32l7 7 7-7M33 39V9M26 16l7-7 7 7"/></svg>
+  <span class="ps-key">O</span><span class="ps-sort-t"><b>Ordenar</b><small></small></span>
+</button>
 
 <section class="ps-detail" hidden>
   <div class="ps-big"></div>
@@ -793,6 +797,7 @@
     const offSummary = api.onSteamSummary
       ? api.onSteamSummary((s) => {
           summary = s || summary;
+          if (order.mode === 'ach' && view === 'grid') setGames(rawGames); // el orden por logros cambia con el resumen
           if ((view === 'detail' || view === 'playing') && current >= 0 && games[current]) fillStats(games[current]);
           redrawDone();
         })
@@ -1043,7 +1048,7 @@
       else if (e.key === 'Escape' || e.key === 'Backspace') closeConfig();
     }
 
-    $('.ps-cfg-btn:not(.ps-fr-btn)').addEventListener('click', () => openConfig());
+    $('.ps-cfg-btn:not(.ps-fr-btn):not(.ps-sort-btn)').addEventListener('click', () => openConfig());
     cfg.addEventListener('wheel', (e) => {
       if (view !== 'config' || cfgConfirm || Math.abs(e.deltaY) < 10) return;
       setCfg(cfgSel + (e.deltaY > 0 ? 1 : -1));
@@ -1201,6 +1206,7 @@
         else if (e.key === 'ArrowUp') setSel(sel - COLS);
         else if (e.key === 'Enter') openDetail(sel);
         else if (e.key === 'c' || e.key === 'C') openConfig();
+        else if (e.key === 'o' || e.key === 'O') nextSort();
         else if (e.key === 'a' || e.key === 'A') openFriends();
         else if (e.key === 'Escape') ctx.openSelector();
       } else if (view === 'detail' || view === 'playing') {
@@ -1214,10 +1220,28 @@
     }
     window.addEventListener('keydown', onKey);
 
+    // ---------- Orden de los juegos (botón Ordenar o tecla O) ----------
+    const order = window.NostalHubUtil.gameOrder('ps2', { def: 'recent' });
+    let rawGames = [];
+    const paintSort = () => ($('.ps-sort-t small').textContent = order.label());
+    paintSort();
+    function nextSort() {
+      if (view !== 'grid') return;
+      const keep = games[sel] && games[sel].id;
+      order.next();
+      paintSort();
+      setGames(rawGames);
+      const j = games.findIndex((g) => g.id === keep);
+      if (j >= 0) setSel(j);
+      if (ctx.sound) ctx.sound('move');
+    }
+    $('.ps-sort-btn').addEventListener('click', () => nextSort());
+
     // ---------- Datos ----------
     function setGames(list) {
       const openId = current >= 0 && games[current] ? games[current].id : null;
-      games = list || [];
+      rawGames = list || [];
+      games = order.apply(rawGames, summary);
       if (openId) {
         const idx = games.findIndex((g) => g.id === openId);
         if (idx >= 0) current = idx;

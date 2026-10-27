@@ -51,6 +51,11 @@ npm run dev        # abre la app con las herramientas de desarrollo
 npm run dist       # instalador de Windows (electron-builder, sale en dist/)
 ```
 
+El instalador (NSIS, en español) se personaliza en `build/installer.nsh` (textos de bienvenida, final y
+desinstalar; UTF-8 **con BOM**) y en `build.nsis` de `package.json`. Instalar encima actualiza sin perder
+`%APPDATA%\NostalHub`. No tiene firma digital: Windows muestra "Windows protegió su PC" (ver README).
+Si después de `npm install` falta `node_modules/electron/dist`, corre `node node_modules/electron/install.js`.
+
 Después de cambiar código de `main.js` / `src/` hay que cerrar la app (menú del ícono → Salir) y volver a abrirla.
 Los cambios del renderer se ven con **Ajustes → General → Recargar**.
 
@@ -115,6 +120,11 @@ renderer/themes/<id>/   theme.js + theme.css de cada consola
     redibujar los íconos solo cuando cambia qué juegos están completos.
   - Hora y fecha en "Jugando a…": `clockHtml(clase)` (`04:35 PM` + `Domingo 18-Oct-2026`); un solo reloj en
     `common.js` actualiza todos los `.np-clock`. Cada tema le da tamaño y márgenes en su CSS.
+  - Orden de juegos: `gameOrder(id, { manual, def })` → `{ sorts, mode, label(), set(m), next(), apply(games,
+    summary), save(lista) }` (Jugado recientemente, Nombre, Horas jugadas, % de logros y, con `manual`, A mano).
+    Uno por consola, guardado en `localStorage` (`nostalhub.<id>.gameSort` / `gameOrder`).
+  - Fondo propio (PS3, PS4, 3DS): `wallpaper(api, id)` → `{ value, set, load(), choices(games), url(games), label,
+    openFolder() }`. Lee `consolas\<id>ondos\` (`api.getConsoleBackgrounds`) o usa el `hero` de un juego.
   - Otros: `partyView`, `hours`, `ago`, `playLine`, `escapeHtml`, `npIcon`, `fmtTime`.
 - Datos en vivo: `api.onGamesUpdated`, `api.onGameEnded`, `api.onSteamSummary`, `api.onSteamChanged`,
   `api.onSpotify`, `api.onSpotifyWeb`, `api.onDiscord`. Las fichas de juego tienen que **repintarse** cuando llega
@@ -123,7 +133,7 @@ renderer/themes/<id>/   theme.js + theme.css de cada consola
 
 ## Datos del usuario (`%APPDATA%\NostalHub`)
 
-`config.json`, `consolas\<id>\` (icono, logo, fondo, modelo, música, sonidos, intro, `logro.wav`),
+`config.json`, `consolas\<id>\` (icono, logo, fondo, modelo, música, sonidos, intro, `logro.wav`, `fondos\`),
 `personalizar\<juego>\` (canal, fondo, logo, video, modelo, carátula, burbuja, cuadrado, icono, música,
 descripción), `cache\` (arte descargado, `spotify.log`, `discord.log`) y las claves privadas de arriba.
 
@@ -145,6 +155,11 @@ descripción), `cache\` (arte descargado, `spotify.log`, `discord.log`) y las cl
 - Los resets de botón de un tema (`.theme-vita button`) pueden pisar fondos: usa selectores más específicos.
 - Steam no escribe `localconfig.vdf` hasta cerrarse: por eso las horas también se piden a la Web API
   (`playtimes`) y se usa la mayor. Al terminar un juego se refrescan logros y horas a los 4 s y a los 30 s.
+- Spotify: `hasApi` depende de que la API esté **conectada** (`spotify.webOn()`), no de que haya algo sonando: con
+  Spotify en pausa la API no da `playback` y antes salían los botones básicos. Se apaga con `config.spotifyApi`.
+- Las `@keyframes` de todos los temas comparten nombre global (todo el CSS se carga junto): usa nombres con prefijo.
+- Capturas con una ventana de Electron **oculta** (`show: false`): las animaciones CSS no avanzan y lo que entra con
+  animación queda invisible. Usa una ventana visible fuera de la pantalla (`x: -5000`).
 - Spotify Web API (2026): la app del dueño necesita **Premium** y hay máximo 5 usuarios por app; "me gusta" usa
   `GET /me/library/contains` y `PUT/DELETE /me/library`. El aleatorio inteligente solo se puede leer.
 - La portada de la canción solo se busca por internet si coincide la **misma canción**; si no, mejor ninguna.
@@ -168,6 +183,9 @@ descripción), `cache\` (arte descargado, `spotify.log`, `discord.log`) y las cl
 ## Decisiones de Cristóbal
 
 - Spotify es la app de música por defecto; Apple Music, YouTube Music y Automático son opcionales.
+- El **Grupo** de Discord nunca va mezclado con la lista de amigos: siempre su propia opción (PS3: fila "Grupo";
+  3DS: atajo con audífonos).
+- Orden de juegos por consola; **A mano** solo en Wii, PS Vita y 3DS (como las reales). PS3: △ → Ordenar.
 - Amigos: sin aviso de "amigo conectado" (ninguna consola lo tenía). Siempre **Ver perfil** y **Enviar mensaje**,
   y fotos con **esquinas redondeadas**.
 - Al elegir una canción de la cola se **salta hasta ella**.

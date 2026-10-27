@@ -1,7 +1,7 @@
 {
   "name": "nostalhub",
   "productName": "NostalHub",
-  "version": "0.3.0",
+  "version": "1.0.0",
   "description": "NostalHub: tus juegos con menús de consolas clásicas, para la segunda pantalla",
   "main": "main.js",
   "private": true,
@@ -70,6 +70,14 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "shortcutName": "NostalHub",
+      "uninstallDisplayName": "NostalHub",
+      "installerIcon": "assets/icon.ico",
+      "uninstallerIcon": "assets/icon.ico",
+      "installerLanguages": ["es_ES"],
+      "language": "1034",
+      "runAfterFinish": true,
+      "deleteAppDataOnUninstall": false,
+      "include": "build/installer.nsh",
       "artifactName": "NostalHub-Setup-${version}.${ext}"
     },
     "portable": {

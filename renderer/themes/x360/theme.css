@@ -1054,3 +1054,5 @@ body.playing .theme-x360 .sp-eq i { animation-play-state: paused !important; }
 .xb-case.mini .nh-done.on-icon, .xb-recent-row .xb-case .nh-done.on-icon { width: 38px; height: 38px; top: -8px; right: -10px; }
 .xb-detail-progress.done .xb-bar i { background: linear-gradient(90deg, #e3a91b, #ffe27a, #e3a91b); }
 .xb-detail-progress span .nh-done, .xb-flow-meta .nh-done, .xb-recent-meta .nh-done { font-size: 1.3em; }
+.xb-hint-btn { cursor: pointer; border-bottom: 2px dashed rgba(255, 255, 255, 0.6); }
+.xb-hint-btn:hover { border-bottom-style: solid; }

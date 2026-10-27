@@ -401,10 +401,11 @@
     }
 
     // ---------- Páginas de burbujas ----------
+    // Orden de las burbujas: Jugado recientemente, Nombre, Horas, % de logros o A mano (como al mantener una burbuja)
+    const order = U.gameOrder('vita', { manual: true, def: 'recent' });
+    let mv = null; // { list, index, before } al mover una burbuja (index en la lista de juegos)
     function sortedGames() {
-      const played = games.filter((g) => g.lastPlayed).sort((a, b) => b.lastPlayed - a.lastPlayed);
-      const rest = games.filter((g) => !g.lastPlayed).sort((a, b) => a.name.localeCompare(b.name, 'es'));
-      return [...played, ...rest];
+      return mv ? mv.list : order.apply(games, summary);
     }
     function buildPages() {
       const list = sortedGames().map((g) => ({ key: `g:${g.id}`, game: g, label: g.name }));
@@ -438,9 +439,24 @@
           });
           b.addEventListener('click', () => {
             if (view !== 'home' || busy || p !== page) return;
+            if (held) return (held = false);
+            if (mv) return moveClick(p, i);
             setSel(i);
             activate(entry, b);
           });
+          // Mantener apretada una burbuja: ordenar o moverla
+          b.addEventListener('pointerdown', (e) => {
+            if (e.button !== 0 || view !== 'home' || busy || p !== page || mv) return;
+            clearTimeout(holdTimer);
+            held = false;
+            holdTimer = setTimeout(() => {
+              held = true;
+              setSel(i);
+              openSort();
+            }, 650);
+          });
+          ['pointerup', 'pointerleave'].forEach((t) => b.addEventListener(t, () => clearTimeout(holdTimer)));
+          if (mv && entry.game && p > 0 && (p - 1) * PER_PAGE + i === mv.index) b.classList.add('moving');
           pg.appendChild(b);
         });
         box.appendChild(pg);
@@ -514,6 +530,114 @@
       else if (k === 'PageUp') setPage(page - 1);
       else if (k === 'Enter') activate(items[sel], bubbleEl(page, sel));
       else if (k === 'Escape') ctx.openSelector();
+    }
+
+    // ---------- Ordenar y mover burbujas ----------
+    let holdTimer = null;
+    let held = false;
+    const linear = (p, i) => (p - 1) * PER_PAGE + i; // posición en la lista de juegos (la página 0 es del sistema)
+    function openSort() {
+      if (view !== 'home' || mv) return;
+      const entry = pages[page] && pages[page][sel];
+      const g = entry && entry.game;
+      openPop('Ordenar', [
+        ...order.sorts.map((s) => ({ label: s.label, on: s.id === order.mode, run: () => resort(s.id) })),
+        { icon: 'sort', label: g ? `Mover "${g.name}"` : 'Mover una burbuja', run: () => startMove(g ? linear(page, sel) : null) },
+      ]);
+    }
+    function resort(m) {
+      const entry = pages[page] && pages[page][sel];
+      order.set(m);
+      buildPages();
+      if (entry && entry.game) focusGame(entry.game.id);
+      ctx.toast(`Orden: ${order.label()}`);
+    }
+    function focusGame(id) {
+      const j = sortedGames().findIndex((g) => g.id === id);
+      if (j < 0) return;
+      setPage(1 + Math.floor(j / PER_PAGE), false);
+      setSel(j % PER_PAGE);
+    }
+    function startMove(index) {
+      const list = order.apply(games, summary);
+      mv = { list, index, before: list.map((g) => g.id) };
+      root.classList.add('v-moving');
+      if (index == null && page === 0 && pages.length > 1) setPage(1);
+      buildPages();
+      paintHint();
+    }
+    function moveTo(p, i) {
+      const j = Math.max(0, Math.min(mv.list.length - 1, linear(p, i)));
+      if (j === mv.index) return;
+      mv.list.splice(j, 0, mv.list.splice(mv.index, 1)[0]);
+      mv.index = j;
+      buildPages();
+      focusGame(mv.list[j].id);
+      sound('move');
+    }
+    function moveClick(p, i) {
+      if (p === 0) return;
+      if (mv.index == null) {
+        mv.index = linear(p, i);
+        buildPages();
+        return paintHint();
+      }
+      if (linear(p, i) === mv.index) return endMove(true);
+      moveTo(p, i);
+    }
+    // A dónde llega la flecha desde (p, i), sin salir de las páginas de juegos
+    function navTarget(k, p, i) {
+      const cnt = (q) => pages[q].length;
+      const s = SLOTS[i];
+      if (k === 'ArrowRight') return i + 1 < cnt(p) && SLOTS[i + 1].row === s.row ? [p, i + 1] : p + 1 < pages.length ? [p + 1, 0] : null;
+      if (k === 'ArrowLeft') return i > 0 && SLOTS[i - 1].row === s.row ? [p, i - 1] : p > 1 ? [p - 1, cnt(p - 1) - 1] : null;
+      if (k === 'ArrowDown') {
+        const j = s.row < 2 ? nearestInRow(s.row + 1, s.x, cnt(p)) : -1;
+        if (j >= 0) return [p, j];
+        return p + 1 < pages.length ? [p + 1, Math.max(0, nearestInRow(0, s.x, cnt(p + 1)))] : null;
+      }
+      if (k === 'ArrowUp') {
+        if (s.row > 0) return [p, nearestInRow(s.row - 1, s.x, cnt(p))];
+        if (p <= 1) return null;
+        const j = nearestInRow(2, s.x, cnt(p - 1));
+        return [p - 1, j >= 0 ? j : cnt(p - 1) - 1];
+      }
+      return null;
+    }
+    function moveKey(k) {
+      if (k === 'Escape' || k === 'Backspace') return endMove(false);
+      if (mv.index == null) {
+        if (k === 'Enter' && page > 0) {
+          mv.index = linear(page, sel);
+          buildPages();
+          return paintHint();
+        }
+        if (k === 'PageDown' || k === 'PageUp') return setPage(Math.max(1, page + (k === 'PageDown' ? 1 : -1)));
+        const t = page > 0 && navTarget(k, page, sel);
+        if (t) {
+          if (t[0] !== page) setPage(t[0]);
+          setSel(t[1]);
+        }
+        return;
+      }
+      if (k === 'Enter') return endMove(true);
+      const p = 1 + Math.floor(mv.index / PER_PAGE);
+      const t = navTarget(k, p, mv.index % PER_PAGE);
+      if (t) moveTo(t[0], t[1]);
+    }
+    function endMove(save) {
+      if (!mv) return;
+      const { list, index, before } = mv;
+      mv = null;
+      root.classList.remove('v-moving');
+      if (save && index != null) {
+        order.save(list);
+        ctx.toast('Orden: A mano');
+      } else if (index != null) list.sort((a, b) => before.indexOf(a.id) - before.indexOf(b.id));
+      const keep = index != null ? list[index] : null;
+      buildPages();
+      if (keep) focusGame(keep.id);
+      paintHint();
     }
 
     // ---------- Abrir una burbuja ----------
@@ -1196,18 +1320,13 @@
     const LIB_COLS = 6;
     const LIB_ROW = 300;
     const LIB_VIEW = 760;
-    const SORTS = [
-      { label: 'Jugado recientemente', fn: (a, b) => (b.lastPlayed || 0) - (a.lastPlayed || 0) || a.name.localeCompare(b.name, 'es') },
-      { label: 'Nombre', fn: (a, b) => a.name.localeCompare(b.name, 'es') },
-      { label: 'Horas jugadas', fn: (a, b) => (b.playtimeMin || 0) - (a.playtimeMin || 0) },
-    ];
+    const libOrder = U.gameOrder('vitalib', { def: 'recent' }); // Jugado recientemente, Nombre, Horas o % de logros
     function paintLibraryCard(card, main) {
-      card.sort = card.sort || 0;
-      const list = [...games].sort(SORTS[card.sort].fn);
+      const list = libOrder.apply(games, summary);
       card.libList = list;
       main.innerHTML = `
         <div class="v-lib">
-          <div class="v-lib-top"><span>${list.length} ${list.length === 1 ? 'juego' : 'juegos y aplicaciones'}</span><button class="v-lib-sort">${icon('sort')}<span>${SORTS[card.sort].label}</span></button></div>
+          <div class="v-lib-top"><span>${list.length} ${list.length === 1 ? 'juego' : 'juegos y aplicaciones'}</span><button class="v-lib-sort">${icon('sort')}<span>${libOrder.label()}</span></button></div>
           <div class="v-lib-view"><div class="v-lib-grid"></div></div>
         </div>`;
       const grid = $('.v-lib-grid', main);
@@ -1226,7 +1345,7 @@
       });
       if (!list.length) grid.innerHTML = '<div class="v-lib-empty">Todavía no hay juegos.</div>';
       $('.v-lib-sort', main).addEventListener('click', () => {
-        card.sort = (card.sort + 1) % SORTS.length;
+        libOrder.next();
         card.focus = 0;
         refreshCard(card);
       });
@@ -1681,7 +1800,9 @@
       const h = $('.v-hint');
       if (view === 'lock') h.textContent = 'Enter o clic: desbloquear';
       else if (view === 'card') h.textContent = 'Esc: inicio  ·  Retroceso: cerrar tarjeta  ·  Q / E: cambiar  ·  P: menú rápido';
-      else h.textContent = 'Enter: abrir  ·  Q / E: tarjetas  ·  P: menú rápido  ·  Esc: consolas';
+      else if (mv && mv.index == null) h.textContent = 'Elige la burbuja que quieres mover (clic, o flechas y Enter)  ·  Esc: cancelar';
+      else if (mv) h.textContent = 'Moviendo: flechas o clic en otro lugar  ·  Enter: dejarla  ·  Esc: cancelar';
+      else h.textContent = 'Enter: abrir  ·  O: ordenar  ·  Q / E: tarjetas  ·  P: menú rápido  ·  Esc: consolas';
     }
 
     // ---------- Teclado ----------
@@ -1705,6 +1826,7 @@
         else if (k === 'Escape' || k === 'Backspace') closePop();
         return;
       }
+      if (mv) return moveKey(k);
       if (qmOpen) return qmKey(k);
       if (notifOpen) {
         if (k === 'Escape' || k === 'Backspace' || k === 'Enter') closeNotif();
@@ -1714,6 +1836,7 @@
       if (k === 'n' || k === 'N') return toggleNotif();
       if (k === 'q' || k === 'Q') return at >= 0 && goTo(at - 1);
       if (k === 'e' || k === 'E') return at < cards.length - 1 && goTo(at + 1);
+      if (view === 'home' && (k === 'o' || k === 'O')) return openSort();
       if (view === 'home') homeKey(k);
       else if (view === 'card') cardKey(k);
     }
@@ -1740,7 +1863,7 @@
     async function loadSummary(s) {
       summary = s || (await call('getAchievementSummary')) || summary;
       const k = U.completeKey(summary);
-      if (k !== doneKey && games.length) {
+      if (((k !== doneKey && games.length) || order.mode === 'ach') && !mv) {
         doneKey = k;
         buildPages();
       }
@@ -1771,6 +1894,7 @@
       }
       knownIds = new Set(next.map((g) => g.id));
       games = next;
+      if (mv) (mv = null), root.classList.remove('v-moving'), paintHint();
       // las tarjetas abiertas usan los datos nuevos del juego
       cards.forEach((c) => {
         if (c.game) c.game = games.find((g) => g.id === c.game.id) || c.game;
@@ -1810,6 +1934,7 @@
         clearInterval(clockTimer);
         clearInterval(playTimer);
         clearInterval(teaseTimer);
+        clearTimeout(holdTimer);
         window.removeEventListener('keydown', onKey);
         offs.forEach((off) => off && off());
         call('spotifyWatch', false);

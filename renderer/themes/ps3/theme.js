@@ -94,6 +94,7 @@
 <svg class="p3-defs" width="0" height="0" aria-hidden="true"><defs>
   <linearGradient id="p3-g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="0.55" stop-color="#eef0f3"/><stop offset="1" stop-color="#bfc5ce"/></linearGradient>
 </defs></svg>
+<div class="p3-wall"></div>
 <canvas class="p3-wave" width="960" height="540"></canvas>
 <div class="p3-pic1"></div>
 <div class="p3-ui">
@@ -247,7 +248,7 @@
   const FRAG = `
 precision mediump float;
 varying vec2 v;
-uniform vec2 uRes; uniform float uT; uniform vec3 uC; uniform float uB; uniform float uBoot; uniform float uSpark; uniform float uBoom;
+uniform vec2 uRes; uniform float uT; uniform vec3 uC; uniform float uB; uniform float uBoot; uniform float uSpark; uniform float uBoom; uniform float uImg;
 float h(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
 float wave(float x, float t, float ph, float amp, float base){
   return base + amp * sin(x * 2.1 + t * 0.32 + ph) + amp * 0.55 * sin(x * 3.9 - t * 0.21 + ph * 1.7) + amp * 0.22 * sin(x * 7.1 + t * 0.47 + ph * 0.5);
@@ -287,7 +288,7 @@ void main(){
     lines += exp(-abs(uv.y - yj) / (px * 0.9)) * 0.1;
   }
   vec3 wc = mix(c, vec3(1.0), 0.8);
-  col += wc * (fill * 0.6 + lines * 0.55) * uBoot;
+  vec3 add = wc * (fill * 0.6 + lines * 0.55) * uBoot; // la ola (con fondo propio se dibuja solo esto, encima de la imagen)
   // destellos que flotan cerca de la ola
   float sp = 0.0;
   for (int k = 0; k < 2; k++) {
@@ -304,13 +305,14 @@ void main(){
     sp += on * tw * smoothstep(0.11, 0.0, d) * (0.6 + uSpark);
   }
   float band = exp(-pow((uv.y - 0.62) / (0.16 + uSpark * 0.25), 2.0));
-  col += wc * sp * band * 0.9 * max(uBoot, uSpark);
-  col += wc * uBoom * 0.35 * exp(-pow((uv.y - 0.62) / 0.12, 2.0));
-  col *= uB;
-  gl_FragColor = vec4(col, 1.0);
+  add += wc * sp * band * 0.9 * max(uBoot, uSpark);
+  add += wc * uBoom * 0.35 * exp(-pow((uv.y - 0.62) / 0.12, 2.0));
+  col = (col * (1.0 - uImg) + add) * uB;
+  float a = mix(1.0, clamp(max(max(add.r, add.g), add.b), 0.0, 1.0), uImg);
+  gl_FragColor = vec4(min(col, vec3(a)), a);
 }`;
   function makeWave(canvas) {
-    const gl = canvas.getContext('webgl', { antialias: false, alpha: false, preserveDrawingBuffer: false, powerPreference: 'low-power' });
+    const gl = canvas.getContext('webgl', { antialias: false, alpha: true, premultipliedAlpha: true, preserveDrawingBuffer: false, powerPreference: 'low-power' });
     if (!gl) return null;
     const sh = (type, src) => {
       const s = gl.createShader(type);
@@ -332,7 +334,7 @@ void main(){
     gl.enableVertexAttribArray(loc);
     gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
     const u = {};
-    ['uRes', 'uT', 'uC', 'uB', 'uBoot', 'uSpark', 'uBoom'].forEach((n) => (u[n] = gl.getUniformLocation(pr, n)));
+    ['uRes', 'uT', 'uC', 'uB', 'uBoot', 'uSpark', 'uBoom', 'uImg'].forEach((n) => (u[n] = gl.getUniformLocation(pr, n)));
     gl.viewport(0, 0, canvas.width, canvas.height);
     gl.uniform2f(u.uRes, canvas.width, canvas.height);
     return {
@@ -343,6 +345,7 @@ void main(){
         gl.uniform1f(u.uBoot, s.boot);
         gl.uniform1f(u.uSpark, s.spark);
         gl.uniform1f(u.uBoom, s.boom);
+        gl.uniform1f(u.uImg, s.img || 0);
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
       },
     };
@@ -400,6 +403,18 @@ void main(){
     refreshColor();
     const colorTimer = setInterval(refreshColor, 60000);
 
+    // ---------- Fondo propio (Ajustes de tema → Fondo): una imagen o el arte de un juego, con o sin la ola ----------
+    const wall = U.wallpaper(api, 'ps3');
+    let waveOver = store.get('waveOver', '1') !== '0';
+    function applyWall(v = wall.value) {
+      const url = wall.url(games, v);
+      $('.p3-wall').style.backgroundImage = url ? `url("${url}")` : '';
+      root.classList.toggle('has-wall', !!url);
+      root.classList.toggle('no-wave', !!url && !waveOver);
+      W.img = url ? 1 : 0;
+    }
+    wall.load().then(() => applyWall());
+
     const canvas = $('.p3-wave');
     let wave = null;
     try {
@@ -444,12 +459,8 @@ void main(){
     // =====================================================================
     // Categorías y sus opciones
     // =====================================================================
-    const SORTS = [
-      { label: 'Jugado recientemente', fn: (a, b) => (b.lastPlayed || 0) - (a.lastPlayed || 0) || a.name.localeCompare(b.name, 'es') },
-      { label: 'Por nombre', fn: (a, b) => a.name.localeCompare(b.name, 'es') },
-      { label: 'Por tiempo de juego', fn: (a, b) => (b.playtimeMin || 0) - (a.playtimeMin || 0) || a.name.localeCompare(b.name, 'es') },
-    ];
-    let sortIdx = Math.min(SORTS.length - 1, Number(store.get('sort', 0)) || 0);
+    // Orden de la columna Juego: Jugado recientemente, Nombre, Horas jugadas o % de logros (△ sobre un juego)
+    const order = window.NostalHubUtil.gameOrder('ps3', { def: ['recent', 'name', 'hours'][Number(store.get('sort', 0))] || 'recent' });
 
     const CATS = [
       { id: 'users', label: 'Usuarios', icon: 'user' },
@@ -511,7 +522,7 @@ void main(){
       }
       if (id === 'settings') {
         return [
-          { icon: 'palette', title: 'Ajustes de tema', sub: 'Color del fondo de la PS3', run: () => openSub(themeLevel()) },
+          { icon: 'palette', title: 'Ajustes de tema', sub: 'Fondo, color y ola de la PS3', run: () => openSub(themeLevel()) },
           ...menuModel.map((c) => ({ icon: CAT_ICONS[c.id] || 'gear', title: c.title, sub: c.items.map((x) => x.label).slice(0, 3).join(', ') + (c.items.length > 3 ? '…' : ''), run: () => openSub(menuLevel(c.id)) })),
         ];
       }
@@ -539,7 +550,7 @@ void main(){
         const tp = summary.hasKey ? `${summary.done || 0} de ${summary.total || 0} logros` : 'Conecta tu Steam para ver tus logros';
         return [
           { icon: 'trophy', title: 'Colección de trofeos', sub: tp, run: () => openSub(trophyLevel()) },
-          ...[...games].sort(SORTS[sortIdx].fn).map((g) => ({ game: g, img: icon0(g), title: g.name, sub: gameSub(g), run: () => startGame(g) })),
+          ...order.apply(games, summary).map((g) => ({ game: g, img: icon0(g), title: g.name, sub: gameSub(g), run: () => startGame(g) })),
         ];
       }
       if (id === 'psn') {
@@ -558,15 +569,13 @@ void main(){
           authorizing: ['Acepta la ventana de Discord', 'Revisa Discord y presiona Autorizar', null],
           error: ['No se pudo conectar con Discord', discord.message || 'Elige para intentarlo de nuevo', () => call('discordAuthorize').then((s) => s && setDiscord(s))],
         }[discord.status];
+        // El Grupo (Discord) es una sola fila: al elegirla se ven quiénes están en el canal (no se mezcla con los amigos)
         if (discord.status === 'ok' && discord.channel) {
           const n = discord.members.length;
-          list.push({ icon: 'headset', title: discord.channel.name, sub: `${discord.channel.guild || 'Mensaje directo'}  ·  ${n} ${n === 1 ? 'persona' : 'personas'}`, run: () => call('open', 'discord-app') });
-          discord.members.forEach((m) =>
-            list.push({ icon: 'user', img: m.avatar, round: true, talking: m.speaking, title: m.name, sub: m.deafened ? 'Sin audio' : m.muted ? 'Micrófono apagado' : m.speaking ? 'Hablando' : 'En el canal' })
-          );
-        } else if (discord.status === 'ok') list.push({ icon: 'headset', title: 'No estás en un canal de voz', sub: 'Cuando entres a uno, aquí vas a ver quiénes están contigo' });
+          list.push({ icon: 'headset', title: 'Grupo', sub: `${discord.channel.name}  ·  ${n} ${n === 1 ? 'persona' : 'personas'}`, run: () => openSub(partyLevel()) });
+        } else if (discord.status === 'ok') list.push({ icon: 'headset', title: 'Grupo', sub: 'No estás en un canal de voz' });
         else if (st) list.push({ icon: 'headset', title: st[0], sub: st[1], run: st[2] });
-        else list.push({ icon: 'headset', title: 'Conectando con Discord…' });
+        else list.push({ icon: 'headset', title: 'Grupo', sub: 'Conectando con Discord…' });
         // Amigos de Steam, uno por fila como en la PS3 (jugando, en línea, ausentes y desconectados al final)
         const fd = feed.data;
         if (fd.status === 'ok' && feed.list.length) {
@@ -877,6 +886,22 @@ void main(){
     }
 
     // --- Ajustes de tema ---
+    // Quiénes están en tu canal de voz de Discord
+    function partyLevel() {
+      return {
+        title: 'Grupo',
+        party: true,
+        empty: 'No estás en un canal de voz.',
+        head: () => `<b>Grupo</b>${discord.channel ? `<em>${esc(discord.channel.name)}  ·  ${esc(discord.channel.guild || 'Mensaje directo')}</em>` : ''}`,
+        build: () =>
+          discord.status === 'ok' && discord.channel
+            ? [
+                ...discord.members.map((m) => ({ img: m.avatar || '', icon: 'user', title: m.name, desc: m.deafened ? 'Sin audio' : m.muted ? 'Micrófono apagado' : m.speaking ? 'Hablando' : 'En el canal', value: m.speaking ? '●' : null })),
+                { icon: 'open', title: 'Abrir Discord', run: () => call('open', 'discord-app') },
+              ]
+            : [],
+      };
+    }
     function themeLevel() {
       return {
         title: 'Ajustes de tema',
@@ -905,6 +930,47 @@ void main(){
                   }
                 )
               ),
+          },
+          {
+            icon: 'image',
+            title: 'Fondo',
+            desc: 'Una imagen tuya (de la carpeta de fondos) o el arte de uno de tus juegos, como los temas de la PS3.',
+            value: wall.label(games),
+            sub: true,
+            run: async () => {
+              await wall.load();
+              openSub(
+                choiceLevel(
+                  'Fondo',
+                  wall.choices(games).map((c) => ({ value: c.value, label: c.group === 'games' ? `Juego: ${c.label}` : c.label })),
+                  wall.value,
+                  (v) => (wall.set(v), applyWall()),
+                  (v) => applyWall(v) // vista previa al moverse por la lista
+                )
+              );
+            },
+          },
+          ...(wall.url(games)
+            ? [
+                {
+                  icon: 'screen',
+                  title: 'Ola encima del fondo',
+                  desc: 'La ola de la PS3 pasando por encima de tu fondo.',
+                  value: waveOver ? 'Activado' : 'Desactivado',
+                  run: () => {
+                    waveOver = !waveOver;
+                    store.set('waveOver', waveOver ? '1' : '0');
+                    applyWall();
+                    paintSub();
+                  },
+                },
+              ]
+            : []),
+          {
+            icon: 'folder',
+            title: 'Carpeta de fondos',
+            desc: 'Pon aquí tus imágenes (JPG o PNG, ideal 1920×1080) y después elígelas en Fondo.',
+            run: () => (wall.openFolder(), ctx.toast('Se abrió la carpeta de fondos')),
           },
           {
             icon: 'sun',
@@ -1168,18 +1234,17 @@ void main(){
         { label: 'Información', run: () => openInfo(g) },
         ...(g.type === 'steam' ? [{ label: 'Logros', run: () => openTrophiesOf(g) }] : []),
         { label: 'Cambiar imágenes y descripción', run: () => window.NostalHubGameEditor && window.NostalHubGameEditor.open(g.id) },
-        { label: `Ordenar: ${SORTS[sortIdx].label}`, run: () => openSortOpts() },
+        { label: `Ordenar: ${order.label()}`, run: () => openSortOpts() },
       ];
       showOpts(list);
     }
     function openSortOpts() {
       showOpts(
-        SORTS.map((s, i) => ({
+        order.sorts.map((s) => ({
           label: s.label,
-          on: i === sortIdx,
+          on: s.id === order.mode,
           run: () => {
-            sortIdx = i;
-            store.set('sort', i);
+            order.set(s.id);
             const keep = curItem() && curItem().game;
             renderItems(0);
             if (keep) {
@@ -1188,7 +1253,7 @@ void main(){
             }
           },
         })),
-        SORTS.findIndex((s, i) => i === sortIdx)
+        Math.max(0, order.sorts.findIndex((s) => s.id === order.mode))
       );
     }
     function showOpts(list, sel = 0) {
@@ -1301,7 +1366,7 @@ void main(){
       let html = '';
       if (mode === 'xmb') {
         const it = curItem();
-        html = it && it.game ? h('O', 'Opciones') + h('Enter', 'Iniciar') : it && it.friend ? h('O', 'Opciones') + h('Enter', 'Ver perfil') : it && it.run ? h('Enter', 'Elegir') : '';
+        html = it && it.game ? h('O', 'Opciones · Ordenar') + h('Enter', 'Iniciar') : it && it.friend ? h('O', 'Opciones') + h('Enter', 'Ver perfil') : it && it.run ? h('Enter', 'Elegir') : '';
       } else if (mode === 'sub') html = h('Esc', 'Volver') + (curLevel() && curLevel().rows.some((r) => r.run) ? h('Enter', 'Elegir') : '');
       else if (mode === 'opts') html = h('O', 'Cerrar') + h('Enter', 'Elegir');
       $('.p3-hints').innerHTML = html;
@@ -1504,6 +1569,7 @@ void main(){
     function setDiscord(s) {
       discord = s || discord;
       if (mode === 'xmb' || mode === 'opts') refreshCat('friends');
+      else if (mode === 'sub' && curLevel() && curLevel().party) paintSub();
     }
     function setSpotify(s) {
       spotify = s || spotify;
@@ -1520,6 +1586,7 @@ void main(){
     }
     function setGames(list) {
       games = list || [];
+      if (wall.value.startsWith('game:')) applyWall(); // el arte del juego elegido como fondo
       if (mode === 'sub') {
         if (curLevel() && curLevel().build) paintSub();
         return;

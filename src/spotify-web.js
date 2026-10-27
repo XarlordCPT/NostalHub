@@ -21,9 +21,10 @@ const b64url = (buf) => buf.toString('base64').replace(/\+/g, '-').replace(/\//g
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
 class SpotifyWeb {
-  constructor({ dataDir, onUpdate, log }) {
+  constructor({ dataDir, onUpdate, log, enabled }) {
     this.file = path.join(dataDir, 'spotify.json');
     this.onUpdate = onUpdate || (() => {});
+    this.enabled = enabled || (() => true); // apagada en Ajustes: no se consulta
     this.log = log || (() => {});
     this.cfg = this.load();
     this.access = null; // { token, exp }
@@ -215,10 +216,11 @@ class SpotifyWeb {
 
   // Consulta cada 2 s mientras alguna pantalla lo muestra y está conectado
   syncTimer() {
-    if (this.watchers && !this.timer && this.connected) {
+    const on = this.watchers && this.connected && this.enabled();
+    if (on && !this.timer) {
       this.poll();
       this.timer = setInterval(() => this.poll(), 2000);
-    } else if ((!this.watchers || !this.connected) && this.timer) {
+    } else if (!on && this.timer) {
       clearInterval(this.timer);
       this.timer = null;
     }

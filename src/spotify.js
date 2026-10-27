@@ -32,6 +32,7 @@ class Spotify {
     this.logFile = logFile || null;
     this.getApp = opts.getApp || (() => 'spotify'); // app elegida en Ajustes
     this.web = opts.web || null; // conexión con la API de Spotify (opcional)
+    this.useWeb = opts.useWeb || (() => true); // Ajustes → Música → "Spotify conectado directamente"
     this.state = { supported: process.platform === 'win32', running: false, playing: false, artist: '', title: '', album: '', cover: null };
     this.lastSent = '';
     this.timer = null;
@@ -349,10 +350,14 @@ class Spotify {
     this.emit();
   }
 
+  // ¿Se usa la API de Spotify? (conectada, sin error y activada en Ajustes)
+  webOn() {
+    const w = this.web;
+    return !!(w && this.appId === 'spotify' && this.useWeb() && w.connected && w.state.status === 'ok');
+  }
   // ¿La API de Spotify está dando la canción actual?
   webPlaying() {
-    const w = this.web;
-    return !!(w && this.appId === 'spotify' && w.state.status === 'ok' && w.state.playback && w.state.playback.item);
+    return this.webOn() && !!(this.web.state.playback && this.web.state.playback.item);
   }
 
   // Lo que ve la interfaz: lo de Windows + lo de la API de Spotify (si está conectada)
@@ -362,9 +367,12 @@ class Spotify {
     const w = this.web;
     if (!w || app !== 'spotify') return v;
     v.web = { status: w.state.status, message: w.state.message, user: w.state.user };
-    const pb = w.state.status === 'ok' ? w.state.playback : null;
+    // Con la API conectada siempre salen todas las opciones, aunque Spotify esté en pausa o sin dispositivo activo
+    if (!this.webOn()) return v;
+    Object.assign(v, { hasApi: true, liked: w.state.liked, queue: w.state.queue || [] });
+    const pb = w.state.playback;
     if (!pb) return v;
-    Object.assign(v, { hasApi: true, device: pb.device, shuffle: pb.shuffle, smartShuffle: pb.smartShuffle, repeat: pb.repeat, liked: w.state.liked, queue: w.state.queue || [] });
+    Object.assign(v, { device: pb.device, shuffle: pb.shuffle, smartShuffle: pb.smartShuffle, repeat: pb.repeat });
     if (pb.item) {
       Object.assign(v, {
         running: true,
@@ -426,7 +434,7 @@ class Spotify {
     }
     // Lo que solo sabe hacer la API de Spotify (aleatorio, repetir, me gusta, volumen, dispositivo, saltar en la cola)
     if (!VK[cmd]) {
-      if (this.web && app === 'spotify') return this.web.action(cmd, arg);
+      if (this.webOn()) return this.web.action(cmd, arg);
       return { ok: false };
     }
     // Con la API conectada, los botones también controlan Spotify en el teléfono u otro dispositivo
@@ -442,7 +450,7 @@ class Spotify {
     // Refresca rápido para que la interfaz responda al tiro
     setTimeout(() => this.poll(), 400);
     setTimeout(() => this.poll(), 1300);
-    if (this.webPlaying()) {
+    if (this.webOn()) {
       setTimeout(() => this.web.poll(), 500);
       setTimeout(() => this.web.poll(), 1500);
     }

@@ -316,12 +316,7 @@
     }
 
     // --- Todo el software ---
-    const SORTS = [
-      { label: 'Jugado recientemente', fn: (a, b) => (b.lastPlayed || 0) - (a.lastPlayed || 0) || a.name.localeCompare(b.name, 'es') },
-      { label: 'Por tiempo de juego', fn: (a, b) => (b.playtimeMin || 0) - (a.playtimeMin || 0) },
-      { label: 'Por nombre', fn: (a, b) => a.name.localeCompare(b.name, 'es') },
-    ];
-    let libSort = 0;
+    const libOrder = U.gameOrder('switch', { def: 'recent' }); // Jugado recientemente, Nombre, Horas o % de logros
     let libSel = 0;
     let libFirst = 0;
     let libList = [];
@@ -332,8 +327,8 @@
       paintLib();
     }
     function paintLib() {
-      libList = [...games].sort(SORTS[libSort].fn);
-      $('.sw-sort').innerHTML = `<b>S</b>${esc(SORTS[libSort].label)}`;
+      libList = libOrder.apply(games, summary);
+      $('.sw-sort').innerHTML = `<b>S</b>${esc(libOrder.label())}`;
       const grid = $('.sw-lib-grid');
       grid.innerHTML = '';
       libList.forEach((g, i) => {
@@ -361,7 +356,7 @@
       }
     }
     $('.sw-sort').addEventListener('click', () => {
-      libSort = (libSort + 1) % SORTS.length;
+      libOrder.next();
       paintLib();
     });
     $('.sw-lib-view').addEventListener('wheel', (e) => {

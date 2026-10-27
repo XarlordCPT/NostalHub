@@ -604,12 +604,24 @@
     }
 
     // ---------- Estante de carátulas ----------
+    // Mis juegos: Nombre, Jugado recientemente, Horas jugadas o % de logros (tecla O / botón Y)
+    const order = window.NostalHubUtil.gameOrder('x360', { def: 'name' });
+    function shelfGames(mode) {
+      return mode === 'recent' ? [...games].filter((g) => g.lastPlayed).sort((a, b) => b.lastPlayed - a.lastPlayed) : order.apply(games, summary);
+    }
+    function nextSort() {
+      if (view !== 'shelf' || shelfMode === 'recent') return;
+      const keep = shelfList[shelfSel] && shelfList[shelfSel].id;
+      order.next();
+      shelfList = shelfGames(shelfMode);
+      shelfSel = Math.max(0, shelfList.findIndex((g) => g.id === keep));
+      renderShelf();
+      shelfHints();
+      ctx.sound('move');
+    }
     function openShelf(mode) {
       shelfMode = mode;
-      shelfList =
-        mode === 'recent'
-          ? [...games].filter((g) => g.lastPlayed).sort((a, b) => b.lastPlayed - a.lastPlayed)
-          : [...games].sort((a, b) => a.name.localeCompare(b.name, 'es'));
+      shelfList = shelfGames(mode);
       if (!shelfList.length) {
         ctx.toast(mode === 'recent' ? 'Todavía no hay juegos recientes' : 'No hay juegos');
         return;
@@ -627,7 +639,13 @@
       shelfHints();
     }
     function shelfHints() {
-      hints([['← →', 'Elegir'], ['Enter', 'Abrir'], ['Esc', 'Atrás']]);
+      if (shelfMode === 'recent') return hints([['← →', 'Elegir'], ['Enter', 'Abrir'], ['Esc', 'Atrás']]);
+      hints([['← →', 'Elegir'], ['Enter', 'Abrir'], ['O', `Ordenar: ${order.label()}`], ['Esc', 'Atrás']]);
+      const h = $$('.xb-hints .xb-hint')[2];
+      if (h) {
+        h.classList.add('xb-hint-btn');
+        h.addEventListener('click', () => nextSort());
+      }
     }
     function renderShelf() {
       const flow = $('.xb-flow');
@@ -1221,6 +1239,7 @@
         if (dir === 'left') setShelf(shelfSel - 1);
         else if (dir === 'right') setShelf(shelfSel + 1);
         else if (k === 'Enter') openDetail(shelfList[shelfSel]);
+        else if (k === 'o' || k === 'O') nextSort();
         else if (k === 'Escape' || k === 'Backspace') back();
       } else if (view === 'detail' || view === 'confirm' || view === 'playing' || view === 'party') {
         if (dir) move(dir);

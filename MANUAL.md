@@ -35,7 +35,8 @@ Para abrirla: pega esa ruta en la barra del Explorador de Windows, o usa **Ajust
 │   │   ├── musica.mp3                 ← música de fondo del menú
 │   │   ├── mover.wav, elegir.wav, volver.wav, pagina.wav, inicio.wav
 │   │   ├── gameboot.wav, opciones.wav, error.wav, borde.wav, logro.wav
-│   │   └── intro.mp4                  ← video al entrar a la consola
+│   │   ├── intro.mp4                  ← video al entrar a la consola
+│   │   └── fondos\                    ← (PS3, PS4 y 3DS) tus imágenes para elegir de fondo
 └── personalizar\              ← una carpeta por juego
     └── Nombre del juego\
         ├── canal.png          (Wii; también PS4 y PS Vita)
@@ -221,7 +222,8 @@ Ajustes → Cuentas → **Conectar Spotify**. Spotify pide crear una "app" propi
 3. Copia el **Client ID** de tu app, pégalo y presiona **Conectar**. Se abre Spotify en el navegador: **Aceptar**.
 
 Si sale un error de permiso, en tu app de Spotify entra a **User Management** y agrega tu correo de Spotify.
-La conexión queda en `spotify.json` (no lo compartas). Con Spotify conectado se suman, en todas las consolas:
+La conexión queda en `spotify.json` (no lo compartas). Con Spotify conectado se suman, en todas las consolas (aunque
+la música esté en pausa):
 
 - **Barra de la canción** con el tiempo, y la **canción siguiente**.
 - **Cola de reproducción**: elige una canción para saltar hasta ella.
@@ -229,6 +231,10 @@ La conexión queda en `spotify.json` (no lo compartas). Con Spotify conectado se
 - **Repetir**: No → La lista → La canción.
 - **Me gusta** (el corazón), **volumen** de Spotify y **dispositivo** (pasar la música al PC, al teléfono o a un
   parlante). Si suena en el teléfono, también se ve y se controla desde aquí.
+
+Para usar solo los botones básicos sin desconectar Spotify: Ajustes → Sonido → **Spotify conectado directamente** →
+*Desactivado* (la opción aparece cuando la App de música es Spotify). Si todavía no está conectado, activarla abre
+la ventana para conectarlo.
 
 | Consola | Dónde está la música |
 | --- | --- |
@@ -251,11 +257,11 @@ Muestra el canal de voz donde estás, el servidor y quiénes están contigo (con
 | --- | --- |
 | Wii y PS2 | En el panel de la derecha mientras juegas |
 | Xbox 360 | Mosaico **Grupo** de la pestaña *social* |
-| PS3 | Categoría **Amigos** |
+| PS3 | Categoría **Amigos** → **Grupo** (la primera fila; Enter muestra quiénes están) |
 | PS4 | **Grupo** en la fila de funciones (↑) y en el menú rápido (**P**) |
 | PS Vita | Burbuja naranja **Grupo** (con un número rojo: cuántas personas hay en tu canal) |
 | Switch | Botón redondo **Grupo** |
-| 3DS | Atajo **Lista de amigos** (arriba en la pantalla de abajo; el número es cuántos hay en tu canal) |
+| 3DS | Atajo **Grupo** (los audífonos, arriba en la pantalla de abajo; el número es cuántos hay en tu canal) |
 
 En todas, mientras juegas, también aparece al lado del juego.
 
@@ -329,7 +335,7 @@ progresos que agregan los mods salen con la copa.
 - En las rutas, cada `\` va doble: `\\`. Si el archivo queda mal escrito, NostalHub te avisa, guarda una
   copia (`config.roto-….json`) y **no guarda nada encima** hasta que lo arregles; al guardarlo bien, se recarga solo.
 - **Ocultar un juego:** agrégale `"hidden": true`. No lo borres, porque los de Steam se vuelven a importar.
-- **Cambiar el orden:** el orden de la lista es el orden en los menús.
+- **Cambiar el orden:** cada consola tiene su opción para ordenar (sección 8, *Ordenar los juegos*).
 
 ---
 
@@ -344,16 +350,44 @@ Son las mismas opciones del menú del ícono junto al reloj, con el estilo de ca
 | Wii | Botón del **engranaje** (abajo a la izquierda) | "Configuración de NostalHub" con una página por sección. Al elegir una opción se abre su pantalla con **Atrás / Confirmar** |
 | PS2 | Botón **Configuración** (abajo a la derecha) o la tecla **C** | "Configuración del sistema": ↑ ↓ elegir, ← → cambiar, Enter aceptar |
 | Xbox 360 | Mosaico **Ajustes** (home o settings) o la tecla **G** | **La Guía**: pestañas con íconos (Q / E o ← →), Enter cambia la opción |
-| PS3 | Categoría **Ajustes** | Cada opción es un elemento del XMB. Ahí también están los **Ajustes de tema** (color del fondo) |
-| PS4 | **Ajustes** en la fila de funciones (↑) o en el menú rápido (**P**) | Lista de categorías con íconos; las casillas se marcan con Enter y las de elegir abren una lista |
+| PS3 | Categoría **Ajustes** | Cada opción es un elemento del XMB. Ahí también están los **Ajustes de tema** (fondo, color y ola) |
+| PS4 | **Ajustes** en la fila de funciones (↑) o en el menú rápido (**P**) | Lista de categorías con íconos; las casillas se marcan con Enter y las de elegir abren una lista. La primera, **Temas**, es para el fondo |
 | PS Vita | Burbuja **Ajustes** o el menú rápido (**P**) | Se abre como tarjeta: categorías → opciones; Esc vuelve a las categorías |
 | Switch | Botón redondo **Ajustes** | Categorías a la izquierda y opciones a la derecha. Ahí está el **Tema** (claro u oscuro) |
-| 3DS | App **Configuración de la consola** (o la casita con el pincel, para el tema) | Tema de las pantallas, color de la carcasa y las opciones de NostalHub |
+| 3DS | App **Configuración de la consola** (o la casita con el pincel, para el tema) | Tema de las pantallas, fondo personalizado, color de la carcasa y las opciones de NostalHub |
 
 Las secciones son: **General** (cambiar de consola, recargar, abrir este manual, salir), **Juegos** (buscar juegos
 nuevos, agregar un juego, volver a descargar el arte, título encima de cada canal de la Wii, tráileres de Steam),
 **Pantalla**, **Sonido**, **Cuentas** (Steam, Spotify y Discord) y **Archivos** (las carpetas, `config.json` y las
 herramientas de desarrollo). "Salir de NostalHub" siempre pregunta antes de cerrar.
+
+### Ordenar los juegos
+
+Cada consola guarda su propio orden: **Jugado recientemente**, **Nombre**, **Horas jugadas** o **% de logros** (los
+que no tienen logros van al final). En la Wii, la PS Vita y la 3DS también se puede ordenar **A mano**, como en las
+consolas reales: eliges *Mover* y llevas el juego a otro lugar.
+
+| Consola | Cómo se ordena |
+| --- | --- |
+| Wii | Botón de las **flechas** (abajo, al lado del engranaje) o tecla **O**. *Mover* toma el canal marcado: flechas o clic en otro lugar para llevarlo, **Enter** lo deja, **Esc** cancela |
+| PS2 | Botón **Ordenar** (arriba a la derecha) o tecla **O**: cada vez cambia al orden siguiente |
+| Xbox 360 | En **Mis juegos**, tecla **O** (o clic en *Ordenar* abajo): cambia al orden siguiente |
+| PS3 | **O** (el triángulo) sobre un juego → **Ordenar** |
+| PS4 | Inicio: **O** o *Ordenar* abajo a la derecha (elige qué 5 juegos se ven). Biblioteca: el botón de arriba a la derecha, **S** u **O** |
+| PS Vita | **O** en el inicio, o **mantén apretada** una burbuja con el mouse. *Mover* lleva la burbuja con las flechas o un clic; **Enter** la deja |
+| Switch | **Todo el software**: tecla **S** |
+| 3DS | **O** o **X** sobre un juego → **Ordenar** o **Mover** (flechas para llevarlo, **A** lo deja, **B** cancela) |
+
+### Fondo propio (PS3, PS4 y 3DS)
+
+Como los temas de esas consolas: pon tus imágenes (JPG o PNG, ideal 1920×1080) en `consolas\<consola>\fondos\` y
+elígelas en la consola. También puedes usar el **arte de uno de tus juegos** de fondo.
+
+| Consola | Dónde |
+| --- | --- |
+| PS3 | Ajustes → **Ajustes de tema** → **Fondo**. Con un fondo propio aparece **Ola encima del fondo** (activar o apagar la ola). *Carpeta de fondos* la abre |
+| PS4 | Ajustes → **Temas** → **Fondo** (y *Abrir carpeta de fondos*) |
+| 3DS | Configuración de la consola → **Fondo personalizado**: la imagen va en las dos pantallas (abajo, más suave para que se vean los íconos) |
 
 ### Pantalla completa o ventana
 
@@ -413,7 +447,7 @@ actualiza cada 30 segundos.
 | Wii | Botón del **sobre** (abajo a la derecha) o tecla **A** | ← → para elegir el botón, Enter |
 | PS2 | Botón **Amigos** abajo o tecla **A** | Enter abre la ventanita con los dos botones |
 | Xbox 360 | Mosaico **Amigos** de la pestaña *social* | ← → para elegir el botón, Enter |
-| PS3 | Categoría **Amigos** | Enter: perfil · **O**: opciones (perfil o mensaje) |
+| PS3 | Categoría **Amigos** (el Grupo va aparte, en la primera fila) | Enter: perfil · **O**: opciones (perfil o mensaje) |
 | PS4 | *Amigos* en la fila de funciones, y en el **menú rápido** (P) | ← → para elegir el botón, Enter |
 | PS Vita | Burbuja **Amigos** (se abre como tarjeta) | ← → para elegir el botón, Enter |
 | Switch | Botón redondo **Amigos** | Enter abre las opciones |
@@ -439,7 +473,8 @@ puede saber cuándo terminan: usa **Volver al menú**.
 
 - **Menú de canales**: 12 canales por página (4 × 3). Las flechas eligen un canal (↓ desde la última fila baja a los
   botones de abajo); **RePág / AvPág** (L1 / R1 en el control) o la rueda pasan de página. Abajo, el reloj y los
-  botones redondos: **engranaje** (ajustes), **sobre** (amigos de Steam) y **dado** (juego al azar).
+  botones redondos: **engranaje** (ajustes), **flechas** (ordenar los canales), **sobre** (amigos de Steam) y
+  **dado** (juego al azar).
 - **Pantalla del canal**: al elegir un juego se abre su canal con el fondo, el logo y la animación (`video.mp4` o el
   tráiler de Steam, si los activaste). Botones **Menú**, **Iniciar** y **Logros** (↓). ← → cambian de canal.
 
@@ -448,7 +483,8 @@ puede saber cuándo terminan: usa **Volver al menú**.
 - **Memory Card**: tus juegos en una grilla de 5 columnas, cada uno con su ícono 3D (sección 4) o su logo.
 - **Ficha del juego** (Enter): el ícono grande, horas, barra de logros y descripción, con **Iniciar**, **Logros** y
   **Volver**.
-- Abajo a la derecha: **Amigos** (tecla **A**) y **Configuración** (tecla **C**).
+- Abajo a la derecha: **Amigos** (tecla **A**) y **Configuración** (tecla **C**). Arriba a la derecha: **Ordenar**
+  (tecla **O**).
 
 ### Xbox 360
 
@@ -459,28 +495,34 @@ puede saber cuándo terminan: usa **Volver al menú**.
     recientemente.
   - **settings**: Ajustes, Perfil de Steam, Personalización, Íconos de consolas, Clave de Steam, Manual, Cambiar
     consola y Apagar.
-- **Mis juegos / Recientes**: estante de carátulas (← →). Enter abre la **ficha**: *Jugar*, *Logros* y *Volver*.
+- **Mis juegos / Recientes**: estante de carátulas (← →). Enter abre la **ficha**: *Jugar*, *Logros* y *Volver*. En
+  *Mis juegos*, **O** cambia el orden.
 - **G** abre la **Guía** (ajustes) desde cualquier parte.
 
 ### PlayStation 3
 
 - **Categorías** en fila: Usuarios, Ajustes, Música, Juego, PlayStation Network (tienda y novedades de Steam) y
-  Amigos (amigos de Steam y tu Grupo de Discord). ← → para cambiar, ↑ ↓ para recorrer sus opciones.
-- **Juego**: arriba está la **Colección de trofeos** y después tus juegos (los más recientes primero). Si te quedas
+  Amigos (primero tu **Grupo** de Discord, que se abre aparte, y después tus amigos de Steam). ← → para cambiar, ↑ ↓
+  para recorrer sus opciones.
+- **Juego**: arriba está la **Colección de trofeos** y después tus juegos (en el orden que elegiste). Si te quedas
   un segundo sobre un juego, aparece su **fondo** a pantalla completa y suena su **música** (`musica.mp3`, si le pusiste).
 - **O** (el triángulo): **opciones** del juego: Iniciar, Información, Logros, Cambiar imágenes y **Ordenar**.
 - **Fondo**: el color cambia **cada mes** como en la PS3, y es más oscuro de noche. Para dejar un color fijo:
-  **Ajustes → Ajustes de tema → Color**. Ahí también puedes apagar el **Brillo según la hora**.
+  **Ajustes → Ajustes de tema → Color**. Ahí también puedes apagar el **Brillo según la hora**, o poner un **fondo
+  propio** (una imagen o el arte de un juego) con o sin la ola.
 - **Encendido**: al entrar aparece la ola con destellos (Enter o un clic lo salta). Si tienes `intro.mp4` en
   `consolas\ps3\`, o apagaste los videos de inicio, entra directo.
 
 ### PlayStation 4
 
-- **Menú principal**: tus 5 juegos más recientes y al final la **Biblioteca**. ← → para moverte, Enter para jugar.
+- **Menú principal**: 5 de tus juegos (los más recientes, o según el orden que elijas con **O**) y al final la
+  **Biblioteca**. ← → para moverte, Enter para jugar.
   - **↓** abre la ficha del juego: horas, trofeos (tus logros de Steam), descripción, *Iniciar* y *Trofeos*.
   - **↑** muestra la fila de funciones: Tienda, Amigos, Grupo, Perfil, Trofeos, Ajustes y Energía.
 - **Biblioteca**: todos tus juegos, con filtros a la izquierda (Todos, Juegos, Aplicaciones, Jugados
-  recientemente, Con trofeos), **Buscar** (escribe el nombre) y el orden arriba a la derecha (o la tecla **S**).
+  recientemente, Con trofeos: solo los que de verdad tienen logros), **Buscar** (escribe el nombre) y el orden arriba
+  a la derecha (o la tecla **S**).
+- **Fondo propio**: Ajustes → **Temas** → **Fondo**.
 - **Menú rápido**: tecla **P** o el botón de abajo a la derecha. Tiene Sonido, Música, Grupo, Amigos, Juego al azar,
   Biblioteca, Cambiar de consola, Ajustes y Energía. → entra a las opciones de la derecha.
 - **Con el mouse**: un clic elige un cuadro; con el cuadro ya elegido, clic en *Iniciar* para jugar o en la imagen
@@ -492,7 +534,7 @@ puede saber cuándo terminan: usa **Volver al menú**.
   presiona Enter / haz clic.
 - **Inicio**: páginas de burbujas que se recorren **de arriba a abajo** (puntitos a la izquierda). La primera página
   tiene las apps: Grupo, Música, Tienda, Amigos, Biblioteca, Juego al azar, Trofeos, Perfil, Ajustes y Consolas.
-  Desde la segunda están tus juegos, los más recientes primero.
+  Desde la segunda están tus juegos, los más recientes primero (o en el orden que elijas con **O**, también a mano).
 - **Abrir**: la burbuja va al centro, gira y se abre como **tarjeta** (LiveArea). La de un juego tiene la puerta con
   **Iniciar**, tu actividad, sus trofeos y la descripción.
 - **Tarjetas**: cada app que abres queda a la derecha del inicio (hasta 5; al abrir la sexta se cierra la más
@@ -518,11 +560,12 @@ puede saber cuándo terminan: usa **Volver al menú**.
   sigue al mouse; el **deslizador 3D** a la derecha de la pantalla la sube o la apaga) y abajo la cuadrícula de iconos.
 - Primero van las apps: **Configuración de la consola** (tema de las pantallas, color de la carcasa y las opciones de
   NostalHub), **Nintendo eShop** (Steam), **Registro de actividad** (tus horas por juego), **Nintendo 3DS Sonido**
-  (la música), **Logros** y **Cambiar de consola**. Después tus juegos, los más recientes primero.
+  (la música), **Logros** y **Cambiar de consola**. Después tus juegos, los más recientes primero (o en el orden que
+  elijas, también a mano: **O** o **X** sobre un juego → *Ordenar* o *Mover*).
 - **Barra de arriba** de la pantalla de abajo, como en la 3DS:
   - a la izquierda la **casita con el pincel** (tema);
-  - los accesos chiquitos: **Notas de juego** (logros), **Lista de amigos** (amigos de Steam y tu Grupo de Discord),
-    **Notificaciones**, **Navegador** (actividad de Steam) y **Perfil**;
+  - los accesos chiquitos: **Notas de juego** (logros), **Lista de amigos** (amigos de Steam), **Grupo** (tu canal
+    de voz de Discord), **Notificaciones**, **Navegador** (actividad de Steam) y **Perfil**;
   - a la derecha, dos botones para el **tamaño de los íconos**: los cuatro cuadritos los achican y el cuadrado
     grande los agranda (de 1 a 6 filas). El que ya no sirve se ve apagado.
 - **Abajo** está solo la **barra de páginas**: arrástrala con el mouse, o haz clic donde quieras ir.
@@ -550,6 +593,9 @@ mientras usas el control en otra cosa o en un juego.
 | L2 / R2 | Subir / bajar rápido (RePág / AvPág) |
 | Options | Menú de la consola: Guía (Xbox 360), menú rápido (PS4 y PS Vita), Configuración (PS2), ordenar (selector) |
 | Create | Ordenar (tecla S); en la Wii y la PS2, Amigos |
+
+En la Wii, la PS2, la PS Vita, la 3DS, la Xbox 360 (Mis juegos) y el inicio de la PS4, **△** abre el orden de los
+juegos.
 | Stick derecho | Como la rueda del mouse |
 
 - Cuando usas el control, las pistas de la pantalla muestran sus botones (✕ ○ △ □); si vuelves al teclado,
@@ -568,12 +614,12 @@ mientras usas el control en otra cosa o en un juego.
 |---|---|
 | Selector de consolas | ↑ ↓ elegir · Enter entrar · **O** ordenar las consolas · **Esc** pregunta si cerrar la app (Esc otra vez = cerrar) |
 | Cualquier consola | **Clic derecho** sobre un juego, o **I** con el juego marcado: cambiar imágenes y descripción · **F3** FPS · **Ctrl + Alt + Shift + L** logro de prueba |
-| Wii | Flechas elegir canal (↓ a los botones de abajo) · RePág / AvPág páginas · ← → cambiar de canal (dentro de un canal) · Enter abrir / iniciar · ↓ logros (en el canal) · **A** amigos · Esc volver (en el menú: selector) |
-| PS2 | Flechas moverse · Enter elegir · **A** amigos · **C** configuración · Esc volver (en la Memory Card: selector) |
-| Xbox 360 | Flechas moverse · **Q / E** cambiar de pestaña · **G** la Guía · Enter seleccionar · Esc volver |
+| Wii | Flechas elegir canal (↓ a los botones de abajo) · RePág / AvPág páginas · ← → cambiar de canal (dentro de un canal) · Enter abrir / iniciar · ↓ logros (en el canal) · **A** amigos · **O** ordenar · Esc volver (en el menú: selector) |
+| PS2 | Flechas moverse · Enter elegir · **A** amigos · **C** configuración · **O** ordenar · Esc volver (en la Memory Card: selector) |
+| Xbox 360 | Flechas moverse · **Q / E** cambiar de pestaña · **G** la Guía · Enter seleccionar · **O** ordenar (Mis juegos) · Esc volver |
 | PS3 | ← → categorías · ↑ ↓ opciones · Enter elegir / iniciar · **O** opciones (el triángulo) · Esc volver (en la barra: selector) |
-| PS4 | ← → juegos · **↑** funciones · **↓** ficha del juego · Enter jugar · **P** menú rápido · **S** orden (Biblioteca) · Esc volver (en el menú principal: selector) |
-| PS Vita | Flechas entre burbujas (↑ ↓ en los bordes, la rueda o RePág / AvPág cambian de página) · Enter abrir · **Q / E** cambiar de tarjeta · **Retroceso** cerrar la tarjeta · **P** menú rápido · **N** avisos · Esc inicio (en el inicio: selector) |
+| PS4 | ← → juegos · **↑** funciones · **↓** ficha del juego · Enter jugar · **P** menú rápido · **O** ordenar el inicio · **S** orden (Biblioteca) · Esc volver (en el menú principal: selector) |
+| PS Vita | Flechas entre burbujas (↑ ↓ en los bordes, la rueda o RePág / AvPág cambian de página) · Enter abrir · **O** ordenar (inicio) · **Q / E** cambiar de tarjeta · **Retroceso** cerrar la tarjeta · **P** menú rápido · **N** avisos · Esc inicio (en el inicio: selector) |
 | Switch | ← → juegos · **↓** botones redondos · Enter iniciar · **O** opciones del juego · **S** ordenar (Todo el software) · Esc volver (en el inicio: selector) |
 | 3DS | Flechas por la cuadrícula · Enter abrir · **O** o **X** opciones del juego · **+** o **Y** íconos más grandes · **−** íconos más chicos · Esc volver (en el menú: selector) |
 

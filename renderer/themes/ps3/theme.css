@@ -24,6 +24,10 @@
 /* ============ Fondo: la ola y el fondo del juego (PIC1) ============ */
 .p3-wave { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; display: block; }
 .theme-ps3.no-gl .p3-wave { display: none; }
+.p3-wall { position: absolute; inset: 0; display: none; background: #000 center / cover no-repeat; }
+.p3-wall::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0, 0, 0, 0.35) 0%, rgba(0, 0, 0, 0.1) 40%, rgba(0, 0, 0, 0.35) 100%); }
+.theme-ps3.has-wall .p3-wall { display: block; }
+.theme-ps3.no-wave .p3-wave { display: none; }
 .theme-ps3.no-gl {
   background:
     radial-gradient(ellipse 120% 10% at 50% 62%, rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0) 70%),

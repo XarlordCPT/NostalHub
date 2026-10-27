@@ -776,3 +776,9 @@ body.playing .theme-vita .v-lock-hint { animation-play-state: paused; }
 .v-bub .nh-done.on-icon { width: 66px; height: 66px; top: 2px; right: 2px; }
 .v-prog.plat i { background: linear-gradient(90deg, #c9d6e6, #ffffff, #b4c3d8); }
 .v-tr-count .nh-done { font-size: 34px; }
+
+/* ============ Mover burbujas (orden a mano) ============ */
+.theme-vita.v-moving .v-page:not(:first-child) .v-bub:not(.moving) .v-face { animation: v-wobble 0.5s ease-in-out infinite alternate; }
+.theme-vita.v-moving .v-bub.moving { z-index: 3; }
+.theme-vita.v-moving .v-bub.moving .v-face { transform: scale(1.18); box-shadow: 0 26px 40px rgba(0, 12, 70, 0.55), 0 0 0 6px #fff, 0 0 44px 14px rgba(140, 210, 255, 0.95); animation: none; }
+@keyframes v-wobble { from { transform: rotate(-2.5deg); } to { transform: rotate(2.5deg); } }

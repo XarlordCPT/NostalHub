@@ -148,6 +148,138 @@
     return `<span class="nh-done nh-done-${kind}${cls ? ` ${cls}` : ''}" title="¡Completado al 100 %!"><svg viewBox="0 0 48 48" aria-hidden="true">${draw(id)}</svg></span>`;
   }
 
+  // ---------- Orden de los juegos (uno por consola, guardado en este PC) ----------
+  // gameOrder('wii', { manual: true, def: 'manual' }) → { sorts, mode, label, set(m), next(), apply(games, summary), save(lista) }
+  // 'manual' = "A mano": tu orden (los juegos nuevos van al final, en el orden de la lista de juegos).
+  const GAME_SORTS = [
+    { id: 'recent', label: 'Jugado recientemente' },
+    { id: 'name', label: 'Nombre' },
+    { id: 'hours', label: 'Horas jugadas' },
+    { id: 'ach', label: '% de logros' },
+  ];
+  function achPercent(g, summary) {
+    const per = g.appId && summary && summary.perGame && summary.perGame[g.appId];
+    return per && per.total ? per.done / per.total : -1; // sin logros: al final
+  }
+  function gameOrder(consoleId, opts = {}) {
+    const key = `nostalhub.${consoleId}.`;
+    const read = (k, d) => {
+      try {
+        const v = localStorage.getItem(key + k);
+        return v == null ? d : v;
+      } catch {
+        return d;
+      }
+    };
+    const write = (k, v) => {
+      try {
+        localStorage.setItem(key + k, v);
+      } catch {}
+    };
+    const sorts = opts.manual ? [...GAME_SORTS, { id: 'manual', label: 'A mano' }] : GAME_SORTS;
+    let mode = read('gameSort', opts.def || 'recent');
+    if (!sorts.some((s) => s.id === mode)) mode = opts.def || 'recent';
+    let order = [];
+    try {
+      order = JSON.parse(read('gameOrder', '[]')) || [];
+    } catch {}
+    const byName = (a, b) => a.name.localeCompare(b.name, 'es');
+    const FN = {
+      recent: (a, b) => (b.lastPlayed || 0) - (a.lastPlayed || 0) || byName(a, b),
+      name: byName,
+      hours: (a, b) => (b.playtimeMin || 0) - (a.playtimeMin || 0) || byName(a, b),
+    };
+    return {
+      sorts,
+      get mode() {
+        return mode;
+      },
+      label(m = mode) {
+        return (sorts.find((s) => s.id === m) || sorts[0]).label;
+      },
+      set(m) {
+        if (!sorts.some((s) => s.id === m)) return;
+        mode = m;
+        write('gameSort', m);
+      },
+      next() {
+        this.set(sorts[(sorts.findIndex((s) => s.id === mode) + 1) % sorts.length].id);
+        return mode;
+      },
+      apply(games, summary) {
+        const list = [...(games || [])];
+        if (mode === 'ach') return list.sort((a, b) => achPercent(b, summary) - achPercent(a, summary) || byName(a, b));
+        if (mode !== 'manual') return list.sort(FN[mode] || FN.recent);
+        const base = new Map(list.map((g, i) => [g.id, i]));
+        const pos = (g) => (order.includes(g.id) ? order.indexOf(g.id) : 100000 + base.get(g.id));
+        return list.sort((a, b) => pos(a) - pos(b));
+      },
+      // Guarda el orden que se ve como tu orden "A mano"
+      save(list) {
+        order = list.map((g) => g.id);
+        write('gameOrder', JSON.stringify(order));
+        this.set('manual');
+      },
+    };
+  }
+
+  // ---------- Fondo propio (PS3, PS4 y 3DS): una imagen de consolas\<id>\fondos\ o el arte de un juego ----------
+  // wallpaper(api, 'ps4') → { value, set(v), load(), choices(games), url(games), label(games), openFolder() }
+  // value: 'original' | 'file:<archivo>' | 'game:<id del juego>' (guardado en este PC)
+  function wallpaper(api, consoleId) {
+    const key = `nostalhub.${consoleId}.wallpaper`;
+    let files = [];
+    let value = 'original';
+    try {
+      value = localStorage.getItem(key) || 'original';
+    } catch {}
+    return {
+      get value() {
+        return value;
+      },
+      set(v) {
+        value = v || 'original';
+        try {
+          localStorage.setItem(key, value);
+        } catch {}
+      },
+      // Vuelve a leer la carpeta de fondos (por si agregaste imágenes)
+      async load() {
+        try {
+          files = (typeof api.getConsoleBackgrounds === 'function' && (await api.getConsoleBackgrounds(consoleId))) || [];
+        } catch {
+          files = [];
+        }
+        return files;
+      },
+      choices(games) {
+        return [
+          { value: 'original', label: 'Original' },
+          ...files.map((f) => ({ value: `file:${f.file}`, label: f.name, group: 'files' })),
+          ...(games || []).filter((g) => g.hero && g.heroIsReal).map((g) => ({ value: `game:${g.id}`, label: g.name, group: 'games' })),
+        ];
+      },
+      url(games, v = value) {
+        if (v.startsWith('file:')) {
+          const f = files.find((x) => x.file === v.slice(5));
+          return f ? f.url : null;
+        }
+        if (v.startsWith('game:')) {
+          const g = (games || []).find((x) => x.id === v.slice(5));
+          return g ? g.hero : null;
+        }
+        return null;
+      },
+      label(games, v = value) {
+        const c = this.choices(games).find((x) => x.value === v);
+        return c ? c.label : 'Original';
+      },
+      openFolder() {
+        if (typeof api.open === 'function') api.open(`fondos:${consoleId}`);
+      },
+    };
+  }
+
   // ---------- Menú de opciones (el mismo en las tres consolas, cada una lo dibuja a su manera) ----------
   // Cada opción: { id, type: 'action' | 'toggle' | 'choice', label, desc, value, options, closes, confirm }
   function optionValueText(it) {
@@ -690,6 +822,9 @@
     isComplete,
     completeBadge,
     completeKey,
+    GAME_SORTS,
+    gameOrder,
+    wallpaper,
     optionValueText,
     optionNextValue,
   };

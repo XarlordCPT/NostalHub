@@ -113,6 +113,7 @@
             <button class="b-zoom" data-z="-1" title="Íconos más grandes">${ic('zoomIn')}</button>
           </div>
         </div>
+        <div class="b-movehint" hidden></div>
         <div class="b-gridview"><div class="b-grid"></div></div>
         <!-- Abajo solo la barra para moverse por las páginas (se puede arrastrar) -->
         <div class="b-bar"><div class="b-scroll"><i></i></div></div>
@@ -192,6 +193,14 @@
     let shell = store.get('shell', 'black');
     let rows = Math.max(1, Math.min(6, Number(store.get('rows', 2)) || 2));
     let depth = Math.max(0, Math.min(1, Number(store.get('depth', 0.6))));
+    // Fondo personalizado (como los temas hechos a mano): una imagen tuya o el arte de un juego en las dos pantallas
+    const wall = U.wallpaper(api, '3ds');
+    function applyWall() {
+      const url = wall.url(games);
+      root.style.setProperty('--wall', url ? `url("${url}")` : 'none');
+      root.classList.toggle('has-wall', !!url);
+    }
+    wall.load().then(applyWall);
     function applyLook() {
       root.dataset.t = theme;
       root.dataset.s = shell;
@@ -230,6 +239,12 @@
     function recentGames() {
       return [...games].sort((a, b) => (b.lastPlayed || 0) - (a.lastPlayed || 0) || a.name.localeCompare(b.name, 'es'));
     }
+    // Orden de tus juegos en la cuadrícula (las apps del sistema van siempre primero)
+    const order = U.gameOrder('3ds', { manual: true, def: 'recent' });
+    let mv = null; // { list } al mover un ícono (el que se mueve es el elegido)
+    function homeGames() {
+      return mv ? mv.list : order.apply(games, summary);
+    }
     let items = [];
     let sel = 0;
     let firstCol = 0;
@@ -250,7 +265,7 @@
 
     function buildItems() {
       const keep = items[sel];
-      items = [...apps(), ...recentGames().map((g) => ({ game: g, title: g.name }))];
+      items = [...apps(), ...homeGames().map((g) => ({ game: g, title: g.name }))];
       if (keep) {
         const j = items.findIndex((x) => (keep.game ? x.game && x.game.id === keep.game.id : x.app === keep.app));
         if (j >= 0) sel = j;
@@ -282,6 +297,7 @@
           el.innerHTML = `<div class="b-icon">${itemIconHtml(it)}${it.game && U.isComplete(trophiesOf(it.game)) ? U.completeBadge('star', 'on-icon') : ''}</div>`; // 100 %: estrella
           el.addEventListener('click', () => {
             if (view !== 'home' || dlg) return;
+            if (mv) return sel === i ? endMove(true) : moveTo(i);
             if (sel === i) return openItem();
             ctx.sound('move');
             setSel(i);
@@ -390,11 +406,12 @@
     const SHORTS = [
       { id: 'notes', icon: 'note', label: 'Notas de juego' },
       { id: 'friends', icon: 'smile', label: 'Lista de amigos' },
+      { id: 'party', icon: 'headset', label: 'Grupo (Discord)' },
       { id: 'notif', icon: 'bell', label: 'Notificaciones' },
       { id: 'browser', icon: 'globe', label: 'Navegador de Internet' },
       { id: 'profile', icon: 'person', label: 'Perfil' },
     ];
-    $('.b-short').innerHTML = SHORTS.map((s) => `<button data-s="${s.id}" title="${s.label}">${ic(s.icon)}${s.id === 'friends' ? '<em hidden></em>' : ''}</button>`).join('');
+    $('.b-short').innerHTML = SHORTS.map((s) => `<button data-s="${s.id}" title="${s.label}">${ic(s.icon)}${s.id === 'party' ? '<em hidden></em>' : ''}</button>`).join('');
     $$('.b-short button').forEach((b) =>
       b.addEventListener('click', () => {
         if (view === 'playing') return;
@@ -402,13 +419,14 @@
         const id = b.dataset.s;
         if (id === 'notes') openApp('trophies');
         else if (id === 'friends') openApp('friends');
+        else if (id === 'party') openApp('party');
         else if (id === 'notif') openApp('notes');
         else if (id === 'browser') (call('open', 'steam-activity'), ctx.toast('Se abrió en Steam'));
         else if (id === 'profile') (call('open', summary.hasKey ? 'steam-profile' : 'setup-steam'), summary.hasKey && ctx.toast('Se abrió en Steam'));
       })
     );
     function paintFriendsBadge() {
-      const em = $('.b-short [data-s="friends"] em');
+      const em = $('.b-short [data-s="party"] em');
       const n = discord.status === 'ok' && discord.channel ? discord.members.length : 0;
       em.hidden = !n;
       em.textContent = n;
@@ -513,6 +531,7 @@
       else if (name === 'music') app = musicApp();
       else if (name === 'trophies') app = trophiesApp();
       else if (name === 'friends') app = friendsApp();
+      else if (name === 'party') app = partyApp();
       else if (name === 'notes') app = notesApp();
       feed.watch(name === 'friends');
       paintApp();
@@ -585,6 +604,7 @@
       const st = { cat: null, choice: null };
       const cats = () => [
         { id: 'theme', title: 'Tema', icon: 'brush', desc: 'El fondo de las dos pantallas. Solo cambia esta consola.' },
+        { id: 'wall', title: 'Fondo personalizado', icon: 'image', desc: 'Una imagen tuya o el arte de un juego en las dos pantallas.' },
         { id: 'shell', title: 'Color de la consola', icon: 'image', desc: 'El color de la carcasa de la 3DS.' },
         ...menuModel.map((c) => ({ id: c.id, title: c.title, icon: { general: 'gear', games: 'note', screen: 'image', sound: 'music', accounts: 'person', files: 'note' }[c.id] || 'gear', desc: c.items.map((x) => x.label).slice(0, 3).join(', ') })),
       ];
@@ -596,12 +616,33 @@
         list() {
           if (st.choice) return st.choice.it.options.map((o) => ({ label: o.label, on: String(o.value) === String(st.choice.it.value), value: String(o.value) === String(st.choice.it.value) ? '●' : '', run: () => runOption(st.choice.it, o.value).then(() => ((st.choice = null), (self.depth = 1), paintApp())) }));
           if (st.cat && st.cat.id === 'theme') return THEMES.map((t) => ({ label: t.label, on: t.id === theme, value: t.id === theme ? '●' : '', run: () => ((theme = t.id), store.set('theme', theme), applyLook(), paintApp()) }));
+          if (st.cat && st.cat.id === 'wall')
+            return [
+              ...wall.choices(games).map((c) => ({
+                label: c.value === 'original' ? 'Ninguno (el del tema)' : c.group === 'games' ? `Juego: ${c.label}` : c.label,
+                on: c.value === wall.value,
+                value: c.value === wall.value ? '●' : '',
+                run: () => (wall.set(c.value), applyWall(), paintApp()),
+              })),
+              { label: 'Abrir carpeta de fondos', desc: 'Pon aquí tus imágenes (JPG o PNG) y vuelve a entrar.', run: () => (wall.openFolder(), ctx.toast('Se abrió la carpeta de fondos')) },
+            ];
           if (st.cat && st.cat.id === 'shell') return SHELLS.map((t) => ({ label: t.label, on: t.id === shell, value: t.id === shell ? '●' : '', run: () => ((shell = t.id), store.set('shell', shell), applyLook(), paintApp()) }));
           if (st.cat) {
             const c = menuModel.find((x) => x.id === st.cat.id);
             return (c ? c.items : []).map((it) => ({ label: it.label, desc: it.desc, value: it.type === 'toggle' || it.type === 'choice' ? U.optionValueText(it) : null, run: () => pickSetting(it) }));
           }
-          return cats().map((c) => ({ label: c.title, icon: c.icon, desc: c.desc, run: () => ((st.cat = c), (self.depth = 1), (self.sel = 0), paintApp()) }));
+          return cats().map((c) => ({
+            label: c.title,
+            icon: c.icon,
+            desc: c.desc,
+            run: () => {
+              st.cat = c;
+              self.depth = 1;
+              self.sel = 0;
+              paintApp();
+              if (c.id === 'wall') wall.load().then(() => view === 'settings' && st.cat === c && paintApp()); // por si agregaste imágenes
+            },
+          }));
         },
         top: (r) => `<div class="ta-desc">${r ? `<b>${esc(r.label)}</b>${esc(r.desc || (st.cat && st.cat.id === 'theme' ? 'Toca para ponerlo.' : ''))}` : ''}</div>`,
         back() {
@@ -739,7 +780,7 @@
       return self;
     }
 
-    // --- Lista de amigos (Steam + grupo de Discord) ---
+    // --- Lista de amigos (Steam; el Grupo de Discord tiene su propio acceso) ---
     // Arriba se ve la "tarjeta de amigo" del marcado; abajo la lista. Enter: ver perfil o enviar mensaje.
     feed.onChange(() => view === 'friends' && app && paintApp());
     function friendShort(f) {
@@ -768,18 +809,6 @@
             const m = U.friendsMessage(d.status);
             rows.push({ icon: 'person', label: m.t, desc: m.d, run: m.btn ? () => call('open', m.btn[0]) : null });
           }
-          // Grupo de voz (Discord), al final
-          const msg = {
-            'no-config': ['Conectar Discord', () => call('open', 'setup-discord')],
-            'no-discord': ['Abrir Discord', () => call('open', 'discord-app')],
-            'need-auth': ['Dar permiso en Discord', () => call('discordAuthorize').then((s) => s && setDiscord(s))],
-            error: ['Intentar de nuevo', () => call('discordAuthorize').then((s) => s && setDiscord(s))],
-          }[discord.status];
-          if (msg) rows.push({ icon: 'headset', label: msg[0], party: true, run: msg[1] });
-          if (discord.status === 'ok' && discord.channel) {
-            rows.push({ icon: 'headset', label: discord.channel.name, value: 'Grupo', party: true });
-            discord.members.forEach((m) => rows.push({ img: m.avatar || '', label: m.name, party: true, value: m.deafened ? 'Sin audio' : m.muted ? 'Silenciado' : m.speaking ? 'Hablando' : '' }));
-          }
           return rows;
         },
         top(r) {
@@ -789,7 +818,33 @@
               <div class="ta-finfo"><b>${esc(f.name)}</b><span class="ta-fst">${esc(U.friendStatus(f))}</span><small>A: ver perfil o enviar mensaje</small></div></div>
               <div class="ta-fcount">${feed.online.length} en línea · ${feed.list.length} ${feed.list.length === 1 ? 'amigo' : 'amigos'}</div>`;
           }
-          if (r && !r.party && feed.data.status !== 'ok') return `<div class="ta-desc"><b>${esc(r.label)}</b>${esc(r.desc || '')}</div>`;
+          return r ? `<div class="ta-desc"><b>${esc(r.label)}</b>${esc(r.desc || '')}</div>` : '';
+        },
+      };
+    }
+    // --- Grupo: tu canal de voz de Discord ---
+    function partyApp() {
+      return {
+        icon: 'headset',
+        sel: 0,
+        big: true,
+        title: () => 'Grupo',
+        list() {
+          const rows = [];
+          const msg = {
+            'no-config': ['Conectar Discord', () => call('open', 'setup-discord')],
+            'no-discord': ['Abrir Discord', () => call('open', 'discord-app')],
+            'need-auth': ['Dar permiso en Discord', () => call('discordAuthorize').then((s) => s && setDiscord(s))],
+            error: ['Intentar de nuevo', () => call('discordAuthorize').then((s) => s && setDiscord(s))],
+          }[discord.status];
+          if (msg) rows.push({ icon: 'headset', label: msg[0], party: true, run: msg[1] });
+          if (discord.status === 'ok' && discord.channel) {
+            discord.members.forEach((m) => rows.push({ img: m.avatar || '', ini: (m.name || '?').trim().charAt(0).toUpperCase(), label: m.name, value: m.deafened ? 'Sin audio' : m.muted ? 'Silenciado' : m.speaking ? 'Hablando' : '' }));
+            rows.push({ icon: 'headset', label: 'Abrir Discord', run: () => call('open', 'discord-app') });
+          } else if (discord.status === 'ok') rows.push({ icon: 'headset', label: 'No estás en un canal de voz', desc: 'Cuando entres a uno en Discord, aquí vas a ver quiénes están contigo.' });
+          return rows;
+        },
+        top() {
           const v = U.partyView(discord);
           if (v.message) return `<div class="ta-desc"><b>Grupo de voz</b>${esc(v.message)}</div>`;
           return `<div class="ta-desc"><b>${esc(v.channel)}</b>${esc(v.guild)} · ${v.members.length} ${v.members.length === 1 ? 'persona' : 'personas'}</div>`;
@@ -828,16 +883,17 @@
     // Ventanas (abajo): opciones del juego y energía
     // =====================================================================
     let dlg = null;
-    function openDlg(title, btns) {
-      dlg = { btns, sel: 0 };
+    function openDlg(title, btns, cls = '') {
+      dlg = { btns, sel: Math.max(0, btns.findIndex((b) => b.on)) };
+      $('.b-dlg-box').className = `b-dlg-box ${cls}`;
       $('.b-dlg-t').innerHTML = title;
-      $('.b-dlg-btns').innerHTML = btns.map((b, i) => `<button data-i="${i}">${esc(b.label)}</button>`).join('');
+      $('.b-dlg-btns').innerHTML = btns.map((b, i) => `<button data-i="${i}"${b.on ? ' class="on"' : ''}>${esc(b.label)}</button>`).join('');
       $$('.b-dlg-btns button').forEach((b) => {
         b.addEventListener('mouseenter', () => setDlg(Number(b.dataset.i)));
         b.addEventListener('click', () => chooseDlg(Number(b.dataset.i)));
       });
       $('.b-dlg').hidden = false;
-      setDlg(0);
+      setDlg(dlg.sel);
       paintHint();
     }
     function setDlg(i) {
@@ -863,9 +919,71 @@
           { label: 'Abrir', run: () => startGame(g) },
           ...(g.type === 'steam' ? [{ label: 'Logros', run: async () => (await openApp('trophies'), app.open(g)) }] : []),
           { label: 'Cambiar imágenes', run: () => window.NostalHubGameEditor && window.NostalHubGameEditor.open(g.id) },
+          { label: 'Ordenar', run: () => sortDlg() },
+          { label: 'Mover', run: () => startMove() },
           { label: 'Cancelar' },
         ]
       );
+    }
+    // ---------- Ordenar y mover íconos ----------
+    function sortDlg() {
+      openDlg(
+        '<b>Ordenar los íconos</b>',
+        [
+          ...order.sorts.map((s) => ({
+            label: s.label,
+            on: s.id === order.mode,
+            run: () => {
+              order.set(s.id);
+              buildItems();
+              renderGrid();
+              ctx.toast(`Orden: ${order.label()}`);
+            },
+          })),
+          { label: 'Cancelar' },
+        ],
+        'one'
+      );
+    }
+    function startMove() {
+      if (!items[sel] || !items[sel].game) return;
+      const list = order.apply(games, summary);
+      mv = { list };
+      root.classList.add('b-moving');
+      $('.b-movehint').innerHTML = `Moviendo <b>${esc(items[sel].game.name)}</b> · A: dejarlo · B: cancelar`;
+      $('.b-movehint').hidden = false;
+      renderGrid();
+    }
+    function moveTo(n) {
+      const first = apps().length;
+      n = Math.max(first, Math.min(items.length - 1, n));
+      if (n === sel) return ctx.sound('border');
+      mv.list.splice(n - first, 0, mv.list.splice(sel - first, 1)[0]);
+      buildItems(); // la selección sigue al juego que se mueve
+      renderGrid();
+      ctx.sound('move');
+    }
+    function moveKey(k) {
+      if (k === 'Enter' || k === ' ') return endMove(true);
+      if (k === 'Escape' || k === 'Backspace') return endMove(false);
+      const r = sel % rows;
+      if (k === 'ArrowUp' && r > 0) moveTo(sel - 1);
+      else if (k === 'ArrowDown' && r < rows - 1) moveTo(sel + 1);
+      else if (k === 'ArrowLeft') moveTo(sel - rows);
+      else if (k === 'ArrowRight') moveTo(sel + rows);
+    }
+    function endMove(save) {
+      if (!mv) return;
+      const { list } = mv;
+      mv = null;
+      root.classList.remove('b-moving');
+      $('.b-movehint').hidden = true;
+      if (save) {
+        order.save(list);
+        ctx.toast('Orden: A mano');
+      }
+      buildItems();
+      renderGrid();
     }
     function powerDlg() {
       openDlg('<b>¿Qué quieres hacer?</b>', [
@@ -986,6 +1104,7 @@
         return;
       }
       if (view !== 'home') return app && appKey(k);
+      if (mv) return moveKey(k);
       if (k.startsWith('Arrow')) moveSel(k);
       else if (k === 'Enter' || k === ' ') openItem();
       else if (k === 'o' || k === 'O' || k === 'x' || k === 'X') {
@@ -1016,7 +1135,7 @@
     function setDiscord(s) {
       discord = s || discord;
       paintFriendsBadge();
-      if (view === 'friends' || view === 'notes') paintApp();
+      if (view === 'party' || view === 'notes') paintApp();
     }
     function setSpotify(s) {
       spotify = s || spotify;
@@ -1025,6 +1144,8 @@
     }
     function setGames(list) {
       games = list || [];
+      if (mv) endMove(false);
+      if (wall.value.startsWith('game:')) applyWall(); // el arte del juego elegido como fondo
       if (view === 'home') {
         buildItems();
         renderGrid();
@@ -1041,8 +1162,8 @@
       const k = U.completeKey(summary);
       const changed = k !== doneKey;
       doneKey = k;
-      if (view !== 'home') return;
-      if (changed) (buildItems(), renderGrid());
+      if (view !== 'home' || mv) return;
+      if (changed || order.mode === 'ach') (buildItems(), renderGrid());
       paintBanner();
     }
     if (api.onSteamSummary) offs.push(api.onSteamSummary(onSummary));
@@ -1085,6 +1206,7 @@
         root.removeAttribute('data-t');
         root.removeAttribute('data-s');
         root.removeAttribute('data-rows');
+        root.style.removeProperty('--wall');
         root.style.removeProperty('--px');
         root.style.removeProperty('--py');
         root.className = root.className.replace(/\b(in-app|is-playing|launching|boot|d3|can-opt)\b/g, '').trim();

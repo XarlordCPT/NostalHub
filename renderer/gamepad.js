@@ -4,7 +4,7 @@
 
    ✕ aceptar (Enter) · ○ volver (Esc) · △ opciones (O) · □ cambiar imágenes (I)
    L1/R1 pestaña o página · L2/R2 rápido (RePág/AvPág) · Options menú de la consola
-   Create ordenar (S); en la Wii y la PS2, Amigos (A)
+   Create ordenar (S); en la Wii y la PS2, Amigos (A) y △ ordena
    Cruceta y stick izquierdo: moverse (mantener = repetir) · Stick derecho: rueda
 
    Al usar el control, las pistas de la pantalla ("Enter Elegir") muestran sus botones (✕ ○ △ □).
@@ -35,8 +35,8 @@
     x360: { l1: 'q', r1: 'e', options: 'g' }, // pestañas y la Guía
     vita: { l1: 'q', r1: 'e', options: 'p' }, // tarjetas y menú rápido
     ps4: { options: 'p' }, // menú rápido
-    ps2: { options: 'c', create: 'a' }, // Configuración y Amigos (no tiene ordenar)
-    wii: { create: 'a' }, // Amigos (no tiene ordenar)
+    ps2: { options: 'c', create: 'a' }, // Configuración y Amigos (ordenar: △)
+    wii: { create: 'a' }, // Amigos (ordenar: △)
   };
   // Los que se repiten al mantenerlos apretados (como una tecla)
   const REPEAT = new Set(['up', 'down', 'left', 'right', 'l2', 'r2']);
@@ -45,7 +45,7 @@
 
   // Lo que muestran las pistas cuando se usa el control
   const PAD_LABEL = { Enter: '✕', Esc: '○', Escape: '○', O: '△', o: '△', I: '□', 'Q / E': 'L1 / R1', G: 'Options', P: 'Options', C: 'Options', S: 'Create', A: 'Create', '+': '△' };
-  const HINT_KEYS = '.ps-key, .xb-key, .p3-hints kbd, .sw-hint > b, .sw-fr-hint > b, #sel-sort kbd, .sel-move-hint kbd';
+  const HINT_KEYS = '.ps-key, .xb-key, .p4-key, .p3-hints kbd, .sw-hint > b, .sw-fr-hint > b, #sel-sort kbd, .sel-move-hint kbd';
 
   const consoleId = () => document.body.dataset.console || 'selector';
   const keyFor = (name) => {

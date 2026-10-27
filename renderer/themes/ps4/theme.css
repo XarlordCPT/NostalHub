@@ -747,3 +747,15 @@ body.playing .theme-ps4 .p4-spin { animation-play-state: paused; }
 .p4-play-art .p4-tart .nh-done.on-icon { width: 64px; height: 64px; top: 12px; right: 12px; }
 .p4-bar.plat i { background: linear-gradient(90deg, #c9d6e6, #ffffff, #b4c3d8); }
 .p4t-count .nh-done { font-size: 34px; }
+
+/* ============ Ordenar el inicio ============ */
+.p4-foot { display: flex; gap: 46px; }
+.theme-ps4.in-func .p4-home-sort { opacity: 0; pointer-events: none; }
+
+/* ============ Fondo propio (Ajustes → Temas) ============ */
+.p4-wall { position: absolute; inset: 0; display: none; background: #000 center / cover no-repeat; }
+.p4-wall::after { content: ''; position: absolute; inset: 0; background: linear-gradient(to bottom, rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.05) 35%, rgba(0, 0, 0, 0.45)); }
+.theme-ps4.has-wall .p4-wall { display: block; }
+.theme-ps4.has-wall .p4-waves { display: none; }
+.p4-pop-list { max-height: 720px; overflow-y: auto; scrollbar-width: thin; }
+.theme-ps4.has-wall:not(.art-strong) .p4-art-shade { background: linear-gradient(to bottom, rgba(0, 0, 0, 0.2) 0%, rgba(0, 0, 0, 0.05) 40%, rgba(0, 0, 0, 0.6) 100%); }

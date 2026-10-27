@@ -27,6 +27,9 @@ más completas) cuando tengas dudas de cómo se hace algo.
 
 - [ ] **Juegos**: lista/grilla con `api.getState()`, `api.onGamesUpdated`, iniciar con `api.launch(id)`,
       volver de un juego con `api.onGameEnded`.
+- [ ] **Ordenar los juegos** con `U.gameOrder('<id>', { manual, def })` (Jugado recientemente, Nombre, Horas, % de
+      logros; `manual: true` si la consola real dejaba mover los íconos) y una pista visible de cómo se abre.
+- [ ] **Grupo** de Discord en su propia opción, nunca mezclado con la lista de amigos.
 - [ ] **Vista "jugando"** (mientras el juego está abierto) con el estilo de la consola.
 - [ ] **Spotify + Grupo de Discord** a los lados al jugar: `window.NostalHubUtil.nowPlaying(contenedor, api)`
       (`start()` al jugar, `stop()` al salir, `dispose()` al desmontar). Si la consola tiene una sección de música

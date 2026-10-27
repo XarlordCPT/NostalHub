@@ -24,6 +24,7 @@
     gear: '<circle cx="24" cy="24" r="6"/><path d="M24 5v6M24 37v6M5 24h6M37 24h6M10.6 10.6l4.2 4.2M33.2 33.2l4.2 4.2M10.6 37.4l4.2-4.2M33.2 14.8l4.2-4.2"/><circle cx="24" cy="24" r="12"/>',
     screen: '<rect x="5" y="8" width="38" height="25" rx="2"/><path d="M18 41h12M24 33v8"/>',
     folder: '<path d="M5 13h14l4 4h20v22H5Z"/><path d="M5 21h38"/>',
+    image: '<rect x="5" y="8" width="38" height="32" rx="3"/><circle cx="16" cy="18" r="4"/><path d="M5 34l11-10 9 8 6-5 12 10"/>',
     play: '<path d="M15 9l25 15-25 15Z" fill="currentColor"/>',
     pause: '<path d="M14 10h7v28h-7zM27 10h7v28h-7z" fill="currentColor"/>',
     prev: '<path d="M14 10v28M38 10 18 24l20 14Z" fill="currentColor"/>',
@@ -67,7 +68,7 @@
   ];
 
   const MARKUP = `
-<div class="p4-bg">${WAVES}</div>
+<div class="p4-bg">${WAVES}<div class="p4-wall"></div></div>
 <div class="p4-art"><div class="p4-art-img"></div><div class="p4-art-img"></div><div class="p4-art-shade"></div></div>
 
 <header class="p4-status">
@@ -185,6 +186,7 @@
 </div>
 
 <footer class="p4-foot">
+  <button class="p4-qm-btn p4-home-sort" title="Ordenar el inicio (tecla O)"><span class="p4-key">O</span><span class="t"></span></button>
   <button class="p4-qm-btn"><span class="p4-key">P</span><span>Menú rápido</span></button>
 </footer>
 `;
@@ -231,6 +233,32 @@
     const artImgs = $$('.p4-art-img');
     let artFront = 0;
     let artUrl = null;
+    // ---------- Fondo propio (Ajustes → Temas): una imagen tuya o el arte de un juego, en vez del azul con ondas ----------
+    const wall = U.wallpaper(api, 'ps4');
+    function applyWall(v = wall.value) {
+      const url = wall.url(games, v);
+      $('.p4-wall').style.backgroundImage = url ? `url("${url}")` : '';
+      root.classList.toggle('has-wall', !!url);
+    }
+    wall.load().then(() => applyWall());
+    // Sección "Temas" de Ajustes (solo de la PS4; las demás opciones vienen de main.js)
+    function withThemes(model) {
+      const items = [
+        {
+          id: 'p4-wall',
+          type: 'choice',
+          local: true,
+          label: 'Fondo',
+          desc: 'Una imagen tuya (de la carpeta de fondos) o el arte de uno de tus juegos, como los temas de la PS4.',
+          value: wall.value,
+          options: wall.choices(games).map((c) => ({ value: c.value, label: c.group === 'games' ? `Juego: ${c.label}` : c.label, short: c.label })),
+          set: (v) => (wall.set(v), applyWall()),
+        },
+        { id: 'p4-wall-folder', type: 'action', local: true, label: 'Abrir carpeta de fondos', desc: 'Pon aquí tus imágenes (JPG o PNG, ideal 1920×1080) y después elígelas en Fondo.', run: () => wall.openFolder() },
+      ];
+      return [{ id: 'themes', title: 'Temas', items }, ...(model || []).filter((s) => s.id !== 'themes')];
+    }
+
     function setArt(url, strong = false) {
       root.classList.toggle('art-strong', !!url && strong);
       if (url === artUrl) return;
@@ -273,16 +301,31 @@
         setGames(games);
       }
       $('.p4-st-troph b').textContent = summary.hasKey ? String(summary.done || 0) : '—';
+      if (view === 'home' && homeOrder.mode === 'ach') renderRow();
       if (view === 'home') renderTeaser();
       if (current && view === 'game') paintGameTrophies(current);
     }
 
     // ---------- Datos de cada juego ----------
+    // Juegos del inicio: los 5 primeros según el orden elegido (tecla O / △ en el inicio)
+    const homeOrder = U.gameOrder('ps4', { def: 'recent' });
     function recentGames() {
-      const played = games.filter((g) => g.lastPlayed).sort((a, b) => b.lastPlayed - a.lastPlayed);
-      const rest = games.filter((g) => !g.lastPlayed);
-      return [...played, ...rest].slice(0, 5);
+      return homeOrder.apply(games, summary).slice(0, 5);
     }
+    function homeSortMenu() {
+      openPop('Ordenar el inicio', homeOrder.sorts.map((s) => ({ label: s.label, on: s.id === homeOrder.mode, run: () => setHomeSort(s.id) })));
+    }
+    function setHomeSort(m) {
+      homeOrder.set(m);
+      rowSel = 0;
+      renderRow();
+      paintHomeSort();
+    }
+    function paintHomeSort() {
+      $('.p4-home-sort .t').textContent = `Ordenar: ${homeOrder.label()}`;
+    }
+    $('.p4-home-sort').addEventListener('click', () => view === 'home' && homeSortMenu());
+    paintHomeSort();
     function trophiesOf(g) {
       return (g && g.appId && summary.perGame && summary.perGame[g.appId]) || null;
     }
@@ -553,15 +596,11 @@
       { id: 'steam', label: 'Juegos', icon: 'pad', filter: (g) => g.type === 'steam' || g.type === 'minecraft' },
       { id: 'apps', label: 'Aplicaciones', icon: 'apps', filter: (g) => g.type !== 'steam' && g.type !== 'minecraft' },
       { id: 'recent', label: 'Jugados recientemente', icon: 'clock', filter: (g) => !!g.lastPlayed, mine: true },
-      { id: 'troph', label: 'Con trofeos', icon: 'trophy', filter: (g) => !!trophiesOf(g), mine: true },
+      // Solo los que de verdad tienen logros (Steam revisa cada juego en segundo plano; los sin logros quedan en 0)
+      { id: 'troph', label: 'Con trofeos', icon: 'trophy', filter: (g) => !!(trophiesOf(g) && trophiesOf(g).total > 0), mine: true },
     ];
-    const SORTS = [
-      { label: 'Jugado recientemente', fn: (a, b) => (b.lastPlayed || 0) - (a.lastPlayed || 0) || a.name.localeCompare(b.name) },
-      { label: 'Nombre', fn: (a, b) => a.name.localeCompare(b.name, 'es') },
-      { label: 'Horas jugadas', fn: (a, b) => (b.playtimeMin || 0) - (a.playtimeMin || 0) },
-    ];
+    const libOrder = U.gameOrder('ps4lib', { def: 'recent' }); // Jugado recientemente, Nombre, Horas o % de logros
     let libCat = 0;
-    let libSort = 0;
     let libFocus = 'side'; // side | grid
     let libSideSel = 1; // 0 = Buscar, 1.. = categorías
     let libSel = 0;
@@ -606,9 +645,11 @@
       // Lista
       const cat = LIB_CATS[libCat];
       const q = libQuery.trim().toLowerCase();
-      libList = games.filter(cat.filter).filter((g) => !q || g.name.toLowerCase().includes(q));
-      libList.sort(SORTS[libSort].fn);
-      $('.p4l-sort').innerHTML = `<span>${SORTS[libSort].label}</span>${icon('down')}`;
+      libList = libOrder.apply(
+        games.filter(cat.filter).filter((g) => !q || g.name.toLowerCase().includes(q)),
+        summary
+      );
+      $('.p4l-sort').innerHTML = `<span class="p4-key">S</span><span>${libOrder.label()}</span>${icon('down')}`;
       $('.p4l-section').textContent = q ? `Resultados para "${libQuery}"` : `${cat.label} · ${libList.length}`;
       const grid = $('.p4l-grid');
       grid.innerHTML = '';
@@ -683,10 +724,10 @@
         if (!libQuery) $('.p4l-search').hidden = true;
       }
     });
-    $('.p4l-sort').addEventListener('click', () => {
-      libSort = (libSort + 1) % SORTS.length;
-      paintLib();
-    });
+    function libSortMenu() {
+      openPop('Ordenar', libOrder.sorts.map((s) => ({ label: s.label, on: s.id === libOrder.mode, run: () => (libOrder.set(s.id), (libSel = 0), (libScroll = 0), paintLib()) })));
+    }
+    $('.p4l-sort').addEventListener('click', () => libSortMenu());
     $('.p4l-viewport').addEventListener('wheel', (e) => {
       if (view !== 'library' || Math.abs(e.deltaY) < 10) return;
       const maxRow = Math.max(0, Math.ceil(libList.length / LIB_COLS) - Math.floor(LIB_VIEW_H / LIB_ROW_H));
@@ -716,10 +757,8 @@
       else if (k === 'ArrowUp') {
         if (libSel >= LIB_COLS) setLib(libSel - LIB_COLS);
       } else if (k === 'Enter' && libList[libSel]) openGame(libList[libSel]);
-      else if (k === 's' || k === 'S') {
-        libSort = (libSort + 1) % SORTS.length;
-        paintLib();
-      } else if (k === 'Escape' || k === 'Backspace') back();
+      else if (k === 's' || k === 'S' || k === 'o' || k === 'O') libSortMenu();
+      else if (k === 'Escape' || k === 'Backspace') back();
     }
 
     // ---------- Trofeos ----------
@@ -1074,11 +1113,12 @@
     let setLevel = 'cats'; // cats | items
     let setCat = 0;
     let setSel = 0;
-    const CAT_ICONS = { general: 'gear', games: 'pad', screen: 'screen', sound: 'speaker', accounts: 'person', files: 'folder' };
+    const CAT_ICONS = { themes: 'image', general: 'gear', games: 'pad', screen: 'screen', sound: 'speaker', accounts: 'person', files: 'folder' };
     async function openSettings() {
       showScreen('settings');
       setArt(null);
-      menuModel = (await call('getMenu')) || [];
+      await wall.load();
+      menuModel = withThemes(await call('getMenu'));
       setLevel = 'cats';
       setSel = 0;
       paintSettings();
@@ -1136,6 +1176,13 @@
       if (!it) return;
       if (it.id === 'consoles') return ctx.openSelector();
       if (it.confirm) return openPower();
+      if (it.local && it.type === 'choice') {
+        return openPop(
+          it.label,
+          it.options.map((o) => ({ label: o.label, on: String(o.value) === String(it.value), run: () => (it.set(o.value), (menuModel = withThemes(menuModel)), paintSettings()) }))
+        );
+      }
+      if (it.local) return (it.run(), ctx.toast('Se abrió en Windows'));
       if (it.type === 'choice') {
         return openPop(
           it.label,
@@ -1147,7 +1194,7 @@
     }
     async function runOption(it, value) {
       const next = await call('runMenu', it.id, value);
-      if (next) menuModel = next;
+      if (next) menuModel = withThemes(next);
       if (view === 'settings') paintSettings();
       if (qmOpen) renderQmSub();
     }
@@ -1188,6 +1235,8 @@
       if (!pop) return;
       pop.sel = (i + pop.items.length) % pop.items.length;
       $$('.p4-pop-it').forEach((b) => b.classList.toggle('sel', Number(b.dataset.i) === pop.sel));
+      const on = $(`.p4-pop-it[data-i="${pop.sel}"]`);
+      if (on) on.scrollIntoView({ block: 'nearest' }); // listas largas (fondos)
     }
     function closePop() {
       pop = null;
@@ -1230,7 +1279,7 @@
     async function openQm() {
       if (qmOpen || view === 'playing') return;
       qmOpen = true;
-      menuModel = (await call('getMenu')) || menuModel;
+      menuModel = withThemes((await call('getMenu')) || menuModel);
       const qm = $('.p4-qm');
       qm.hidden = false;
       qm.classList.remove('leave');
@@ -1565,6 +1614,7 @@
             if (it && it.type === 'game') openGame(it.game);
             else if (it) openLibrary();
           } else if (k === 'Enter') activateRow();
+          else if (k === 'o' || k === 'O') homeSortMenu();
           else if (k === 'Escape') ctx.openSelector();
           break;
         case 'func':
@@ -1617,6 +1667,7 @@
     function setGames(list) {
       games = list || [];
       if (current) current = games.find((g) => g.id === current.id) || current;
+      if (wall.value.startsWith('game:')) applyWall(); // el arte del juego elegido como fondo
       renderRow();
       if (view === 'library') paintLib();
       if (current && view === 'game') {

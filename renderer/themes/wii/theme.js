@@ -33,6 +33,9 @@
     <button class="round-btn left" id="btn-settings" aria-label="Ajustes" title="Ajustes">
       <svg viewBox="0 0 48 48" aria-hidden="true"><path fill-rule="evenodd" stroke="none" d="M39.07 20.38 L43.82 21.34 L43.82 26.66 L39.07 27.62 L37.22 32.10 L39.90 36.13 L36.13 39.90 L32.10 37.22 L27.62 39.07 L26.66 43.82 L21.34 43.82 L20.38 39.07 L15.90 37.22 L11.87 39.90 L8.10 36.13 L10.78 32.10 L8.93 27.62 L4.18 26.66 L4.18 21.34 L8.93 20.38 L10.78 15.90 L8.10 11.87 L11.87 8.10 L15.90 10.78 L20.38 8.93 L21.34 4.18 L26.66 4.18 L27.62 8.93 L32.10 10.78 L36.13 8.10 L39.90 11.87 L37.22 15.90 Z M30.5 24 A6.5 6.5 0 1 0 17.5 24 A6.5 6.5 0 1 0 30.5 24 Z"/></svg>
     </button>
+    <button class="round-btn left small" id="btn-sort" aria-label="Ordenar canales" title="Ordenar canales (tecla O)">
+      <svg viewBox="0 0 48 48" aria-hidden="true" fill="none" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 9v30M8 32l7 7 7-7M33 39V9M26 16l7-7 7 7"/></svg>
+    </button>
     <button class="round-btn right small" id="btn-friends" aria-label="Amigos" title="Amigos">
       <svg viewBox="0 0 48 48" aria-hidden="true" fill="none" stroke-width="3.2" stroke-linejoin="round"><rect x="7" y="12" width="34" height="24" rx="4"/><path d="M8 14l16 12 16-12"/></svg>
       <em class="wf-badge" hidden></em>
@@ -40,6 +43,15 @@
     <button class="round-btn right" id="btn-random" aria-label="Juego al azar" title="Juego al azar">
       <svg viewBox="0 0 48 48" aria-hidden="true"><rect x="8" y="8" width="32" height="32" rx="8" fill="none" stroke-width="3.2"/><circle cx="17" cy="17" r="3"/><circle cx="31" cy="17" r="3"/><circle cx="24" cy="24" r="3"/><circle cx="17" cy="31" r="3"/><circle cx="31" cy="31" r="3"/></svg>
     </button>
+  </div>
+  <div class="wo-move" hidden></div>
+</section>
+
+<!-- ===== Ordenar canales ===== -->
+<section class="wo-pop" hidden>
+  <div class="wo-box">
+    <div class="wo-title">Ordenar canales</div>
+    <div class="wo-list"></div>
   </div>
 </section>
 
@@ -175,12 +187,14 @@
     const nowPlaying = window.NostalHubUtil.nowPlaying(playing, ctx.api, ctx.toast);
 
     let games = [];
+    let rawGames = []; // como llegan, antes de ordenarlos
+    const order = window.NostalHubUtil.gameOrder('wii', { manual: true, def: 'manual' }); // tu orden, como en la Wii
     let page = 0;
     let view = 'menu'; // menu | channel | playing | busy
     let current = -1; // índice del juego abierto
     let hls = null;
     let playTimer = null;
-    const BAR = ['#btn-settings', '#btn-friends', '#btn-random']; // botones de abajo, de izquierda a derecha
+    const BAR = ['#btn-settings', '#btn-sort', '#btn-friends', '#btn-random']; // botones de abajo, de izquierda a derecha
     const kf = { area: 'grid', index: 0, btn: 0, on: false }; // selección con teclado o control (ver paintKf)
 
     // ---------- Reloj ----------
@@ -267,7 +281,8 @@
       btn.appendChild(inner);
       const per = g.appId && summary.perGame && summary.perGame[g.appId];
       if (window.NostalHubUtil.isComplete(per)) btn.insertAdjacentHTML('beforeend', window.NostalHubUtil.completeBadge('seal', 'on-icon')); // 100 %
-      btn.addEventListener('click', () => openChannel(index));
+      btn.addEventListener('click', () => (mv ? moveClick(index) : openChannel(index)));
+      if (mv && mv.index === index) btn.classList.add('wmv');
       return btn;
     }
 
@@ -351,7 +366,7 @@
         if (r < ROWS - 1 && kf.index + COLS <= last) kf.index += COLS;
         else {
           kf.area = 'bar';
-          kf.btn = c <= 1 ? 0 : c === 2 ? 1 : 2; // el botón que está más abajo de esa columna
+          kf.btn = c; // el botón que está más abajo de esa columna
         }
       }
       paintKf();
@@ -384,6 +399,132 @@
       setPage(Math.floor(i / PER_PAGE), false);
       openChannel(i);
     });
+
+    // ---------- Ordenar canales (botón de las flechas o tecla O) ----------
+    // Jugado recientemente, Nombre, Horas jugadas, % de logros o A mano. "Mover" lleva un canal a otro lugar.
+    let wo = null; // { items, sel }
+    let mv = null; // { index, before } al mover un canal (index null = falta elegir cuál)
+    function openSort() {
+      if (view !== 'menu' || mv) return;
+      const g = kf.on && kf.area === 'grid' ? games[kf.index] : null;
+      const items = [
+        ...order.sorts.map((s) => ({ label: s.label, on: s.id === order.mode, run: () => (order.set(s.id), resort()) })),
+        { label: g ? `Mover "${g.name}"` : 'Mover un canal', mv: true, run: () => startMove(g ? kf.index : null) },
+      ];
+      wo = { items, sel: Math.max(0, items.findIndex((x) => x.on)) };
+      const list = $('.wo-list');
+      list.innerHTML = items.map((it, i) => `<button class="wo-opt${it.on ? ' on' : ''}${it.mv ? ' mv' : ''}" data-i="${i}">${window.NostalHubUtil.escapeHtml(it.label)}</button>`).join('');
+      list.querySelectorAll('button').forEach((b) => {
+        b.addEventListener('mouseenter', () => setWo(Number(b.dataset.i)));
+        b.addEventListener('click', () => pickWo(Number(b.dataset.i)));
+      });
+      $('.wo-pop').hidden = false;
+      setWo(wo.sel);
+      if (ctx.sound) ctx.sound('select');
+    }
+    function setWo(i) {
+      if (!wo) return;
+      wo.sel = (i + wo.items.length) % wo.items.length;
+      root.querySelectorAll('.wo-opt').forEach((b) => b.classList.toggle('kfocus', Number(b.dataset.i) === wo.sel));
+    }
+    function pickWo(i) {
+      const it = wo && wo.items[i];
+      closeWo();
+      if (it) it.run();
+    }
+    function closeWo() {
+      wo = null;
+      $('.wo-pop').hidden = true;
+    }
+    $('.wo-pop').addEventListener('click', (e) => e.target === e.currentTarget && closeWo());
+    $('#btn-sort').addEventListener('click', () => openSort());
+    function resort() {
+      const keep = kf.on && kf.area === 'grid' && games[kf.index] ? games[kf.index].id : null;
+      games = order.apply(rawGames, summary);
+      if (keep) kf.index = Math.max(0, games.findIndex((g) => g.id === keep));
+      renderGrid();
+      if (keep) {
+        setPage(Math.floor(kf.index / PER_PAGE), false);
+        paintKf();
+      }
+      toast(`Orden: ${order.label()}`);
+    }
+
+    function startMove(index) {
+      mv = { index, before: games.map((g) => g.id) };
+      menu.classList.add('moving');
+      paintMove();
+    }
+    function paintMove() {
+      const hint = $('.wo-move');
+      hint.hidden = !mv;
+      root.querySelectorAll('.tile.game').forEach((t) => t.classList.toggle('wmv', !!mv && mv.index != null && Number(t.dataset.index) === mv.index));
+      if (!mv) return;
+      const g = mv.index != null && games[mv.index];
+      hint.innerHTML = g
+        ? `Moviendo <b>${window.NostalHubUtil.escapeHtml(g.name)}</b> · Flechas o clic en otro lugar para cambiarlo · Enter: dejarlo · Esc: cancelar`
+        : 'Elige el canal que quieres mover (clic, o flechas y Enter) · Esc: cancelar';
+    }
+    function moveTo(j) {
+      const i = mv.index;
+      j = Math.max(0, Math.min(games.length - 1, j));
+      if (j === i) return;
+      games.splice(j, 0, games.splice(i, 1)[0]);
+      mv.index = j;
+      kf.on = true;
+      kf.area = 'grid';
+      kf.index = j;
+      renderGrid();
+      setPage(Math.floor(j / PER_PAGE));
+      paintKf();
+      paintMove();
+      if (ctx.sound) ctx.sound('move');
+    }
+    function moveClick(index) {
+      if (mv.index == null) {
+        mv.index = index;
+        return paintMove();
+      }
+      if (mv.index === index) return endMove(true);
+      moveTo(index);
+    }
+    function moveKey(k) {
+      if (k === 'Escape' || k === 'Backspace') return endMove(false);
+      if (mv.index == null) {
+        if (k === 'Enter' && kf.on && kf.area === 'grid') {
+          mv.index = kf.index;
+          return paintMove();
+        }
+        if (k.startsWith('Arrow')) {
+          if (kf.area === 'bar') kf.area = 'grid';
+          menuKey(k);
+          if (kf.area === 'bar') (kf.area = 'grid'), paintKf();
+        }
+        return;
+      }
+      if (k === 'Enter') return endMove(true);
+      const i = mv.index;
+      const p = Math.floor(i / PER_PAGE);
+      const r = Math.floor((i % PER_PAGE) / COLS);
+      const c = i % COLS;
+      if (k === 'ArrowLeft') moveTo(c > 0 ? i - 1 : p > 0 ? (p - 1) * PER_PAGE + r * COLS + COLS - 1 : i);
+      else if (k === 'ArrowRight') moveTo(c < COLS - 1 ? i + 1 : (p + 1) * PER_PAGE + r * COLS);
+      else if (k === 'ArrowUp' && r > 0) moveTo(i - COLS);
+      else if (k === 'ArrowDown' && r < ROWS - 1) moveTo(i + COLS);
+    }
+    function endMove(save) {
+      if (!mv) return;
+      const before = mv.before;
+      const moved = mv.index != null;
+      mv = null;
+      menu.classList.remove('moving');
+      paintMove();
+      if (save && moved) {
+        order.save(games);
+        toast('Orden: A mano');
+      } else games.sort((a, b) => before.indexOf(a.id) - before.indexOf(b.id));
+      renderGrid();
+    }
 
     // ---------- Pantalla de canal ----------
     function wait(ms) {
@@ -689,6 +830,7 @@
     const offSummary = api.onSteamSummary
       ? api.onSteamSummary((s) => {
           summary = s || summary;
+          if (order.mode === 'ach' && !mv && view === 'menu') setGames(rawGames); // el orden por logros cambia con el resumen
           if ((view === 'channel' || view === 'ach') && current >= 0 && games[current]) paintStats(games[current]);
           redrawDone();
         })
@@ -1110,6 +1252,14 @@
     function onKey(e) {
       // Enter/espacio no deben "apretar" además el último botón clickeado con el mouse
       if (e.key === 'Enter' || e.key === ' ') e.preventDefault();
+      if (wo) {
+        if (e.key === 'ArrowDown') setWo(wo.sel + 1);
+        else if (e.key === 'ArrowUp') setWo(wo.sel - 1);
+        else if (e.key === 'Enter') pickWo(wo.sel);
+        else if (e.key === 'Escape' || e.key === 'Backspace' || e.key === 'o' || e.key === 'O') closeWo();
+        return;
+      }
+      if (mv) return moveKey(e.key);
       if (view === 'settings') return settingsKey(e);
       if (view === 'friends') return friendsKey(e);
       if (view === 'ach') {
@@ -1137,6 +1287,7 @@
           else $(BAR[kf.btn]).click();
         } else if (e.key === 'Escape') ctx.openSelector();
         else if (e.key === 'a' || e.key === 'A') openFriends(); // el sobre: amigos
+        else if (e.key === 'o' || e.key === 'O') openSort();
       }
     }
     window.addEventListener('keydown', onKey);
@@ -1146,7 +1297,13 @@
     // ---------- Datos ----------
     function setGames(list) {
       const openId = current >= 0 && games[current] ? games[current].id : null;
-      games = list || [];
+      rawGames = list || [];
+      if (mv) {
+        mv = null;
+        menu.classList.remove('moving');
+        paintMove();
+      }
+      games = order.apply(rawGames, summary);
       if (openId) {
         const idx = games.findIndex((g) => g.id === openId);
         if (idx >= 0) current = idx;

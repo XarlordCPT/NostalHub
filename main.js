@@ -107,11 +107,13 @@ const spotifyWeb = new SpotifyWeb({
     if (typeof spotify !== 'undefined') spotify.emit();
     send('spotify:web', spotifyWeb.peek());
   },
+  enabled: () => config.data.spotifyApi !== false, // Ajustes → Música → "Spotify conectado directamente"
   log: (line) => spotify && spotify.log(`spotify (api): ${line}`),
 });
 const spotify = new Spotify((state) => send('spotify:update', state), path.join(DATA_DIR, 'cache', 'spotify.log'), {
   getApp: () => config.data.musicApp || 'spotify', // Spotify, Apple Music, YouTube Music o automático
   web: spotifyWeb,
+  useWeb: () => config.data.spotifyApi !== false,
 });
 const discord = new DiscordVoice({
   dataDir: DATA_DIR,
@@ -474,6 +476,7 @@ function consoleAssets(ids) {
     '  borde.wav    -> (Switch) al llegar al final de la fila',
     '  boton-grupo.wav, boton-musica.wav, boton-tienda.wav, boton-logros.wav, boton-software.wav,',
     '  boton-amigos.wav, boton-ajustes.wav, boton-energia.wav -> (Switch) al abrir cada botón redondo',
+    '  fondos\    -> (PS3, PS4 y 3DS) carpeta con tus imágenes para elegirlas de fondo dentro de la consola',
     '',
     'Se aplica solo al guardar el archivo. Más detalles en MANUAL.md, en la carpeta del proyecto.',
     '',
@@ -744,10 +747,14 @@ function createWindow() {
     win.showInactive(); // aparece sin robarle el foco a lo que estés haciendo
     if (IS_DEV) win.webContents.openDevTools({ mode: 'detach' });
   });
-  // Los enlaces nunca abren ventanas nuevas dentro de la app.
+  // Los enlaces nunca abren ventanas nuevas dentro de la app: las páginas web se abren en el navegador
   win.webContents.setWindowOpenHandler(({ url }) => {
-    shell.openExternal(url);
+    if (/^https?:\/\//i.test(url)) shell.openExternal(url);
     return { action: 'deny' };
+  });
+  // La ventana nunca se va a otra página (por ejemplo, al soltar un archivo fuera del editor de imágenes)
+  win.webContents.on('will-navigate', (e, url) => {
+    if (url !== win.webContents.getURL()) e.preventDefault();
   });
   // Alt+F4 no la cierra: la app vive en la bandeja. Para cerrarla, "Salir".
   win.on('close', (e) => {
@@ -1066,6 +1073,26 @@ function menuSections() {
           value: MUSIC_APPS[config.data.musicApp] ? config.data.musicApp : 'spotify',
           set: (v) => (setOption('musicApp', MUSIC_APPS[v] ? v : 'spotify'), spotify.poll(), spotify.emit()),
         },
+        // Solo con Spotify: usar (o no) la conexión directa con su API
+        ...(!MUSIC_APPS[config.data.musicApp] || config.data.musicApp === 'spotify'
+          ? [
+              {
+                id: 'spotifyApi',
+                type: 'toggle',
+                label: 'Spotify conectado directamente',
+                desc: spotifyWeb.connected
+                  ? 'Muestra la cola, el avance, aleatorio, repetir, me gusta, volumen y dispositivos. Apagado: solo los botones básicos.'
+                  : 'Todavía no está conectado. Actívalo para conectar tu Spotify (debes tener Premium).',
+                value: spotifyWeb.connected && config.data.spotifyApi !== false,
+                set: (v) => {
+                  if (v && !spotifyWeb.connected) return openSetup('spotify');
+                  setOption('spotifyApi', !!v);
+                  spotifyWeb.syncTimer();
+                  spotify.emit();
+                },
+              },
+            ]
+          : []),
       ],
     },
     {
@@ -1161,6 +1188,25 @@ function createTray() {
 ipcMain.handle('state:get', () => ({ games: gamesView() }));
 
 ipcMain.handle('consoles:get', (_e, ids) => ({ assets: consoleAssets(ids), last: config.data.lastConsole || null, modelTilt: config.data.modelTilt || {} }));
+// Fondos propios para elegir en la consola (PS3, PS4 y 3DS): las imágenes de consolas\<id>\fondos\
+function consoleBackgroundsDir(id) {
+  const dir = path.join(CONSOLES_DIR, media.safeId(String(id || '')), 'fondos');
+  fs.mkdirSync(dir, { recursive: true });
+  return dir;
+}
+ipcMain.handle('consoles:backgrounds', (_e, id) => {
+  if (!/^[a-z0-9]{2,12}$/.test(String(id || ''))) return [];
+  try {
+    const dir = consoleBackgroundsDir(id);
+    return fs
+      .readdirSync(dir)
+      .filter((n) => /\.(jpe?g|png|webp|gif|bmp)$/i.test(n))
+      .sort((a, b) => a.localeCompare(b, 'es'))
+      .map((n) => ({ file: n, name: path.basename(n, path.extname(n)), url: fileUrl(path.join(dir, n)) }));
+  } catch {
+    return [];
+  }
+});
 // Cómo se para el modelo 3D de cada consola en el selector (clic derecho sobre el modelo)
 ipcMain.handle('consoles:model-tilt', (_e, id, tilt) => {
   config.data.modelTilt = { ...(config.data.modelTilt || {}), [String(id)]: String(tilt) };
@@ -1424,7 +1470,17 @@ ipcMain.handle('setup:get', async () => {
     spotify: spotifyWeb.peek(), // sin tokens
   };
 });
-ipcMain.handle('setup:spotify', (_e, clientId) => spotifyWeb.authorize(String(clientId || '')));
+ipcMain.handle('setup:spotify', async (_e, clientId) => {
+  const res = await spotifyWeb.authorize(String(clientId || ''));
+  // Recién conectado: se usa la conexión directa (aunque antes la hubieras apagado)
+  if (res && res.ok && config.data.spotifyApi === false) {
+    config.data.spotifyApi = true;
+    config.save();
+    spotifyWeb.syncTimer();
+    spotify.emit();
+  }
+  return res;
+});
 ipcMain.handle('setup:spotify-disconnect', () => (spotifyWeb.disconnect(), spotifyWeb.peek()));
 ipcMain.handle('setup:steam', async (_e, key) => {
   const res = await steamWeb.saveKey(String(key || ''), steamUser && steamUser.steamId);
@@ -1515,6 +1571,9 @@ ipcMain.handle('app:open', (_e, what) => {
     case 'steam-profile':
       return shell.openExternal(steamUser ? `steam://url/SteamIDPage/${steamUser.steamId}` : 'steam://open/main');
     default: {
+      // Carpeta de fondos propios de una consola: 'fondos:<id>'
+      const f = /^fondos:([a-z0-9]{2,12})$/.exec(String(what || ''));
+      if (f) return shell.openPath(consoleBackgroundsDir(f[1]));
       // Perfil de un amigo: 'steam-user:<id de 17 números>'; chat con él: 'steam-chat:<id>'
       const m = /^steam-(user|chat):(\d{17})$/.exec(String(what || ''));
       if (!m) return null;
