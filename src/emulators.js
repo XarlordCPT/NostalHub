@@ -3,6 +3,7 @@
 // NostalHub no trae emuladores, juegos ni BIOS: solo abre lo que ya tienes.
 
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
 
 const MAX_DEPTH = 6;
@@ -29,7 +30,9 @@ function retroarchOption(exe, name) {
       continue;
     }
     const m = text.match(new RegExp(`^${name}\\s*=\\s*"([^"]*)"`, 'm'));
-    if (m && m[1] && m[1] !== 'default') return m[1].startsWith(':') ? path.join(path.dirname(exe), m[1].slice(1)) : m[1];
+    if (!m || !m[1] || m[1] === 'default') return null;
+    if (m[1].startsWith(':')) return path.join(path.dirname(exe), m[1].slice(1));
+    return m[1].startsWith('~') ? path.join(os.homedir(), m[1].slice(1)) : m[1]; // RetroArch guarda tu carpeta personal como ~
     return null;
   }
   return null;

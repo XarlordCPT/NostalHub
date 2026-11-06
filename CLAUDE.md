@@ -176,6 +176,8 @@ descripción), `cache\` (arte descargado, `spotify.log`, `discord.log`) y las cl
 - Imágenes animadas pesadas (`fondo.webp` de cientos de cuadros): mientras están ocultas siguen "avanzando" y al mostrarlas
   hay que decodificar todos los cuadros hasta alcanzar ese punto (más de 1 s). En la Wii: el menú muestra el primer cuadro y
   solo se anima el canal marcado, solo se dibuja la página visible y la transición usa una foto (`setZoomerImage`).
+- RetroArch reescribe `retroarch.cfg` al cerrarse y guarda las rutas con `~` (carpeta personal) o `:` (su carpeta): hay
+  que expandirlas (`retroarchOption`). Si no, no encuentra ningún juego.
 - Horas: `trackTick` de `main.js` revisa cada 15 s qué juego está abierto (`RunningAppID` de Steam o
   `launcher.playingId()`), le avisa a `PlayLog` y actualiza la presencia. Un salto de más de 3 min entre revisiones es
   PC suspendido: corta la sesión.
