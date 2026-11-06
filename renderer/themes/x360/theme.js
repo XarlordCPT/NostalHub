@@ -735,7 +735,7 @@
     // Horas, "jugado hace…" y logros de la ficha (también cuando llegan datos nuevos con la ficha abierta)
     function paintDetailInfo(g) {
       $('.xb-detail-meta').textContent = [
-        { steam: 'Steam', exe: 'Programa', shortcut: 'Acceso directo', url: 'Launcher', minecraft: 'Launcher de Minecraft' }[g.type] || '',
+        { steam: 'Steam', exe: 'Programa', shortcut: 'Acceso directo', url: 'Launcher', minecraft: 'Launcher de Minecraft', emulator: 'Emulador' }[g.type] || '',
         hours(g.playtimeMin),
         g.lastPlayed ? `Jugado ${ago(g.lastPlayed)}` : '',
       ]
@@ -888,7 +888,7 @@
     // ---------- La Guía (ajustes) ----------
     // Las opciones vienen de main.js (las mismas del menú de la bandeja); aquí se dibujan como la Guía.
     const U = window.NostalHubUtil;
-    const TAB_ICONS = { general: 'gear', games: 'pad', screen: 'screen', sound: 'speaker', accounts: 'person', files: 'folder' };
+    const TAB_ICONS = { general: 'gear', games: 'pad', emulators: 'pad', screen: 'screen', sound: 'speaker', accounts: 'person', files: 'folder' };
     let gModel = [];
     let gTab = 0;
     let gSel = 0;

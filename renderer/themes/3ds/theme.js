@@ -449,7 +449,7 @@
         bg.classList.toggle('cover', !g.heroIsReal && !!g.cover);
         fg.innerHTML = g.logo ? `<img src="${esc(g.logo)}" alt="" draggable="false" />` : `<div class="t-ban-name">${esc(g.name)}</div>`;
         label.querySelector('b').textContent = g.name;
-        label.querySelector('small').textContent = [U.hours(g.playtimeMin), g.lastPlayed ? `Jugado ${U.ago(g.lastPlayed)}` : ''].filter(Boolean).join(' · ') || { steam: 'Steam', exe: 'Programa', shortcut: 'Acceso directo', url: 'Otro launcher', minecraft: 'Launcher de Minecraft' }[g.type] || '';
+        label.querySelector('small').textContent = [U.hours(g.playtimeMin), g.lastPlayed ? `Jugado ${U.ago(g.lastPlayed)}` : ''].filter(Boolean).join(' · ') || { steam: 'Steam', exe: 'Programa', shortcut: 'Acceso directo', url: 'Otro launcher', minecraft: 'Launcher de Minecraft', emulator: 'Emulador' }[g.type] || '';
       } else {
         bg.style.backgroundImage = '';
         bg.classList.remove('cover');
@@ -606,7 +606,7 @@
         { id: 'theme', title: 'Tema', icon: 'brush', desc: 'El fondo de las dos pantallas. Solo cambia esta consola.' },
         { id: 'wall', title: 'Fondo personalizado', icon: 'image', desc: 'Una imagen tuya o el arte de un juego en las dos pantallas.' },
         { id: 'shell', title: 'Color de la consola', icon: 'image', desc: 'El color de la carcasa de la 3DS.' },
-        ...menuModel.map((c) => ({ id: c.id, title: c.title, icon: { general: 'gear', games: 'note', screen: 'image', sound: 'music', accounts: 'person', files: 'note' }[c.id] || 'gear', desc: c.items.map((x) => x.label).slice(0, 3).join(', ') })),
+        ...menuModel.map((c) => ({ id: c.id, title: c.title, icon: { general: 'gear', games: 'note', emulators: 'swap', screen: 'image', sound: 'music', accounts: 'person', files: 'note' }[c.id] || 'gear', desc: c.items.map((x) => x.label).slice(0, 3).join(', ') })),
       ];
       const self = {
         icon: 'gear',

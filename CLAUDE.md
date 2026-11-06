@@ -75,12 +75,15 @@ src/minecraft.js        Minecraft Java (launcher oficial): findLauncher y progre
                         .minecraft\logs\latest.log ("[CHAT] <nombre> has made the advancement [X]", solo inglés)
 src/minecraft-icons.js  Ícono de cada progreso desde el .jar del juego (advancement JSON + en_us.json + textura
                         16×16 agrandada sin suavizar), guardado en cache\minecraft\<versión>\
+src/emulators.js        Emuladores (EMULATORS: por ahora PCSX2): dónde está, sus carpetas, cómo abrir un juego
 src/launcher.js         Abre los juegos y avisa cuando terminan (Minecraft: abre el launcher y vigila javaw.exe)
 src/media.js            Descarga el arte de Steam y busca el arte propio (CUSTOM_FILES)
 src/spotify.js          Música por los controles multimedia de Windows (SMTC) + datos de la Web API
 src/spotify-smtc.ps1    Ayudante de PowerShell para SMTC (Spotify / Apple Music / YouTube Music / auto)
 src/spotify-web.js      Spotify Web API: OAuth PKCE (http://127.0.0.1:8957/callback), cola, me gusta, etc.
 src/discord.js          Canal de voz de Discord por RPC local (Grupo)
+src/discord-presence.js Presencia en Discord (SET_ACTIVITY) con la app pública DISCORD_PRESENCE_ID de main.js
+src/playlog.js          Contador de horas: sesiones en estadisticas.db (node:sqlite) y resumen por período
 renderer/index.html     Carga todo (un <script> y un <link> por tema)
 renderer/shell.js/.css  Selector de consolas, escalado del escenario, sonidos, barra de ventana, F3
 renderer/consoles.js    Lista de consolas (id, empresa, nombre, año, colores)
@@ -90,6 +93,7 @@ renderer/gamepad.js     Control (PS5/Xbox): convierte botones en las teclas de c
                         El DualSense se lee además directo por WebHID (parseDualSense): con Steam abierto queda en
                         modo 0x31 y la Gamepad API no lo ve. Permiso HID solo para Sony en main.js
 renderer/setup.js       Ventana "Conectar Steam / Discord / Spotify"
+renderer/stats.js/.css  Resumen de horas: pantalla sin consola (botón del selector, tecla R o Ajustes → General)
 renderer/game-editor.js Editor de imágenes por juego (clic derecho o tecla I): BY_CONSOLE, SLOTS
 renderer/console-model.js, models/   Modelos 3D (Three.js) del selector y de los íconos de la PS2
 renderer/overlay/       Avisos de logro de cada consola (STYLES, SYNTH, copa del trofeo)
@@ -133,7 +137,7 @@ renderer/themes/<id>/   theme.js + theme.css de cada consola
 
 ## Datos del usuario (`%APPDATA%\NostalHub`)
 
-`config.json`, `consolas\<id>\` (icono, logo, fondo, modelo, música, sonidos, intro, `logro.wav`, `fondos\`),
+`config.json`, `estadisticas.db` (horas), `consolas\<id>\` (icono, logo, fondo, modelo, música, sonidos, intro, `logro.wav`, `fondos\`),
 `personalizar\<juego>\` (canal, fondo, logo, video, modelo, carátula, burbuja, cuadrado, icono, música,
 descripción), `cache\` (arte descargado, `spotify.log`, `discord.log`) y las claves privadas de arriba.
 
@@ -163,7 +167,11 @@ descripción), `cache\` (arte descargado, `spotify.log`, `discord.log`) y las cl
 - Spotify Web API (2026): la app del dueño necesita **Premium** y hay máximo 5 usuarios por app; "me gusta" usa
   `GET /me/library/contains` y `PUT/DELETE /me/library`. El aleatorio inteligente solo se puede leer.
 - La portada de la canción solo se busca por internet si coincide la **misma canción**; si no, mejor ninguna.
-- Discord solo funciona para la cuenta dueña de la aplicación (y sus testers).
+- El Grupo de Discord solo funciona para la cuenta dueña de la aplicación (y sus testers). La presencia va en otra
+  conexión, con una aplicación pública cuyo ID va en el código (el ID no es secreto; el Client Secret sí).
+- Horas: `trackTick` de `main.js` revisa cada 15 s qué juego está abierto (`RunningAppID` de Steam o
+  `launcher.playingId()`), le avisa a `PlayLog` y actualiza la presencia. Un salto de más de 3 min entre revisiones es
+  PC suspendido: corta la sesión.
 - Battle.net no tiene API pública de amigos: no se puede. YouTube Music tampoco tiene API oficial: se queda con SMTC.
 - Para probar la app con otra carpeta de datos **no sirve** cambiar `APPDATA`: Electron pide la carpeta a Windows
   directo y usa el `config.json` real de Cristóbal (solo `src/minecraft.js` sí lee `APPDATA`).
@@ -186,6 +194,9 @@ descripción), `cache\` (arte descargado, `spotify.log`, `discord.log`) y las cl
 - El **Grupo** de Discord nunca va mezclado con la lista de amigos: siempre su propia opción (PS3: fila "Grupo";
   3DS: atajo con audífonos).
 - Orden de juegos por consola; **A mano** solo en Wii, PS Vita y 3DS (como las reales). PS3: △ → Ordenar.
+- La presencia en Discord viene **apagada**: es pública y cada uno decide. Las horas cuentan desde su implementación.
+- Emuladores: los juegos salen en todas las consolas, como los de Steam. NostalHub nunca trae emuladores, juegos ni
+  BIOS. RetroAchievements queda para más adelante.
 - Amigos: sin aviso de "amigo conectado" (ninguna consola lo tenía). Siempre **Ver perfil** y **Enviar mensaje**,
   y fotos con **esquinas redondeadas**.
 - Al elegir una canción de la cola se **salta hasta ella**.

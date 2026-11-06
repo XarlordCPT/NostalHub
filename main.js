@@ -10,6 +10,9 @@ const { Config, detectType } = require('./src/config');
 const steam = require('./src/steam');
 const media = require('./src/media');
 const { Launcher } = require('./src/launcher');
+const { PlayLog } = require('./src/playlog');
+const emulators = require('./src/emulators');
+const { DiscordPresence } = require('./src/discord-presence');
 const { SteamWeb } = require('./src/steamweb');
 const { AchievementWatcher, gamerscore, trophyTier } = require('./src/achievements');
 const minecraft = require('./src/minecraft');
@@ -125,6 +128,65 @@ const discord = new DiscordVoice({
     } catch {}
   },
 });
+
+// ---------- Contador de horas y presencia en Discord ----------
+const DISCORD_PRESENCE_ID = '1556550846261493780'; // ID (público) de la aplicación "NostalHub" del portal de Discord
+const CONSOLE_NAMES = { wii: 'Wii', ps2: 'PS2', x360: 'Xbox 360', ps3: 'PS3', ps4: 'PS4', vita: 'PS Vita', switch: 'Switch', '3ds': '3DS' };
+const TRACK_EVERY_MS = 15000;
+const playLog = new PlayLog(path.join(DATA_DIR, 'estadisticas.db'), (m) => console.warn(m));
+const presence = new DiscordPresence({ clientId: DISCORD_PRESENCE_ID, log: (m) => console.warn(m) });
+let trackTimer = null;
+let tracking = false;
+
+// El juego abierto ahora: el de Steam (aunque se haya abierto por fuera) o el que abrió NostalHub
+async function playingGame() {
+  const appId = await steam.getRunningAppId();
+  const onSteam = appId && config.games.find((g) => g.type === 'steam' && Number(g.appId) === appId);
+  if (onSteam) return onSteam;
+  const id = launcher.playingId();
+  return id ? config.findGame(id) : null;
+}
+function presenceActivity(game) {
+  const clip = (s) => String(s).slice(0, 128);
+  const sum = steamWeb.summary();
+  if (game) {
+    const per = game.appId && sum.perGame[game.appId];
+    const emu = game.type === 'emulator' && emulators.EMULATORS[game.emulator];
+    return {
+      details: clip(game.name.length >= 2 ? game.name : `Juego ${game.name}`),
+      ...(per && per.total ? { state: `${per.done} de ${per.total} logros` } : emu ? { state: `Emulador de ${emu.system}` } : {}),
+      timestamps: { start: Math.round(playLog.cur ? playLog.cur.startedAt / 1000 : Date.now() / 1000) },
+      assets:
+        game.type === 'steam'
+          ? { large_image: `https://cdn.akamai.steamstatic.com/steam/apps/${game.appId}/header.jpg`, large_text: clip(game.name), small_image: 'nostalhub', small_text: 'NostalHub' }
+          : emu && game.media && game.media.cover
+            ? { large_image: media.emulatorArtUrl(game.rom, emu.artRepo, 'Named_Boxarts'), large_text: clip(game.name), small_image: 'nostalhub', small_text: 'NostalHub' }
+            : { large_image: 'nostalhub', large_text: 'NostalHub' },
+    };
+  }
+  const name = CONSOLE_NAMES[config.data.lastConsole];
+  return {
+    details: name ? `En el menú de ${name}` : 'En el selector de consolas',
+    assets: { large_image: 'nostalhub', large_text: 'NostalHub' },
+  };
+}
+async function trackTick() {
+  if (tracking) return;
+  tracking = true;
+  try {
+    const game = await playingGame();
+    playLog.tick(game);
+    presence.set(config.data.discordPresence && DISCORD_PRESENCE_ID ? presenceActivity(game) : null);
+  } catch (e) {
+    console.warn('[horas]', e.message);
+  }
+  tracking = false;
+}
+function openStats() {
+  showWindow();
+  send('shell:stats');
+}
+
 // En la app instalada, MANUAL.md queda afuera del archivo comprimido (app.asar.unpacked) para poder abrirlo
 const MANUAL_FILE = path.join(__dirname, 'MANUAL.md').replace(`app.asar${path.sep}`, `app.asar.unpacked${path.sep}`);
 
@@ -601,6 +663,70 @@ async function addGameFromFile() {
   send('toast', `Se agregó ${name}`);
 }
 
+// ---------- Juegos de emulador ----------
+// Agrega los juegos nuevos y esconde los que ya no están. Devuelve cuántos agregó (null si falta el emulador).
+function syncEmulatorGames(id) {
+  const emu = emulators.EMULATORS[id];
+  const saved = (config.data.emulators || {})[id] || {};
+  const exe = saved.exe && fs.existsSync(saved.exe) ? saved.exe : emu.exe();
+  if (!exe) return null;
+  const folders = [...emu.folders(exe, app.getPath('documents')), ...(saved.folders || []).map((dir) => ({ dir, recursive: true }))];
+  const files = emulators.scanFolders(folders, emu.exts);
+  const ids = new Set();
+  let added = 0;
+  let changed = false;
+  for (const file of files) {
+    const gameId = emulators.gameId(emu.idPrefix, file);
+    if (ids.has(gameId)) continue; // el mismo juego en dos formatos
+    ids.add(gameId);
+    const fields = { type: 'emulator', emulator: id, rom: file, target: exe, args: emu.args(file) };
+    const g = config.games.find((x) => x.id === gameId);
+    if (!g) {
+      config.games.push({ id: gameId, name: emulators.gameName(file), hidden: false, media: {}, custom: {}, mediaCheckedAt: 0, ...fields });
+      added++;
+      changed = true;
+    } else if (g.uninstalled || g.rom !== file || g.target !== exe || JSON.stringify(g.args) !== JSON.stringify(fields.args)) {
+      Object.assign(g, fields, { uninstalled: undefined });
+      changed = true;
+    }
+  }
+  for (const g of config.games) {
+    if (g.type === 'emulator' && g.emulator === id && !ids.has(g.id) && !g.uninstalled) {
+      g.uninstalled = true;
+      changed = true;
+    }
+  }
+  if (changed) {
+    config.save();
+    ensureCustomFolders();
+    pushGamesSoon();
+    refreshMedia();
+  }
+  return { added, total: ids.size, folders: folders.length };
+}
+// Botón de Ajustes: la primera vez recuerda el emulador; si no lo encuentra o no tiene carpetas, pregunta
+async function addEmulatorGames(id) {
+  const emu = emulators.EMULATORS[id];
+  const saved = { ...((config.data.emulators || {})[id] || {}) };
+  if (!(saved.exe && fs.existsSync(saved.exe)) && !emu.exe()) {
+    const res = await dialog.showOpenDialog(win || undefined, { title: `¿Dónde está ${emu.name}?`, properties: ['openFile'], filters: [{ name: emu.name, extensions: ['exe'] }] });
+    if (res.canceled || !res.filePaths.length) return;
+    saved.exe = res.filePaths[0];
+  }
+  const exe = saved.exe && fs.existsSync(saved.exe) ? saved.exe : emu.exe();
+  if (!saved.folders && !emu.folders(exe, app.getPath('documents')).length) {
+    const res = await dialog.showOpenDialog(win || undefined, { title: `Carpeta con tus juegos de ${emu.system}`, properties: ['openDirectory'] });
+    if (res.canceled || !res.filePaths.length) return;
+    saved.folders = [res.filePaths[0]];
+  }
+  config.data.emulators = { ...(config.data.emulators || {}), [id]: saved };
+  config.save();
+  const r = syncEmulatorGames(id);
+  if (!r) return send('toast', `No se encontró ${emu.name}`);
+  if (!r.total) return send('toast', `No hay juegos de ${emu.system} en esas carpetas`);
+  send('toast', r.added ? `Se agregaron ${r.added} juego${r.added === 1 ? '' : 's'} de ${emu.system}` : `No hay juegos nuevos de ${emu.system}`);
+}
+
 // Detecta solo los juegos que instalas (o agregas a Steam) mientras NostalHub está abierta
 let steamWatchers = [];
 let steamWatchTimer = null;
@@ -637,9 +763,10 @@ async function refreshMedia({ force = false } = {}) {
   mediaRunning = true;
   try {
     for (const g of config.games) {
-      if (g.type !== 'steam' || g.uninstalled) continue;
+      const emu = g.type === 'emulator' && emulators.EMULATORS[g.emulator];
+      if ((g.type !== 'steam' && !emu) || g.uninstalled) continue;
       const before = JSON.stringify(g);
-      const changed = await media.ensureSteamMedia(g, MEDIA_DIR, { force });
+      const changed = emu ? await media.ensureEmulatorMedia(g, emu.artRepo, MEDIA_DIR, { force }) : await media.ensureSteamMedia(g, MEDIA_DIR, { force });
       if (JSON.stringify(g) !== before) config.save(); // solo si cambió algo (antes se guardaba una vez por juego)
       if (changed) pushGamesSoon();
     }
@@ -818,6 +945,9 @@ app.on('before-quit', () => {
   globalShortcut.unregisterAll();
   achWatcher.stop();
   mcWatcher.stop();
+  clearInterval(trackTimer);
+  playLog.dispose();
+  presence.dispose();
   overlay.destroy();
   isQuitting = true;
   spotify.dispose();
@@ -881,6 +1011,7 @@ function menuSections() {
           closes: true,
           run: () => (showWindow(), send('shell:selector')),
         },
+        { id: 'open-stats', type: 'action', label: 'Resumen de horas', desc: 'Cuánto has jugado y a qué, por semana, mes y año.', closes: true, run: openStats },
         { id: 'reload', type: 'action', label: 'Recargar', desc: 'Vuelve a cargar la pantalla, por si algo se ve raro.', closes: true, run: () => win && win.reload() },
         { id: 'open-manual', type: 'action', label: 'Abrir manual', desc: 'Dónde va cada archivo que pones a mano.', run: () => shell.openPath(MANUAL_FILE) },
         { id: 'quit', type: 'action', label: 'Salir de NostalHub', desc: 'Cierra la app. Vuelve a abrirla desde su acceso directo, o se abre sola al prender el PC.', confirm: true, run: () => app.quit() },
@@ -1096,12 +1227,38 @@ function menuSections() {
       ],
     },
     {
+      id: 'emulators',
+      title: 'Implementación de Emuladores',
+      short: 'Emuladores', // para las consolas donde no cabe el nombre completo
+      items: [
+        {
+          id: 'add-pcsx2',
+          type: 'action',
+          label: 'Buscar juegos de PS2 (PCSX2)',
+          desc: 'Agrega los juegos nuevos de tus carpetas de PCSX2. Al elegir uno, se abre directo en el emulador.',
+          run: () => addEmulatorGames('pcsx2'),
+        },
+      ],
+    },
+    {
       id: 'accounts',
       title: 'Cuentas',
       items: [
         { id: 'setup-steam', type: 'action', label: 'Conectar Steam (logros)', desc: 'Pega tu clave de Steam aquí mismo para ver tus logros, tu nombre y tu foto.', closes: true, run: () => openSetup('steam') },
         { id: 'setup-spotify', type: 'action', label: 'Conectar Spotify (debes tener Premium)', desc: 'Para ver la cola, el avance de la canción, aleatorio, repetir, me gusta, volumen y dispositivos.', closes: true, run: () => openSetup('spotify') },
         { id: 'setup-discord', type: 'action', label: 'Conectar Discord (grupo)', desc: 'Conecta tu Discord para ver tu canal de voz y quiénes están contigo.', closes: true, run: () => openSetup('discord') },
+        ...(DISCORD_PRESENCE_ID
+          ? [
+              {
+                id: 'discordPresence',
+                type: 'toggle',
+                label: 'Mostrar en Discord lo que juegas',
+                desc: 'Tu estado dice que usas NostalHub, con el juego y tus logros. Lo ve cualquiera que abra tu perfil. Necesita Discord abierto.',
+                value: !!config.data.discordPresence,
+                set: (v) => (setOption('discordPresence', !!v), trackTick()),
+              },
+            ]
+          : []),
       ],
     },
     {
@@ -1150,6 +1307,7 @@ function menuModel() {
   return menuSections().map((sec) => ({
     id: sec.id,
     title: sec.title,
+    short: sec.short,
     items: sec.items
       .filter((it) => !it.trayOnly)
       .map(({ run, set, trayOnly, ...it }) => it),
@@ -1267,6 +1425,14 @@ ipcMain.handle('game:launch', async (_e, id) => {
 });
 
 ipcMain.handle('game:dismiss', () => launcher.stopWatching());
+
+// Resumen de horas: el período pedido, con el arte de cada juego
+ipcMain.handle('stats:get', (_e, range, offset) => {
+  const res = playLog.stats(String(range || ''), offset);
+  if (!res.ok) return res;
+  const art = new Map(gamesView().map((g) => [g.id, g.header || g.hero || (g.tileIsVideo ? null : g.tile) || g.cover || null]));
+  return { ...res, top: res.top.map((g) => ({ ...g, art: art.get(g.id) || null })) };
+});
 
 ipcMain.handle('app:quit', () => app.quit());
 
@@ -1682,6 +1848,10 @@ app.whenReady().then(async () => {
   await refreshSteamUser();
   refreshAchievementTotals();
   setInterval(() => (refreshSteamUser(), refreshAchievementTotals()), 2 * 60 * 1000);
+  trackTick();
+  trackTimer = setInterval(trackTick, TRACK_EVERY_MS);
+  // Juegos nuevos en las carpetas de los emuladores que ya agregaste
+  Object.keys(config.data.emulators || {}).forEach((id) => emulators.EMULATORS[id] && syncEmulatorGames(id));
   steamWeb.ensureKeyFile();
   fs.watchFile(steamWeb.keyFile, { interval: 2000 }, () => {
     send('steam:changed');

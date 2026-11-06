@@ -31,7 +31,7 @@
     right: 'ArrowRight',
   };
   const BY_CONSOLE = {
-    selector: { options: 'o' }, // ordenar las consolas
+    selector: { options: 'o', create: 'r' }, // ordenar las consolas y el resumen de horas
     x360: { l1: 'q', r1: 'e', options: 'g' }, // pestañas y la Guía
     vita: { l1: 'q', r1: 'e', options: 'p' }, // tarjetas y menú rápido
     ps4: { options: 'p' }, // menú rápido
@@ -44,8 +44,8 @@
   const REPEAT_EVERY = 110;
 
   // Lo que muestran las pistas cuando se usa el control
-  const PAD_LABEL = { Enter: '✕', Esc: '○', Escape: '○', O: '△', o: '△', I: '□', 'Q / E': 'L1 / R1', G: 'Options', P: 'Options', C: 'Options', S: 'Create', A: 'Create', '+': '△' };
-  const HINT_KEYS = '.ps-key, .xb-key, .p4-key, .p3-hints kbd, .sw-hint > b, .sw-fr-hint > b, #sel-sort kbd, .sel-move-hint kbd';
+  const PAD_LABEL = { Enter: '✕', Esc: '○', Escape: '○', O: '△', o: '△', I: '□', 'Q / E': 'L1 / R1', G: 'Options', P: 'Options', C: 'Options', S: 'Create', A: 'Create', R: 'Create', '+': '△' };
+  const HINT_KEYS = '.ps-key, .xb-key, .p4-key, .p3-hints kbd, .sw-hint > b, .sw-fr-hint > b, .st-key, #sel-sort kbd, #sel-stats kbd, .sel-move-hint kbd';
 
   const consoleId = () => document.body.dataset.console || 'selector';
   const keyFor = (name) => {

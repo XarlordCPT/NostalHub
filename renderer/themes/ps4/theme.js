@@ -545,7 +545,7 @@
       paintGameTrophies(g);
     }
     function typeLabel(g) {
-      return { steam: 'Steam', exe: 'Programa', shortcut: 'Acceso directo', url: 'Otro launcher', minecraft: 'Launcher de Minecraft' }[g.type] || '';
+      return { steam: 'Steam', exe: 'Programa', shortcut: 'Acceso directo', url: 'Otro launcher', minecraft: 'Launcher de Minecraft', emulator: 'Emulador' }[g.type] || '';
     }
     async function paintGameTrophies(g) {
       const body = $('.p4g-tp-body');
@@ -593,8 +593,8 @@
     // ---------- Biblioteca ----------
     const LIB_CATS = [
       { id: 'all', label: 'Todos', icon: 'grid', filter: () => true },
-      { id: 'steam', label: 'Juegos', icon: 'pad', filter: (g) => g.type === 'steam' || g.type === 'minecraft' },
-      { id: 'apps', label: 'Aplicaciones', icon: 'apps', filter: (g) => g.type !== 'steam' && g.type !== 'minecraft' },
+      { id: 'steam', label: 'Juegos', icon: 'pad', filter: (g) => ['steam', 'minecraft', 'emulator'].includes(g.type) },
+      { id: 'apps', label: 'Aplicaciones', icon: 'apps', filter: (g) => !['steam', 'minecraft', 'emulator'].includes(g.type) },
       { id: 'recent', label: 'Jugados recientemente', icon: 'clock', filter: (g) => !!g.lastPlayed, mine: true },
       // Solo los que de verdad tienen logros (Steam revisa cada juego en segundo plano; los sin logros quedan en 0)
       { id: 'troph', label: 'Con trofeos', icon: 'trophy', filter: (g) => !!(trophiesOf(g) && trophiesOf(g).total > 0), mine: true },
@@ -1113,7 +1113,7 @@
     let setLevel = 'cats'; // cats | items
     let setCat = 0;
     let setSel = 0;
-    const CAT_ICONS = { themes: 'image', general: 'gear', games: 'pad', screen: 'screen', sound: 'speaker', accounts: 'person', files: 'folder' };
+    const CAT_ICONS = { themes: 'image', general: 'gear', games: 'pad', emulators: 'pad', screen: 'screen', sound: 'speaker', accounts: 'person', files: 'folder' };
     async function openSettings() {
       showScreen('settings');
       setArt(null);

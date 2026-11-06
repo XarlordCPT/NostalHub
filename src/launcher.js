@@ -42,8 +42,10 @@ class Launcher {
         await shell.openExternal(game.target);
         return { ok: true, tracking: false };
 
+      case 'emulator': // el emulador con el juego: se cierra junto con el juego
       case 'exe': {
         if (!fs.existsSync(game.target)) return { ok: false, error: `No se encontró ${path.basename(game.target)}` };
+        if (game.rom && !fs.existsSync(game.rom)) return { ok: false, error: `No se encontró ${path.basename(game.rom)}` };
         const child = spawn(game.target, game.args || [], {
           cwd: game.startDir || path.dirname(game.target),
           detached: true,
@@ -53,7 +55,7 @@ class Launcher {
         child.on('error', () => this.end(game.id, 'error'));
         child.on('exit', () => this.end(game.id, 'exited'));
         child.unref();
-        this.session = { gameId: game.id, child };
+        this.session = { gameId: game.id, child, seen: true };
         return { ok: true, tracking: true };
       }
 
@@ -119,11 +121,16 @@ class Launcher {
       const running = await isRunning(exeName);
       checking = false;
       if (!this.session || this.session.timer !== timer) return;
-      if (running) seenRunning = true;
+      if (running) seenRunning = this.session.seen = true;
       else if (running === false && seenRunning) this.end(game.id, 'exited');
       else if (!seenRunning && Date.now() - this.startedAt > startTimeout) this.stopWatching();
     }, POLL_MS);
     this.session = { gameId: game.id, timer };
+  }
+
+  // El juego que no es de Steam abierto ahora (los de Steam se ven directo en Steam, aunque se abran por fuera)
+  playingId() {
+    return this.session && this.session.seen ? this.session.gameId : null;
   }
 
   end(gameId, reason) {

@@ -99,7 +99,7 @@ function normalizeGame(g, i) {
   return {
     id: g.id || (appId ? `steam-${appId}` : `juego-${slug || i}`),
     name,
-    type, // steam | shortcut | exe | url
+    type, // steam | shortcut | exe | url | minecraft | emulator
     appId: appId ? String(appId) : undefined,
     target: g.target || undefined, // ruta del .lnk/.exe o URL
     args: g.args || [],
@@ -111,6 +111,9 @@ function normalizeGame(g, i) {
     // Juegos que no son de Steam pero que agregaste a Steam: su número en Steam y la carpeta donde se abre
     steamShortcut: g.steamShortcut || undefined,
     startDir: g.startDir || undefined,
+    // Juego de emulador: cuál y el archivo del juego
+    emulator: g.emulator || undefined,
+    rom: g.rom || undefined,
   };
 }
 

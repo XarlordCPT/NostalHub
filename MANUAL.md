@@ -26,6 +26,7 @@ Para abrirla: pega esa ruta en la barra del Explorador de Windows, o usa **Ajust
 ├── discord.txt                ← tu aplicación de Discord (el Grupo)                  ¡no la compartas!
 ├── spotify.json               ← la conexión con Spotify (cola, me gusta…)            ¡no la compartas!
 ├── config.json                ← lista de juegos y opciones
+├── estadisticas.db            ← tus horas de juego (el Resumen)
 ├── cache\                     ← cosas que la app descarga sola (y los registros spotify.log y discord.log)
 ├── consolas\                  ← una carpeta por consola del selector
 │   ├── wii\  ps2\  x360\  ps3\  ps4\  vita\  switch\  3ds\
@@ -337,6 +338,21 @@ progresos que agregan los mods salen con la copa.
 - **Ocultar un juego:** agrégale `"hidden": true`. No lo borres, porque los de Steam se vuelven a importar.
 - **Cambiar el orden:** cada consola tiene su opción para ordenar (sección 8, *Ordenar los juegos*).
 
+### Juegos de emulador (PS2 con PCSX2)
+
+NostalHub no trae emuladores, juegos ni BIOS: abre lo que ya tienes. PCSX2 tiene que estar instalado y funcionando.
+
+1. **Ajustes → Implementación de Emuladores → Buscar juegos de PS2 (PCSX2)**. Usa las carpetas que configuraste en PCSX2; si no hay ninguna,
+   te pregunta dónde están tus juegos (`.iso`, `.chd`, `.cso`, `.zso`, `.gz`, `.cue` o `.mdf`).
+2. Los juegos aparecen en todas las consolas. Al elegir uno se abre directo en PCSX2, a pantalla completa, y al cerrarlo
+   vuelves al menú. Sus horas se cuentan en el Resumen. Sale en la pantalla donde dejaste la ventana de PCSX2: para
+   cambiarla, abre PCSX2 por su cuenta, déjalo en la otra pantalla y ciérralo.
+3. Si agregas otro juego a esas carpetas, aparece solo al abrir NostalHub, o al tiro apretando de nuevo ese botón. Los que
+   borres se esconden.
+
+La carátula y las imágenes se descargan por el **nombre del archivo**, así que funcionan mejor con nombres tipo
+`Guitar Hero (USA).iso`. Si alguna no aparece, ponla con clic derecho → Cambiar imágenes.
+
 ---
 
 ## 8. Ajustes y funciones de todas las consolas
@@ -356,9 +372,9 @@ Son las mismas opciones del menú del ícono junto al reloj, con el estilo de ca
 | Switch | Botón redondo **Ajustes** | Categorías a la izquierda y opciones a la derecha. Ahí está el **Tema** (claro u oscuro) |
 | 3DS | App **Configuración de la consola** (o la casita con el pincel, para el tema) | Tema de las pantallas, fondo personalizado, color de la carcasa y las opciones de NostalHub |
 
-Las secciones son: **General** (cambiar de consola, recargar, abrir este manual, salir), **Juegos** (buscar juegos
+Las secciones son: **General** (cambiar de consola, resumen de horas, recargar, abrir este manual, salir), **Juegos** (buscar juegos
 nuevos, agregar un juego, volver a descargar el arte, título encima de cada canal de la Wii, tráileres de Steam),
-**Pantalla**, **Sonido**, **Cuentas** (Steam, Spotify y Discord) y **Archivos** (las carpetas, `config.json` y las
+**Pantalla**, **Sonido**, **Implementación de Emuladores**, **Cuentas** (Steam, Spotify y Discord) y **Archivos** (las carpetas, `config.json` y las
 herramientas de desarrollo). "Salir de NostalHub" siempre pregunta antes de cerrar.
 
 ### Ordenar los juegos
@@ -388,6 +404,25 @@ elígelas en la consola. También puedes usar el **arte de uno de tus juegos** d
 | PS3 | Ajustes → **Ajustes de tema** → **Fondo**. Con un fondo propio aparece **Ola encima del fondo** (activar o apagar la ola). *Carpeta de fondos* la abre |
 | PS4 | Ajustes → **Temas** → **Fondo** (y *Abrir carpeta de fondos*) |
 | 3DS | Configuración de la consola → **Fondo personalizado**: la imagen va en las dos pantallas (abajo, más suave para que se vean los íconos) |
+
+### Resumen de horas
+
+Una pantalla que no es de ninguna consola: cuánto has jugado y a qué, con el total, los juegos más jugados y un gráfico
+por día o por mes. Se abre con el botón **Resumen** del selector (tecla **R**, **Create** en el control) o en **Ajustes →
+General → Resumen de horas**.
+
+- **← →** cambia entre Semana, Mes, Año y Todo. **Q / E** (L1 / R1 en el control) va al período anterior o siguiente.
+- **Cuenta desde esta versión**, y se guarda en `estadisticas.db`. Al desinstalar NostalHub no se borra.
+- Tiene que estar NostalHub abierta. Los juegos de Steam se cuentan aunque los abras desde Steam; los demás, cuando los
+  abres desde NostalHub y se puede saber cuándo se cierran (no los que se abren por un enlace de otro launcher).
+- Mide el tiempo con el juego abierto, aunque no lo estés usando. Las sesiones de menos de 30 segundos no cuentan.
+
+### Mostrar en Discord lo que juegas
+
+En **Ajustes → Cuentas → Mostrar en Discord lo que juegas**. Viene apagado. Tu estado de Discord dice que usas NostalHub,
+con el juego, cuánto llevas y tus logros de ese juego; en el menú, en qué consola estás. Lo ve
+cualquiera que abra tu perfil. Necesita la **app de escritorio de Discord abierta** y no hay que conectar nada: es aparte
+del Grupo. Si Discord también detecta el juego por su cuenta, puede que se vean los dos.
 
 ### Pantalla completa o ventana
 
@@ -592,7 +627,7 @@ mientras usas el control en otra cosa o en un juego.
 | L1 / R1 | Pestaña, página o tarjeta anterior / siguiente (Xbox 360 y PS Vita: Q / E) |
 | L2 / R2 | Subir / bajar rápido (RePág / AvPág) |
 | Options | Menú de la consola: Guía (Xbox 360), menú rápido (PS4 y PS Vita), Configuración (PS2), ordenar (selector) |
-| Create | Ordenar (tecla S); en la Wii y la PS2, Amigos |
+| Create | Ordenar (tecla S); en la Wii y la PS2, Amigos; en el selector, el Resumen de horas |
 
 En la Wii, la PS2, la PS Vita, la 3DS, la Xbox 360 (Mis juegos) y el inicio de la PS4, **△** abre el orden de los
 juegos.
@@ -612,7 +647,7 @@ juegos.
 
 | Dónde | Teclas |
 |---|---|
-| Selector de consolas | ↑ ↓ elegir · Enter entrar · **O** ordenar las consolas · **Esc** pregunta si cerrar la app (Esc otra vez = cerrar) |
+| Selector de consolas | ↑ ↓ elegir · Enter entrar · **O** ordenar las consolas · **R** resumen de horas · **Esc** pregunta si cerrar la app (Esc otra vez = cerrar) |
 | Cualquier consola | **Clic derecho** sobre un juego, o **I** con el juego marcado: cambiar imágenes y descripción · **F3** FPS · **Ctrl + Alt + Shift + L** logro de prueba |
 | Wii | Flechas elegir canal (↓ a los botones de abajo) · RePág / AvPág páginas · ← → cambiar de canal (dentro de un canal) · Enter abrir / iniciar · ↓ logros (en el canal) · **A** amigos · **O** ordenar · Esc volver (en el menú: selector) |
 | PS2 | Flechas moverse · Enter elegir · **A** amigos · **C** configuración · **O** ordenar · Esc volver (en la Memory Card: selector) |

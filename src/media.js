@@ -101,6 +101,29 @@ function fileOk(p) {
   return !!p && fs.existsSync(p);
 }
 
+// Arte de un juego de emulador, por el nombre de su archivo (libretro-thumbnails; kind: Named_Boxarts, Named_Snaps…)
+function emulatorArtUrl(rom, repo, kind) {
+  const name = path.basename(rom, path.extname(rom)).replace(/[&*/:`<>?\\|"]/g, '_'); // así nombran los archivos
+  return `https://raw.githubusercontent.com/libretro-thumbnails/${repo}/master/${kind}/${encodeURIComponent(name)}.png`;
+}
+
+// Rellena game.media para un juego de emulador. Devuelve true si cambió algo.
+async function ensureEmulatorMedia(game, repo, mediaRoot, { force = false } = {}) {
+  const m = game.media || (game.media = {});
+  const SLOTS = { cover: 'Named_Boxarts', hero: 'Named_Snaps', tile: 'Named_Titles' };
+  const missing = Object.keys(SLOTS).filter((k) => force || !fileOk(m[k]));
+  if (!missing.length || (!force && game.mediaCheckedAt && Date.now() - game.mediaCheckedAt < RETRY_AFTER_MS)) return false;
+  const dir = path.join(mediaRoot, safeId(game.id));
+  fs.mkdirSync(dir, { recursive: true });
+  const before = JSON.stringify(m);
+  for (const k of missing) {
+    const file = await downloadImage(emulatorArtUrl(game.rom, repo, SLOTS[k]), path.join(dir, k));
+    if (file) m[k] = file;
+  }
+  game.mediaCheckedAt = Date.now();
+  return JSON.stringify(m) !== before;
+}
+
 // Rellena game.media para un juego de Steam. Devuelve true si cambió algo.
 async function ensureSteamMedia(game, mediaRoot, { force = false } = {}) {
   if (game.type !== 'steam' || !game.appId) return false;
@@ -208,4 +231,4 @@ function isVideoFile(p) {
   return !!p && VIDEO_EXT.includes(path.extname(p).toLowerCase());
 }
 
-module.exports = { ensureSteamMedia, findCustomFiles, safeId, isVideoFile, downloadImage, CUSTOM_FILES };
+module.exports = { ensureEmulatorMedia, emulatorArtUrl, ensureSteamMedia, findCustomFiles, safeId, isVideoFile, downloadImage, CUSTOM_FILES };

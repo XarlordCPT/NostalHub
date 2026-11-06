@@ -10,6 +10,7 @@
   <link rel="stylesheet" href="../node_modules/@fontsource/m-plus-rounded-1c/700.css" />
   <link rel="stylesheet" href="../node_modules/@fontsource/m-plus-rounded-1c/800.css" />
   <link rel="stylesheet" href="shell.css" />
+  <link rel="stylesheet" href="stats.css" />
   <!-- Rutas de la librería 3D. OJO: si cambias esta línea, hay que actualizar el 'sha256-...' de arriba -->
   <script type="importmap">{ "imports": { "three": "../node_modules/three/build/three.module.js", "three/addons/": "../node_modules/three/examples/jsm/" } }</script>
 </head>
@@ -24,6 +25,8 @@
       <button class="sel-arrow down" id="sel-down" aria-label="Consola siguiente"></button>
       <!-- Ordenar consolas (tecla O) -->
       <button class="sel-sort" id="sel-sort"><svg viewBox="0 0 24 24"><path d="M7 4v16M3 16l4 4 4-4M17 20V4M13 8l4-4 4 4"/></svg><span class="sel-sort-l"></span><kbd>O</kbd></button>
+      <!-- Resumen de horas (tecla R) -->
+      <button class="sel-sort sel-stats" id="sel-stats"><svg viewBox="0 0 24 24"><path d="M5 20V11M12 20V4M19 20v-6"/></svg><span>Resumen</span><kbd>R</kbd></button>
       <div class="sel-move-hint" hidden></div>
     </section>
 
@@ -77,6 +80,7 @@
   <script src="themes/ps3/theme.js"></script>
   <script src="themes/3ds/theme.js"></script>
   <script src="setup.js"></script>
+  <script src="stats.js"></script>
   <script src="game-editor.js"></script>
   <script src="shell.js"></script>
 </body>

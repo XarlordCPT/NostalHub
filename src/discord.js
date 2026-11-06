@@ -12,6 +12,33 @@ const crypto = require('crypto');
 
 const OP = { HANDSHAKE: 0, FRAME: 1, CLOSE: 2, PING: 3, PONG: 4 };
 
+// ---------- Conexión local con la app de Discord (también la usa la presencia) ----------
+function pipePath(i) {
+  if (process.platform === 'win32') return `\\\\?\\pipe\\discord-ipc-${i}`;
+  const dir = process.env.XDG_RUNTIME_DIR || process.env.TMPDIR || process.env.TMP || process.env.TEMP || '/tmp';
+  return path.join(dir, `discord-ipc-${i}`);
+}
+
+async function openPipe() {
+  for (let i = 0; i < 10; i++) {
+    const sock = await new Promise((resolve) => {
+      const s = net.createConnection(pipePath(i));
+      s.once('connect', () => resolve(s));
+      s.once('error', () => resolve(null));
+    });
+    if (sock) return sock;
+  }
+  return null;
+}
+
+function frame(op, obj) {
+  const json = Buffer.from(JSON.stringify(obj), 'utf8');
+  const head = Buffer.alloc(8);
+  head.writeInt32LE(op, 0);
+  head.writeInt32LE(json.length, 4);
+  return Buffer.concat([head, json]);
+}
+
 class DiscordVoice {
   constructor({ dataDir, onUpdate, log }) {
     this.keyFile = path.join(dataDir, 'discord.txt');
@@ -162,25 +189,6 @@ class DiscordVoice {
     if (this.watchers) this.retryTimer = setTimeout(() => this.connect(), ms);
   }
 
-  // ---------- Conexión local con la app de Discord ----------
-  pipePath(i) {
-    if (process.platform === 'win32') return `\\\\?\\pipe\\discord-ipc-${i}`;
-    const dir = process.env.XDG_RUNTIME_DIR || process.env.TMPDIR || process.env.TMP || process.env.TEMP || '/tmp';
-    return path.join(dir, `discord-ipc-${i}`);
-  }
-
-  async openPipe() {
-    for (let i = 0; i < 10; i++) {
-      const sock = await new Promise((resolve) => {
-        const s = net.createConnection(this.pipePath(i));
-        s.once('connect', () => resolve(s));
-        s.once('error', () => resolve(null));
-      });
-      if (sock) return sock;
-    }
-    return null;
-  }
-
   async connect() {
     if (this.connecting || this.sock) return;
     const keys = this.keys();
@@ -201,7 +209,7 @@ class DiscordVoice {
     }
     this.connecting = true;
     this.set({ status: 'connecting', message: '' });
-    const sock = await this.openPipe();
+    const sock = await openPipe();
     this.connecting = false;
     if (!sock) {
       this.set({ status: 'no-discord', channel: null, members: [] });
@@ -240,11 +248,7 @@ class DiscordVoice {
 
   write(op, obj) {
     if (!this.sock) return;
-    const json = Buffer.from(JSON.stringify(obj), 'utf8');
-    const head = Buffer.alloc(8);
-    head.writeInt32LE(op, 0);
-    head.writeInt32LE(json.length, 4);
-    this.sock.write(Buffer.concat([head, json]));
+    this.sock.write(frame(op, obj));
   }
 
   send(cmd, args = {}, evt) {
@@ -511,4 +515,4 @@ class DiscordVoice {
   }
 }
 
-module.exports = { DiscordVoice };
+module.exports = { DiscordVoice, OP, openPipe, frame };

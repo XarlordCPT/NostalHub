@@ -667,7 +667,7 @@
     }
 
     function typeLabel(g) {
-      return { steam: 'Steam', exe: 'Programa', shortcut: 'Acceso directo', url: 'Launcher', minecraft: 'Launcher de Minecraft' }[g.type] || '';
+      return { steam: 'Steam', exe: 'Programa', shortcut: 'Acceso directo', url: 'Launcher', minecraft: 'Launcher de Minecraft', emulator: 'Emulador' }[g.type] || '';
     }
 
     async function openDetail(i) {

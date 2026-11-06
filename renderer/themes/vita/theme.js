@@ -923,7 +923,7 @@
       return (g && g.appId && summary.perGame && summary.perGame[g.appId]) || null;
     }
     function typeLabel(g) {
-      return { steam: 'Steam', exe: 'Programa', shortcut: 'Acceso directo', url: 'Otro launcher', minecraft: 'Launcher de Minecraft' }[g.type] || '';
+      return { steam: 'Steam', exe: 'Programa', shortcut: 'Acceso directo', url: 'Otro launcher', minecraft: 'Launcher de Minecraft', emulator: 'Emulador' }[g.type] || '';
     }
     function paintGameCard(card, main) {
       const g = card.game;
@@ -1388,7 +1388,7 @@
     }
 
     // --- Ajustes ---
-    const CAT_ICONS = { general: 'gear', games: 'pad', screen: 'screen', sound: 'speaker', accounts: 'person', files: 'folder' };
+    const CAT_ICONS = { general: 'gear', games: 'pad', emulators: 'pad', screen: 'screen', sound: 'speaker', accounts: 'person', files: 'folder' };
     async function paintSettingsCard(card, main) {
       if (!menuModel.length) menuModel = (await call('getMenu')) || [];
       card.level = card.level || 'cats';

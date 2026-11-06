@@ -384,7 +384,7 @@
     let gRow = 0;
     let gToken = 0;
     function typeLabel(g) {
-      return { steam: 'Steam', exe: 'Programa', shortcut: 'Acceso directo', url: 'Otro launcher', minecraft: 'Launcher de Minecraft' }[g.type] || '';
+      return { steam: 'Steam', exe: 'Programa', shortcut: 'Acceso directo', url: 'Otro launcher', minecraft: 'Launcher de Minecraft', emulator: 'Emulador' }[g.type] || '';
     }
     function openGame(g, from = 'library', tab = 'info') {
       if (!g) return;
@@ -775,7 +775,7 @@
     }
 
     // --- Ajustes (con Tema claro/oscuro, solo de esta consola) ---
-    const CAT_ICONS = { theme: 'palette', general: 'gear', games: 'pad', screen: 'screen', sound: 'speaker', accounts: 'person', files: 'folder' };
+    const CAT_ICONS = { theme: 'palette', general: 'gear', games: 'pad', emulators: 'pad', screen: 'screen', sound: 'speaker', accounts: 'person', files: 'folder' };
     let setCat = 0;
     let setSel = 0;
     let setFocus = 'side';
@@ -796,7 +796,7 @@
       const cats = setCats();
       setCat = Math.min(setCat, cats.length - 1);
       const side = $('.sw-set .sw-side');
-      side.innerHTML = cats.map((c, i) => `<button class="sw-li${i === setCat ? ' sel' : ''}${setFocus !== 'side' ? ' dim' : ''}" data-i="${i}">${icon(CAT_ICONS[c.id] || 'gear')}<span class="sw-li-t">${esc(c.title)}</span></button>`).join('');
+      side.innerHTML = cats.map((c, i) => `<button class="sw-li${i === setCat ? ' sel' : ''}${setFocus !== 'side' ? ' dim' : ''}" data-i="${i}">${icon(CAT_ICONS[c.id] || 'gear')}<span class="sw-li-t">${esc(c.short || c.title)}</span></button>`).join('');
       $$('.sw-li', side).forEach((b) =>
         b.addEventListener('click', () => {
           setCat = Number(b.dataset.i);

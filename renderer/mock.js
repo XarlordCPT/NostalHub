@@ -8,11 +8,12 @@
     const t = (id, label, desc) => ({ id, type: 'toggle', label, desc, value: !!o[id] });
     const a = (id, label, desc, extra) => ({ id, type: 'action', label, desc, ...extra });
     return [
-      { id: 'general', title: 'General', items: [a('consoles', 'Cambiar de consola', 'Vuelve al selector de consolas.', { closes: true }), a('reload', 'Recargar', 'Vuelve a cargar la pantalla, por si algo se ve raro.', { closes: true }), a('open-manual', 'Abrir manual', 'Dónde va cada archivo que pones a mano.'), a('quit', 'Salir de NostalHub', 'Cierra la app.', { confirm: true })] },
+      { id: 'general', title: 'General', items: [a('consoles', 'Cambiar de consola', 'Vuelve al selector de consolas.', { closes: true }), a('open-stats', 'Resumen de horas', 'Cuánto has jugado y a qué, por semana, mes y año.', { closes: true }), a('reload', 'Recargar', 'Vuelve a cargar la pantalla, por si algo se ve raro.', { closes: true }), a('open-manual', 'Abrir manual', 'Dónde va cada archivo que pones a mano.'), a('quit', 'Salir de NostalHub', 'Cierra la app.', { confirm: true })] },
       { id: 'games', title: 'Juegos', items: [a('import', 'Buscar juegos nuevos de Steam', 'Agrega los juegos de Steam que instalaste desde la última vez.'), a('add-minecraft', 'Agregar Minecraft (Java)', 'Con el launcher oficial. Sus progresos salen como logros encima del juego (Minecraft en inglés).'), a('art', 'Volver a descargar el arte', 'Descarga otra vez las imágenes de Steam de todos los juegos.'), t('tileTitle', 'Título encima de cada canal', 'En la Wii, pone el logo del juego encima de su imagen de fondo.'), t('trailers', 'Mostrar tráileres de Steam', 'Usa el tráiler de Steam como animación del juego.')] },
       { id: 'screen', title: 'Pantalla', items: [{ id: 'windowMode', type: 'choice', label: 'Modo', desc: 'Pantalla completa, o una ventana que puedes mover, achicar y minimizar.', options: [{ value: 'fullscreen', label: 'Pantalla completa' }, { value: 'window', label: 'Ventana' }], value: 'fullscreen' }, { id: 'display', type: 'choice', label: 'Pantalla', desc: 'En qué pantalla se muestra NostalHub.', options: [{ value: 'auto', label: 'Automática (la secundaria)', short: 'Automática' }, { value: '1', label: 'Pantalla 1 — 1920×1080 (principal)', short: 'Pantalla 1' }, { value: '2', label: 'Pantalla 2 — 1920×1080', short: 'Pantalla 2' }], value: String(o.display) }, t('fullscreen', 'Cubrir la barra de tareas', 'Desactívalo si la barra de Windows aparece encima del menú.'), t('autoStart', 'Iniciar con Windows', 'Abre NostalHub sola al prender el PC.')] },
       { id: 'sound', title: 'Sonido', items: [t('music', 'Música de fondo', 'La música de cada consola (musica.mp3).'), t('sounds', 'Sonidos del menú', 'Los sonidos al moverte, elegir y volver.'), t('intros', 'Videos de inicio de las consolas', 'El video (intro.mp4) al entrar a una consola.'), { id: 'musicVolume', type: 'choice', label: 'Volumen de la música', options: [['Bajo', 0.15], ['Medio', 0.35], ['Alto', 0.6], ['Máximo', 1]].map(([label, value]) => ({ label, value })), value: Number(o.musicVolume) }, { id: 'sfxVolume', type: 'choice', label: 'Volumen de los sonidos', options: [['Bajo', 0.3], ['Medio', 0.6], ['Alto', 1]].map(([label, value]) => ({ label, value })), value: Number(o.sfxVolume) }, { id: 'musicApp', type: 'choice', label: 'App de música', desc: 'De qué app se muestra la canción en la sección Música y al jugar.', options: [{ value: 'spotify', label: 'Spotify' }, { value: 'apple', label: 'Apple Music' }, { value: 'ytmusic', label: 'YouTube Music (en el navegador)', short: 'YouTube Music' }, { value: 'auto', label: 'Automático (la que esté sonando)', short: 'Automático' }], value: o.musicApp }, ...(o.musicApp === 'spotify' ? [t('spotifyApi', 'Spotify conectado directamente', 'Muestra la cola, el avance, aleatorio, repetir, me gusta, volumen y dispositivos. Apagado: solo los botones básicos.')] : [])] },
-      { id: 'accounts', title: 'Cuentas', items: [a('setup-steam', 'Conectar Steam (logros)', 'Pega tu clave de Steam aquí mismo para ver tus logros, tu nombre y tu foto.', { closes: true }), a('setup-discord', 'Conectar Discord (grupo)', 'Conecta tu Discord para ver tu canal de voz y quiénes están contigo.', { closes: true })] },
+      { id: 'emulators', title: 'Implementación de Emuladores', short: 'Emuladores', items: [a('add-pcsx2', 'Buscar juegos de PS2 (PCSX2)', 'Agrega los juegos nuevos de tus carpetas de PCSX2. Al elegir uno, se abre directo en el emulador.')] },
+      { id: 'accounts', title: 'Cuentas', items: [a('setup-steam', 'Conectar Steam (logros)', 'Pega tu clave de Steam aquí mismo para ver tus logros, tu nombre y tu foto.', { closes: true }), a('setup-discord', 'Conectar Discord (grupo)', 'Conecta tu Discord para ver tu canal de voz y quiénes están contigo.', { closes: true }), t('discordPresence', 'Mostrar en Discord lo que juegas', 'Tu estado dice que usas NostalHub, con el juego y tus logros. Lo ve cualquiera que abra tu perfil. Necesita Discord abierto.')] },
       { id: 'files', title: 'Archivos', items: [a('open-custom', 'Carpeta de personalización', 'Logos, fondos, videos y modelos de cada juego.'), a('open-consoles', 'Carpeta de consolas', 'Íconos, música, sonidos y videos de inicio de cada consola.'), a('open-config', 'Abrir config.json', 'Lista de juegos y opciones.'), a('devtools', 'Herramientas de desarrollo', 'Para ver errores.')] },
     ];
   }
@@ -140,6 +141,7 @@
       console.log('[mock] opción', id, value);
       if (it && it.type === 'toggle') mockOpts[id] = value === undefined ? !it.value : !!value;
       if (it && it.type === 'choice') mockOpts[id] = value;
+      if (id === 'open-stats' && window.NostalHubStats) window.NostalHubStats.open();
       if (id === 'setup-steam' || id === 'setup-discord') window.NostalHubSetup && window.NostalHubSetup.open(id.slice(6));
       return mockMenu();
     },
@@ -147,6 +149,37 @@
     onGameEnded: (cb) => ((endedCb = cb), () => {}),
     onToast: noop,
     getConsoleAssets: async (ids) => ({ assets: {}, last: 'wii' }),
+    // Resumen de horas de prueba
+    getStats: async (range, offset = 0) => {
+      const labels = {
+        week: ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'],
+        month: Array.from({ length: 30 }, (_, i) => String(i + 1)),
+        year: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'],
+        all: ['Oct', 'Nov'],
+      }[range];
+      const scale = { week: 5400, month: 4200, year: 90000, all: 180000 }[range];
+      const buckets = labels.map((label, i) => ({ label, title: label, now: offset === 0 && i === 3, sec: (i * 7 + 3) % 5 === 0 ? 0 : Math.round(scale * (1 + ((i * 13) % 7))) }));
+      const totalSec = buckets.reduce((n, b) => n + b.sec, 0);
+      const share = [0.34, 0.22, 0.15, 0.11, 0.08, 0.05, 0.03, 0.02];
+      return {
+        ok: true,
+        range,
+        offset,
+        title: { week: offset ? 'La semana pasada' : 'Esta semana', month: 'Noviembre 2026', year: '2026', all: 'Todo' }[range],
+        words: { week: 'esta semana', month: 'este mes', year: 'este año', all: 'en total' }[range],
+        canPrev: range !== 'all',
+        canNext: offset < 0,
+        hasAny: !window.mockStatsEmpty,
+        totalSec,
+        sessions: 41,
+        games: 8,
+        days: buckets.filter((b) => b.sec).length,
+        longest: { name: games[0].name, sec: Math.round(totalSec * 0.09) },
+        top: share.map((k, i) => ({ id: games[i].id, name: games[i].name, sec: Math.round(totalSec * k), sessions: 8 - i, art: games[i].hero })),
+        buckets,
+      };
+    },
+    onStats: noop,
     getConsoleBackgrounds: async () => [
       { file: 'Atardecer.jpg', name: 'Atardecer', url: art(1920, 1080, ['#ff9a62', '#5b247a'], '', 0) },
       { file: 'Bosque.png', name: 'Bosque', url: art(1920, 1080, ['#0f9b8e', '#0b3d2e'], '', 0) },

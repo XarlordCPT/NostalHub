@@ -699,6 +699,10 @@
     if (sortMenu) sortMenu.el.remove();
     sortMenu = null;
   }
+  $('#sel-stats').addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (mode === 'selector' && !moving && window.NostalHubStats) window.NostalHubStats.open();
+  });
   $('#sel-sort').addEventListener('click', (e) => {
     e.stopPropagation();
     sortMenu ? closeSortMenu() : openSortMenu();
@@ -777,6 +781,9 @@
       if ((k === 'o' || k === 'O') && !e.ctrlKey && !e.altKey) {
         e.preventDefault();
         openSortMenu();
+      } else if ((k === 'r' || k === 'R') && !e.ctrlKey && !e.altKey && window.NostalHubStats) {
+        e.preventDefault();
+        window.NostalHubStats.open();
       }
     },
     true

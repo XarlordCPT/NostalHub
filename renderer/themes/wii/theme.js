@@ -1085,7 +1085,7 @@
     function renderSettings(anim) {
       const sec = wsModel[wsPage];
       const n = wsModel.length;
-      ws.querySelector('.ws-sec').textContent = sec ? sec.title : '';
+      ws.querySelector('.ws-sec').textContent = sec ? sec.short || sec.title : '';
       ws.querySelector('.ws-num').textContent = n ? `${wsPage + 1}/${n}` : '';
       const sub = !!wsItem;
       ws.classList.toggle('in-sub', sub);
