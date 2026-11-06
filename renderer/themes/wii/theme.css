@@ -95,6 +95,9 @@
   transition: background-position 0.8s ease;
 }
 .tile.game:active { transform: scale(1.0); }
+.tile.off { visibility: hidden; }
+.tile-inner canvas { width: 100%; height: 100%; object-fit: cover; display: block; }
+.tile-inner img.tile-live { position: absolute; inset: 0; }
 
 .tile-name {
   position: absolute;
@@ -401,6 +404,7 @@
 @keyframes swap-from-left { from { transform: translateX(-120px); opacity: 0; } to { transform: none; opacity: 1; } }
 
 /* El cuadrito que crece hasta llenar la pantalla */
+.zoomer canvas { display: block; width: 100%; height: 100%; object-fit: cover; }
 .zoomer {
   position: absolute;
   z-index: 20;

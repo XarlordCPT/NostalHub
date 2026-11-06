@@ -353,6 +353,7 @@ img, video { -webkit-user-drag: none; }
 }
 #setup[data-tab='discord'] .su-panel { --su-accent: #5865f2; }
 #setup[data-tab='spotify'] .su-panel { --su-accent: #1aa34a; }
+#setup[data-tab='retro'] .su-panel { --su-accent: #c98a00; }
 .su-title h2 small { font-size: 0.55em; font-weight: 700; color: #8a94a8; margin-left: 10px; }
 @keyframes su-pop { from { opacity: 0; transform: translateY(24px) scale(0.98); } to { opacity: 1; transform: none; } }
 .su-head { display: flex; align-items: center; padding: 22px 26px 0 40px; background: #fff; border-bottom: 2px solid #e4e9f1; }

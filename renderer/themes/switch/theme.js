@@ -400,7 +400,7 @@
       gTabs = [
         { id: 'play', label: 'Iniciar', icon: 'play' },
         { id: 'info', label: 'Información del software', icon: 'grid' },
-        ...(g.type === 'steam' ? [{ id: 'ach', label: 'Logros', icon: 'trophy' }] : []),
+        ...(g.hasAch ? [{ id: 'ach', label: 'Logros', icon: 'trophy' }] : []),
         { id: 'img', label: 'Cambiar imágenes', icon: 'image' },
       ];
       gSel = Math.max(1, gTabs.findIndex((t) => t.id === tab));
@@ -442,7 +442,7 @@
           <div class="sw-g-h">Actividad de juego</div>
           ${infoLine('Tiempo de juego', U.hours(g.playtimeMin) || 'Todavía no lo juegas')}
           ${infoLine('Última vez', g.lastPlayed ? U.ago(g.lastPlayed) : 'Nunca')}
-          ${g.type === 'steam' && U.isComplete(tp) ? `<div class="sw-g-line"><span>Logros</span><b class="nh-done-text">${U.completeBadge('crown')} Completado · ${tp.done} de ${tp.total}</b></div>` : g.type === 'steam' ? infoLine('Logros', tp && tp.total ? `${tp.done} de ${tp.total} (${Math.round((tp.done / tp.total) * 100)} %)` : summary.hasKey ? 'Sin datos todavía' : 'Conecta tu Steam para verlos') : ''}
+          ${g.hasAch && U.isComplete(tp) ? `<div class="sw-g-line"><span>Logros</span><b class="nh-done-text">${U.completeBadge('crown')} Completado · ${tp.done} de ${tp.total}</b></div>` : g.type === 'steam' ? infoLine('Logros', tp && tp.total ? `${tp.done} de ${tp.total} (${Math.round((tp.done / tp.total) * 100)} %)` : summary.hasKey ? 'Sin datos todavía' : 'Conecta tu Steam para verlos') : ''}
           ${tp && tp.total ? `<div class="sw-bar${U.isComplete(tp) ? ' done' : ''}"><i style="width:${(tp.done / tp.total) * 100}%"></i></div>` : ''}
           <div class="sw-g-h">Información del software</div>
           ${infoLine('Tipo', typeLabel(g))}
@@ -907,7 +907,7 @@
       openPop(g.name, sub, [
         { icon: 'play', label: 'Iniciar', run: () => startGame(g) },
         { icon: 'grid', label: 'Información del software', run: () => openGame(g, view === 'library' ? 'library' : 'home') },
-        ...(g.type === 'steam' ? [{ icon: 'trophy', label: 'Logros', run: () => openGame(g, view === 'library' ? 'library' : 'home', 'ach') }] : []),
+        ...(g.hasAch ? [{ icon: 'trophy', label: 'Logros', run: () => openGame(g, view === 'library' ? 'library' : 'home', 'ach') }] : []),
         { icon: 'image', label: 'Cambiar imágenes y descripción', run: () => window.NostalHubGameEditor && window.NostalHubGameEditor.open(g.id) },
       ]);
     }

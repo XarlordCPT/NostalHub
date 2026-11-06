@@ -32,8 +32,8 @@ Music), Grupo de Discord, ajustes y aviso de logros encima del juego.
 
 ## Reglas que no se rompen
 
-- **Claves privadas**: `%APPDATA%\NostalHub\steam-api-key.txt`, `discord.txt` y `spotify.json` (tokens de
-  Spotify). **No los abras, no los leas, no los muestres ni los copies**, y nunca los pidas por chat. Si hay que
+- **Claves privadas**: `%APPDATA%\NostalHub\steam-api-key.txt`, `discord.txt`, `retroachievements.json` y
+  `spotify.json` (tokens de Spotify). **No los abras, no los leas, no los muestres ni los copies**, y nunca los pidas por chat. Si hay que
   probar algo con ellos, que lo pruebe él o hazlo por la app sin imprimir su contenido.
 - El `client_secret` de Discord y los tokens de Spotify **nunca** se mandan al renderer (`spotifyWeb.peek()` y
   `setup:get` devuelven solo el estado, sin tokens).
@@ -75,7 +75,8 @@ src/minecraft.js        Minecraft Java (launcher oficial): findLauncher y progre
                         .minecraft\logs\latest.log ("[CHAT] <nombre> has made the advancement [X]", solo inglés)
 src/minecraft-icons.js  Ícono de cada progreso desde el .jar del juego (advancement JSON + en_us.json + textura
                         16×16 agrandada sin suavizar), guardado en cache\minecraft\<versión>\
-src/emulators.js        Emuladores (EMULATORS: por ahora PCSX2): dónde está, sus carpetas, cómo abrir un juego
+src/emulators.js        Emuladores (EMULATORS: PCSX2 y RetroArch con mGBA): dónde está, carpetas, cómo abrir un juego
+src/retroachievements.js Logros de los juegos de emulador: reconoce por nombre, lista con la forma de Steam, avisos
 src/launcher.js         Abre los juegos y avisa cuando terminan (Minecraft: abre el launcher y vigila javaw.exe)
 src/media.js            Descarga el arte de Steam y busca el arte propio (CUSTOM_FILES)
 src/spotify.js          Música por los controles multimedia de Windows (SMTC) + datos de la Web API
@@ -169,6 +170,12 @@ descripción), `cache\` (arte descargado, `spotify.log`, `discord.log`) y las cl
 - La portada de la canción solo se busca por internet si coincide la **misma canción**; si no, mejor ninguna.
 - El Grupo de Discord solo funciona para la cuenta dueña de la aplicación (y sus testers). La presencia va en otra
   conexión, con una aplicación pública cuyo ID va en el código (el ID no es secreto; el Client Secret sí).
+- RetroAchievements: en los juegos de emulador `appId` del renderer es `ra-<número>` (`achievementKey`) y `hasAch` dice
+  si tiene logros: las pantallas usan `g.hasAch`, no `g.type === 'steam'`. La clave va en la dirección de la API: nunca
+  escribas esa dirección en un registro. No avisa al instante: pregunta cada 45 s mientras el juego está abierto.
+- Imágenes animadas pesadas (`fondo.webp` de cientos de cuadros): mientras están ocultas siguen "avanzando" y al mostrarlas
+  hay que decodificar todos los cuadros hasta alcanzar ese punto (más de 1 s). En la Wii: el menú muestra el primer cuadro y
+  solo se anima el canal marcado, solo se dibuja la página visible y la transición usa una foto (`setZoomerImage`).
 - Horas: `trackTick` de `main.js` revisa cada 15 s qué juego está abierto (`RunningAppID` de Steam o
   `launcher.playingId()`), le avisa a `PlayLog` y actualiza la presencia. Un salto de más de 3 min entre revisiones es
   PC suspendido: corta la sesión.
@@ -196,7 +203,8 @@ descripción), `cache\` (arte descargado, `spotify.log`, `discord.log`) y las cl
 - Orden de juegos por consola; **A mano** solo en Wii, PS Vita y 3DS (como las reales). PS3: △ → Ordenar.
 - La presencia en Discord viene **apagada**: es pública y cada uno decide. Las horas cuentan desde su implementación.
 - Emuladores: los juegos salen en todas las consolas, como los de Steam. NostalHub nunca trae emuladores, juegos ni
-  BIOS. RetroAchievements queda para más adelante.
+  BIOS.
+- RetroAchievements: solo el aviso de NostalHub (el del emulador se apaga allá) y sus logros se suman al total de Steam.
 - Amigos: sin aviso de "amigo conectado" (ninguna consola lo tenía). Siempre **Ver perfil** y **Enviar mensaje**,
   y fotos con **esquinas redondeadas**.
 - Al elegir una canción de la cola se **salta hasta ella**.

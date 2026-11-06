@@ -67,6 +67,8 @@ contextBridge.exposeInMainWorld('nostalhub', {
   saveDiscord: (data) => ipcRenderer.invoke('setup:discord', data),
   connectSpotify: (clientId) => ipcRenderer.invoke('setup:spotify', clientId),
   disconnectSpotify: () => ipcRenderer.invoke('setup:spotify-disconnect'),
+  saveRetro: (user, key) => ipcRenderer.invoke('setup:retro', user, key),
+  disconnectRetro: () => ipcRenderer.invoke('setup:retro-disconnect'),
   readClipboard: () => ipcRenderer.invoke('clipboard:read'),
   writeClipboard: (text) => ipcRenderer.invoke('clipboard:write', text),
   onSetup: on('shell:setup'),

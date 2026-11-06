@@ -114,6 +114,7 @@ function normalizeGame(g, i) {
     // Juego de emulador: cuál y el archivo del juego
     emulator: g.emulator || undefined,
     rom: g.rom || undefined,
+    raId: g.raId || undefined, // su número en RetroAchievements
   };
 }
 

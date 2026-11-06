@@ -1232,7 +1232,7 @@ void main(){
       const list = [
         { label: 'Iniciar', run: () => startGame(g) },
         { label: 'Información', run: () => openInfo(g) },
-        ...(g.type === 'steam' ? [{ label: 'Logros', run: () => openTrophiesOf(g) }] : []),
+        ...(g.hasAch ? [{ label: 'Logros', run: () => openTrophiesOf(g) }] : []),
         { label: 'Cambiar imágenes y descripción', run: () => window.NostalHubGameEditor && window.NostalHubGameEditor.open(g.id) },
         { label: `Ordenar: ${order.label()}`, run: () => openSortOpts() },
       ];
@@ -1305,7 +1305,7 @@ void main(){
           ${row('Tipo', type)}
           ${row('Tiempo de juego', U.hours(g.playtimeMin) || 'Todavía no lo juegas')}
           ${row('Última vez', g.lastPlayed ? U.ago(g.lastPlayed) : 'Nunca')}
-          ${g.type === 'steam' && U.isComplete(tp) ? `<div class="p3-inf-r"><span>Logros</span><b class="nh-done-text plat">${U.completeBadge('platinum')} Platino · ${tp.done} de ${tp.total} (100 %)</b></div>` : g.type === 'steam' ? row('Logros', tp && tp.total ? `${tp.done} de ${tp.total} (${Math.round((tp.done / tp.total) * 100)} %)` : summary.hasKey ? 'Sin datos todavía' : 'Conecta tu Steam para verlos') : ''}
+          ${g.hasAch && U.isComplete(tp) ? `<div class="p3-inf-r"><span>Logros</span><b class="nh-done-text plat">${U.completeBadge('platinum')} Platino · ${tp.done} de ${tp.total} (100 %)</b></div>` : g.type === 'steam' ? row('Logros', tp && tp.total ? `${tp.done} de ${tp.total} (${Math.round((tp.done / tp.total) * 100)} %)` : summary.hasKey ? 'Sin datos todavía' : 'Conecta tu Steam para verlos') : ''}
           ${g.appId && g.type === 'steam' ? row('Número en Steam', g.appId) : ''}
         </div>
         <div class="p3-inf-desc">${esc(g.description || 'Sin descripción. Puedes escribir una con clic derecho → Editar descripción.')}</div>

@@ -12,6 +12,7 @@ const media = require('./src/media');
 const { Launcher } = require('./src/launcher');
 const { PlayLog } = require('./src/playlog');
 const emulators = require('./src/emulators');
+const { RetroAchievements } = require('./src/retroachievements');
 const { DiscordPresence } = require('./src/discord-presence');
 const { SteamWeb } = require('./src/steamweb');
 const { AchievementWatcher, gamerscore, trophyTier } = require('./src/achievements');
@@ -98,8 +99,14 @@ const launcher = new Launcher((gameId, reason) => {
     setTimeout(again, 30000);
   }
 });
+// Logros de Steam y de RetroAchievements, sumados en un solo total
+function allAchievements() {
+  const s = steamWeb.summary();
+  const r = retro.summary();
+  return { done: s.done + r.done, total: s.total + r.total, perGame: { ...s.perGame, ...r.perGame }, hasKey: !!steamWeb.key || retro.connected };
+}
 function sendSummary() {
-  send('steam:summary', { ...steamWeb.summary(), hasKey: !!steamWeb.key });
+  send('steam:summary', allAchievements());
 }
 const steamWeb = new SteamWeb(DATA_DIR);
 const { DiscordVoice } = require('./src/discord');
@@ -134,6 +141,7 @@ const DISCORD_PRESENCE_ID = '1556550846261493780'; // ID (público) de la aplica
 const CONSOLE_NAMES = { wii: 'Wii', ps2: 'PS2', x360: 'Xbox 360', ps3: 'PS3', ps4: 'PS4', vita: 'PS Vita', switch: 'Switch', '3ds': '3DS' };
 const TRACK_EVERY_MS = 15000;
 const playLog = new PlayLog(path.join(DATA_DIR, 'estadisticas.db'), (m) => console.warn(m));
+const retro = new RetroAchievements({ dataDir: DATA_DIR, log: (m) => console.warn('[retro]', m) });
 const presence = new DiscordPresence({ clientId: DISCORD_PRESENCE_ID, log: (m) => console.warn(m) });
 let trackTimer = null;
 let tracking = false;
@@ -146,11 +154,15 @@ async function playingGame() {
   const id = launcher.playingId();
   return id ? config.findGame(id) : null;
 }
+// Con qué se buscan los logros de un juego (el número de Steam, o el de RetroAchievements)
+function achievementKey(g) {
+  return g.appId || (g.raId && retro.connected ? retro.key(g.raId) : null);
+}
 function presenceActivity(game) {
   const clip = (s) => String(s).slice(0, 128);
-  const sum = steamWeb.summary();
   if (game) {
-    const per = game.appId && sum.perGame[game.appId];
+    const key = achievementKey(game);
+    const per = key && allAchievements().perGame[key];
     const emu = game.type === 'emulator' && emulators.EMULATORS[game.emulator];
     return {
       details: clip(game.name.length >= 2 ? game.name : `Juego ${game.name}`),
@@ -176,12 +188,99 @@ async function trackTick() {
   try {
     const game = await playingGame();
     playLog.tick(game);
+    retroTick(game);
     presence.set(config.data.discordPresence && DISCORD_PRESENCE_ID ? presenceActivity(game) : null);
   } catch (e) {
     console.warn('[horas]', e.message);
   }
   tracking = false;
 }
+
+// ---------- RetroAchievements: reconocer los juegos y avisar los logros nuevos ----------
+const RETRO_POLL_MS = 45000; // no avisa al instante: hay que preguntarle cada cierto rato
+const RETRO_LINK_AFTER_MS = 90000;
+let retroSession = null;
+let retroBusy = false;
+function retroKeys() {
+  return config.games.filter((g) => g.raId && !g.uninstalled).map((g) => retro.key(g.raId));
+}
+function refreshRetroTotals() {
+  retro.refreshTotals(retroKeys(), sendSummary);
+}
+// Busca por nombre los juegos de emulador que todavía no tienen su número
+async function linkRetroGames() {
+  if (!retro.connected) return;
+  let changed = false;
+  for (const g of config.games) {
+    const emu = g.type === 'emulator' && !g.raId && !g.uninstalled && emulators.EMULATORS[g.emulator];
+    if (!emu || !emu.raConsole) continue;
+    const id = await retro.findGame(g.name, emu.raConsole);
+    if (id) {
+      g.raId = id;
+      changed = true;
+    }
+  }
+  if (changed) {
+    config.save();
+    pushGamesSoon();
+  }
+  refreshRetroTotals();
+}
+async function retroPoll() {
+  for (const a of await retro.newUnlocks()) showAchievement(a);
+  sendSummary();
+}
+// Si lo último jugado en RetroAchievements cambió desde que abriste el juego, es este juego: arregla el nombre que no
+// coincidió, o el que coincidió mal. Si no cambió (el juego no tiene logros ahí), no toca nada.
+async function retroCheckLink(game, emu, before) {
+  const last = await retro.lastPlayed();
+  if (!last || last.consoleId !== emu.raConsole || last.id === game.raId) return;
+  if (before && before.id === last.id && before.at === last.at) return;
+  game.raId = last.id;
+  config.save();
+  pushGamesSoon();
+  await retro.achievements(retro.key(last.id));
+  sendSummary();
+}
+async function retroTick(game) {
+  if (!retro.connected || retroBusy) return;
+  retroBusy = true;
+  try {
+    const now = Date.now();
+    const emu = game && game.type === 'emulator' && emulators.EMULATORS[game.emulator];
+    if (retroSession && (!emu || game.id !== retroSession.gameId)) {
+      // Se cerró el juego: una última revisión, y otra después porque el logro puede tardar en llegar
+      const raId = (config.findGame(retroSession.gameId) || {}).raId;
+      retroSession = null;
+      await retroPoll();
+      setTimeout(async () => {
+        try {
+          if (!retroSession) await retroPoll();
+          if (raId) await retro.achievements(retro.key(raId));
+          sendSummary();
+        } catch (e) {
+          console.warn('[retro]', e.message);
+        }
+      }, 20000);
+    }
+    if (emu && emu.raConsole && !retroSession) {
+      retroSession = { gameId: game.id, startedAt: now, lastPoll: now, checked: false, before: await retro.lastPlayed().catch(() => null) };
+      retro.seen = null;
+      await retro.newUnlocks(); // solo anota los que ya tenías
+    } else if (retroSession && now - retroSession.lastPoll >= RETRO_POLL_MS) {
+      retroSession.lastPoll = now;
+      await retroPoll();
+    }
+    if (retroSession && !retroSession.checked && now - retroSession.startedAt >= RETRO_LINK_AFTER_MS) {
+      retroSession.checked = true;
+      await retroCheckLink(game, emu, retroSession.before);
+    }
+  } catch (e) {
+    console.warn('[retro]', e.message);
+  }
+  retroBusy = false;
+}
+
 function openStats() {
   showWindow();
   send('shell:stats');
@@ -234,7 +333,7 @@ function showAchievement(a, { test = false } = {}) {
   // Completaste todos los logros del juego: en las PlayStation sale además el trofeo de platino
   if (a.completed && PLAYSTATION.includes(style)) {
     const g = a.appId && config.games.find((x) => String(x.appId) === String(a.appId));
-    overlay.show({ ...base, name: g ? g.name : 'Todos los trofeos', tier: 'platinum', icon: null });
+    overlay.show({ ...base, name: a.gameName || (g ? g.name : 'Todos los trofeos'), tier: 'platinum', icon: null });
   }
 }
 const achWatcher = new AchievementWatcher({
@@ -377,7 +476,8 @@ function gamesView() {
         trailerMp4: !video && config.data.trailers ? m.trailerMp4 || null : null,
         model: fileUrl(c.model),
         description: readDescription(c.description) || m.description || '',
-        appId: g.appId || null,
+        appId: achievementKey(g),
+        hasAch: g.type === 'steam' || !!(g.raId && retro.connected), // tiene lista de logros
         cover: fileUrl(c.cover || m.cover), // carátula vertical (Xbox 360)
         bubble: fileUrl(c.bubble), // burbuja redonda propia (PS Vita)
         square: fileUrl(c.square), // imagen cuadrada propia (Switch)
@@ -670,6 +770,8 @@ function syncEmulatorGames(id) {
   const saved = (config.data.emulators || {})[id] || {};
   const exe = saved.exe && fs.existsSync(saved.exe) ? saved.exe : emu.exe();
   if (!exe) return null;
+  const problem = emu.problem && emu.problem(exe);
+  if (problem) return { problem };
   const folders = [...emu.folders(exe, app.getPath('documents')), ...(saved.folders || []).map((dir) => ({ dir, recursive: true }))];
   const files = emulators.scanFolders(folders, emu.exts);
   const ids = new Set();
@@ -679,7 +781,7 @@ function syncEmulatorGames(id) {
     const gameId = emulators.gameId(emu.idPrefix, file);
     if (ids.has(gameId)) continue; // el mismo juego en dos formatos
     ids.add(gameId);
-    const fields = { type: 'emulator', emulator: id, rom: file, target: exe, args: emu.args(file) };
+    const fields = { type: 'emulator', emulator: id, rom: file, target: exe, args: emu.args(file, exe) };
     const g = config.games.find((x) => x.id === gameId);
     if (!g) {
       config.games.push({ id: gameId, name: emulators.gameName(file), hidden: false, media: {}, custom: {}, mediaCheckedAt: 0, ...fields });
@@ -701,6 +803,7 @@ function syncEmulatorGames(id) {
     ensureCustomFolders();
     pushGamesSoon();
     refreshMedia();
+    linkRetroGames();
   }
   return { added, total: ids.size, folders: folders.length };
 }
@@ -723,6 +826,7 @@ async function addEmulatorGames(id) {
   config.save();
   const r = syncEmulatorGames(id);
   if (!r) return send('toast', `No se encontró ${emu.name}`);
+  if (r.problem) return send('toast', r.problem);
   if (!r.total) return send('toast', `No hay juegos de ${emu.system} en esas carpetas`);
   send('toast', r.added ? `Se agregaron ${r.added} juego${r.added === 1 ? '' : 's'} de ${emu.system}` : `No hay juegos nuevos de ${emu.system}`);
 }
@@ -1238,6 +1342,13 @@ function menuSections() {
           desc: 'Agrega los juegos nuevos de tus carpetas de PCSX2. Al elegir uno, se abre directo en el emulador.',
           run: () => addEmulatorGames('pcsx2'),
         },
+        {
+          id: 'add-gba',
+          type: 'action',
+          label: 'Buscar juegos de GBA (RetroArch)',
+          desc: 'Agrega los juegos de la carpeta de RetroArch, con su núcleo mGBA. Al elegir uno, se abre directo en el emulador.',
+          run: () => addEmulatorGames('gba'),
+        },
       ],
     },
     {
@@ -1246,6 +1357,7 @@ function menuSections() {
       items: [
         { id: 'setup-steam', type: 'action', label: 'Conectar Steam (logros)', desc: 'Pega tu clave de Steam aquí mismo para ver tus logros, tu nombre y tu foto.', closes: true, run: () => openSetup('steam') },
         { id: 'setup-spotify', type: 'action', label: 'Conectar Spotify (debes tener Premium)', desc: 'Para ver la cola, el avance de la canción, aleatorio, repetir, me gusta, volumen y dispositivos.', closes: true, run: () => openSetup('spotify') },
+        { id: 'setup-retro', type: 'action', label: 'Conectar RetroAchievements', desc: 'Para ver y recibir los logros de tus juegos de emulador. Tu cuenta también tiene que estar iniciada en el emulador.', closes: true, run: () => openSetup('retro') },
         { id: 'setup-discord', type: 'action', label: 'Conectar Discord (grupo)', desc: 'Conecta tu Discord para ver tu canal de voz y quiénes están contigo.', closes: true, run: () => openSetup('discord') },
         ...(DISCORD_PRESENCE_ID
           ? [
@@ -1634,7 +1746,23 @@ ipcMain.handle('setup:get', async () => {
     steam: { hasKey: !!steamWeb.key, foundUser: !!steamUser, name: (web && web.name) || (steamUser && steamUser.name) || null },
     discord: (({ clientId, hasSecret }) => ({ clientId, hasSecret, state: discord.state }))(discord.peek()), // nunca se manda el secret
     spotify: spotifyWeb.peek(), // sin tokens
+    retro: retro.peek(), // sin la clave
   };
+});
+ipcMain.handle('setup:retro', async (_e, user, key) => {
+  const res = await retro.connect(user, key);
+  if (res.ok) {
+    linkRetroGames();
+    pushGamesSoon();
+    sendSummary();
+  }
+  return res;
+});
+ipcMain.handle('setup:retro-disconnect', () => {
+  retro.disconnect();
+  pushGamesSoon();
+  sendSummary();
+  return retro.peek();
 });
 ipcMain.handle('setup:spotify', async (_e, clientId) => {
   const res = await spotifyWeb.authorize(String(clientId || ''));
@@ -1677,12 +1805,12 @@ ipcMain.handle('steam:profile', async () => {
 
 ipcMain.handle('steam:friends', () => steamWeb.friends(steamUser && steamUser.steamId));
 ipcMain.handle('steam:achievements', async (_e, appId) => {
-  const r = await steamWeb.achievements(String(appId), steamUser && steamUser.steamId);
+  const r = /^ra-/.test(String(appId)) ? await retro.achievements(String(appId)) : await steamWeb.achievements(String(appId), steamUser && steamUser.steamId);
   if (r && r.status === 'ok') sendSummary(); // al mirar la lista, el contador de la ficha también se pone al día
   return r;
 });
 
-ipcMain.handle('steam:summary', () => ({ ...steamWeb.summary(), hasKey: !!steamWeb.key }));
+ipcMain.handle('steam:summary', () => allAchievements());
 
 // ---------- Spotify ----------
 ipcMain.handle('spotify:watch', (_e, on) => spotify.watch(!!on));
@@ -1716,6 +1844,10 @@ ipcMain.handle('app:open', (_e, what) => {
       return openSetup('discord');
     case 'setup-spotify':
       return openSetup('spotify');
+    case 'setup-retro':
+      return openSetup('retro');
+    case 'retro-settings':
+      return shell.openExternal('https://retroachievements.org/settings');
     case 'spotify-dashboard':
       return shell.openExternal('https://developer.spotify.com/dashboard');
     case 'apikey-file':
@@ -1756,7 +1888,7 @@ function refreshAchievementTotals() {
     .map((g) => g.appId);
   const last = {};
   for (const id of ids) last[id] = Math.max((localStats[id] || {}).lastPlayed || 0, (webPlay[id] || {}).lastPlayed || 0);
-  steamWeb.refreshTotals(ids, steamUser.steamId, (summary) => send('steam:summary', { ...summary, hasKey: true }), last);
+  steamWeb.refreshTotals(ids, steamUser.steamId, sendSummary, last);
 }
 
 ipcMain.handle('menu:popup', () => {
@@ -1847,11 +1979,12 @@ app.whenReady().then(async () => {
   // Perfil de Steam, horas jugadas y logros
   await refreshSteamUser();
   refreshAchievementTotals();
-  setInterval(() => (refreshSteamUser(), refreshAchievementTotals()), 2 * 60 * 1000);
+  setInterval(() => (refreshSteamUser(), refreshAchievementTotals(), refreshRetroTotals()), 2 * 60 * 1000);
   trackTick();
   trackTimer = setInterval(trackTick, TRACK_EVERY_MS);
   // Juegos nuevos en las carpetas de los emuladores que ya agregaste
   Object.keys(config.data.emulators || {}).forEach((id) => emulators.EMULATORS[id] && syncEmulatorGames(id));
+  linkRetroGames();
   steamWeb.ensureKeyFile();
   fs.watchFile(steamWeb.keyFile, { interval: 2000 }, () => {
     send('steam:changed');

@@ -725,7 +725,7 @@
       paintDetailInfo(g);
       $('.xb-detail-desc').textContent = g.description || '';
       const achBtn = root.querySelector('[data-dact="ach"]');
-      achBtn.classList.toggle('disabled', g.type !== 'steam');
+      achBtn.classList.toggle('disabled', !g.hasAch);
       $('.xb-detail').classList.remove('enter');
       void $('.xb-detail').offsetWidth;
       $('.xb-detail').classList.add('enter');
@@ -758,7 +758,7 @@
         const a = b.dataset.dact;
         if (a === 'play') startGame(current);
         else if (a === 'ach') {
-          if (current.type !== 'steam') ctx.toast('Los logros solo están disponibles para juegos de Steam');
+          if (!current.hasAch) ctx.toast('Este juego no tiene lista de logros');
           else openAchievements(current);
         } else back();
       })

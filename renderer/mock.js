@@ -12,14 +12,15 @@
       { id: 'games', title: 'Juegos', items: [a('import', 'Buscar juegos nuevos de Steam', 'Agrega los juegos de Steam que instalaste desde la última vez.'), a('add-minecraft', 'Agregar Minecraft (Java)', 'Con el launcher oficial. Sus progresos salen como logros encima del juego (Minecraft en inglés).'), a('art', 'Volver a descargar el arte', 'Descarga otra vez las imágenes de Steam de todos los juegos.'), t('tileTitle', 'Título encima de cada canal', 'En la Wii, pone el logo del juego encima de su imagen de fondo.'), t('trailers', 'Mostrar tráileres de Steam', 'Usa el tráiler de Steam como animación del juego.')] },
       { id: 'screen', title: 'Pantalla', items: [{ id: 'windowMode', type: 'choice', label: 'Modo', desc: 'Pantalla completa, o una ventana que puedes mover, achicar y minimizar.', options: [{ value: 'fullscreen', label: 'Pantalla completa' }, { value: 'window', label: 'Ventana' }], value: 'fullscreen' }, { id: 'display', type: 'choice', label: 'Pantalla', desc: 'En qué pantalla se muestra NostalHub.', options: [{ value: 'auto', label: 'Automática (la secundaria)', short: 'Automática' }, { value: '1', label: 'Pantalla 1 — 1920×1080 (principal)', short: 'Pantalla 1' }, { value: '2', label: 'Pantalla 2 — 1920×1080', short: 'Pantalla 2' }], value: String(o.display) }, t('fullscreen', 'Cubrir la barra de tareas', 'Desactívalo si la barra de Windows aparece encima del menú.'), t('autoStart', 'Iniciar con Windows', 'Abre NostalHub sola al prender el PC.')] },
       { id: 'sound', title: 'Sonido', items: [t('music', 'Música de fondo', 'La música de cada consola (musica.mp3).'), t('sounds', 'Sonidos del menú', 'Los sonidos al moverte, elegir y volver.'), t('intros', 'Videos de inicio de las consolas', 'El video (intro.mp4) al entrar a una consola.'), { id: 'musicVolume', type: 'choice', label: 'Volumen de la música', options: [['Bajo', 0.15], ['Medio', 0.35], ['Alto', 0.6], ['Máximo', 1]].map(([label, value]) => ({ label, value })), value: Number(o.musicVolume) }, { id: 'sfxVolume', type: 'choice', label: 'Volumen de los sonidos', options: [['Bajo', 0.3], ['Medio', 0.6], ['Alto', 1]].map(([label, value]) => ({ label, value })), value: Number(o.sfxVolume) }, { id: 'musicApp', type: 'choice', label: 'App de música', desc: 'De qué app se muestra la canción en la sección Música y al jugar.', options: [{ value: 'spotify', label: 'Spotify' }, { value: 'apple', label: 'Apple Music' }, { value: 'ytmusic', label: 'YouTube Music (en el navegador)', short: 'YouTube Music' }, { value: 'auto', label: 'Automático (la que esté sonando)', short: 'Automático' }], value: o.musicApp }, ...(o.musicApp === 'spotify' ? [t('spotifyApi', 'Spotify conectado directamente', 'Muestra la cola, el avance, aleatorio, repetir, me gusta, volumen y dispositivos. Apagado: solo los botones básicos.')] : [])] },
-      { id: 'emulators', title: 'Implementación de Emuladores', short: 'Emuladores', items: [a('add-pcsx2', 'Buscar juegos de PS2 (PCSX2)', 'Agrega los juegos nuevos de tus carpetas de PCSX2. Al elegir uno, se abre directo en el emulador.')] },
-      { id: 'accounts', title: 'Cuentas', items: [a('setup-steam', 'Conectar Steam (logros)', 'Pega tu clave de Steam aquí mismo para ver tus logros, tu nombre y tu foto.', { closes: true }), a('setup-discord', 'Conectar Discord (grupo)', 'Conecta tu Discord para ver tu canal de voz y quiénes están contigo.', { closes: true }), t('discordPresence', 'Mostrar en Discord lo que juegas', 'Tu estado dice que usas NostalHub, con el juego y tus logros. Lo ve cualquiera que abra tu perfil. Necesita Discord abierto.')] },
+      { id: 'emulators', title: 'Implementación de Emuladores', short: 'Emuladores', items: [a('add-pcsx2', 'Buscar juegos de PS2 (PCSX2)', 'Agrega los juegos nuevos de tus carpetas de PCSX2. Al elegir uno, se abre directo en el emulador.'), a('add-gba', 'Buscar juegos de GBA (RetroArch)', 'Agrega los juegos de la carpeta de RetroArch, con su núcleo mGBA. Al elegir uno, se abre directo en el emulador.')] },
+      { id: 'accounts', title: 'Cuentas', items: [a('setup-steam', 'Conectar Steam (logros)', 'Pega tu clave de Steam aquí mismo para ver tus logros, tu nombre y tu foto.', { closes: true }), a('setup-retro', 'Conectar RetroAchievements', 'Para ver y recibir los logros de tus juegos de emulador. Tu cuenta también tiene que estar iniciada en el emulador.', { closes: true }), a('setup-discord', 'Conectar Discord (grupo)', 'Conecta tu Discord para ver tu canal de voz y quiénes están contigo.', { closes: true }), t('discordPresence', 'Mostrar en Discord lo que juegas', 'Tu estado dice que usas NostalHub, con el juego y tus logros. Lo ve cualquiera que abra tu perfil. Necesita Discord abierto.')] },
       { id: 'files', title: 'Archivos', items: [a('open-custom', 'Carpeta de personalización', 'Logos, fondos, videos y modelos de cada juego.'), a('open-consoles', 'Carpeta de consolas', 'Íconos, música, sonidos y videos de inicio de cada consola.'), a('open-config', 'Abrir config.json', 'Lista de juegos y opciones.'), a('devtools', 'Herramientas de desarrollo', 'Para ver errores.')] },
     ];
   }
 
   if (window.nostalhub) return;
 
+  let mockRetro = { connected: false, user: null };
   const palettes = [
     ['#ff7a59', '#7b2cbf'], ['#00b4d8', '#023e8a'], ['#80ed99', '#38a3a5'], ['#ffd166', '#ef476f'],
     ['#c77dff', '#3c096c'], ['#f4a261', '#264653'], ['#90e0ef', '#0077b6'], ['#ff99c8', '#a06cd5'],
@@ -55,6 +56,7 @@
       id: `mock-${i}`,
       name,
       type: 'steam',
+      hasAch: true,
       tile: i === 4 ? null : art(460, 215, p, name.length < 16 ? name : '', 44),
       tileIsVideo: false,
       tileIsCustom: false,
@@ -142,7 +144,7 @@
       if (it && it.type === 'toggle') mockOpts[id] = value === undefined ? !it.value : !!value;
       if (it && it.type === 'choice') mockOpts[id] = value;
       if (id === 'open-stats' && window.NostalHubStats) window.NostalHubStats.open();
-      if (id === 'setup-steam' || id === 'setup-discord') window.NostalHubSetup && window.NostalHubSetup.open(id.slice(6));
+      if (/^setup-/.test(id)) window.NostalHubSetup && window.NostalHubSetup.open(id.slice(6));
       return mockMenu();
     },
     onGamesUpdated: noop,
@@ -194,6 +196,8 @@
       if (['discord', 'setup-discord'].includes(w) && window.NostalHubSetup) window.NostalHubSetup.open('discord');
     },
     getSetup: async () => ({ steam: { hasKey: false, foundUser: true, name: null }, discord: { clientId: '', hasSecret: false, state: { status: 'no-config' } } }),
+    saveRetro: async (user, key) => (user && key.trim().length >= 20 ? ((mockRetro = { connected: true, user }), { ok: true, user }) : { ok: false, message: 'Esa no parece la Web API Key.' }),
+    disconnectRetro: async () => (mockRetro = { connected: false, user: null }),
     saveSteamKey: async (k) => (/^[0-9a-f]{32}$/i.test(k.trim()) ? { ok: true, name: 'Cristóbal', warning: null } : { ok: false, message: 'La clave tiene 32 letras y números (de la A a la F y del 0 al 9). Revisa que la copiaste completa.' }),
     saveDiscord: async ({ id }) => (/^\d{15,22}$/.test(String(id).trim()) ? { ok: true, state: { status: 'authorizing' } } : { ok: false, message: 'El Client ID son solo números (unos 18 o 19). Está en OAuth2 → Client ID.' }),
     getGameCustom: async (id) => {

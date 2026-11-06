@@ -167,6 +167,7 @@
   const COL_W = 384 + 22; // ancho del canal + separación
   const STAGE_W = 1920;
   const TOP_H = 795; // alto de la parte de arriba en la pantalla de canal
+  const PAGE_SLIDE_MS = 600; // lo que tarda en pasar de página (un poco más que la transición de #grid)
 
   window.Themes = window.Themes || {};
   window.Themes.wii = { mount };
@@ -190,6 +191,9 @@
     let rawGames = []; // como llegan, antes de ordenarlos
     const order = window.NostalHubUtil.gameOrder('wii', { manual: true, def: 'manual' }); // tu orden, como en la Wii
     let page = 0;
+    let pageTimer = 0;
+    const stills = new Map(); // primer cuadro de las imágenes animadas
+    let liveTile = null;
     let view = 'menu'; // menu | channel | playing | busy
     let current = -1; // índice del juego abierto
     let hls = null;
@@ -229,6 +233,8 @@
         const g = i < pageCount() * PER_PAGE ? games[gameIndex] : null;
         const el = g ? gameTile(g, gameIndex) : emptyTile();
         el.style.setProperty('--d', `${(p * COLS + col) * 55 + row * 35}ms`);
+        el.dataset.p = p;
+        el.dataset.col = col;
         grid.appendChild(el);
       }
       setPage(Math.min(page, pageCount() - 1), false);
@@ -248,15 +254,12 @@
       if (composed) {
         // Estilo canal: fondo del juego + logo (o el nombre) encima
         inner.classList.add('composed');
-        const bg = document.createElement('img');
-        bg.className = 'tile-bg';
-        bg.src = g.hero;
-        bg.alt = '';
-        inner.appendChild(bg);
+        inner.appendChild(tileImage(g.hero, 'tile-bg'));
         const title = document.createElement('div');
         title.className = 'tile-title';
         if (g.logo) {
           const logo = document.createElement('img');
+          logo.decoding = 'async';
           logo.src = g.logo;
           logo.alt = g.name;
           logo.onerror = () => logo.replaceWith(titleText(g.name, 'tile'));
@@ -270,9 +273,7 @@
         Object.assign(v, { src: g.tile, muted: true, loop: true, autoplay: true, playsInline: true });
         inner.appendChild(v);
       } else if (g.tile) {
-        const img = document.createElement('img');
-        img.src = g.tile;
-        img.alt = '';
+        const img = tileImage(g.tile);
         img.onerror = () => img.replaceWith(nameLabel(g.name));
         inner.appendChild(img);
       } else {
@@ -282,8 +283,70 @@
       const per = g.appId && summary.perGame && summary.perGame[g.appId];
       if (window.NostalHubUtil.isComplete(per)) btn.insertAdjacentHTML('beforeend', window.NostalHubUtil.completeBadge('seal', 'on-icon')); // 100 %
       btn.addEventListener('click', () => (mv ? moveClick(index) : openChannel(index)));
+      btn.addEventListener('mouseenter', () => setLiveTile(btn));
+      btn.addEventListener('mouseleave', () => liveTile === btn && setLiveTile(null));
       if (mv && mv.index === index) btn.classList.add('wmv');
       return btn;
+    }
+
+    // Imagen de un canal. Las animadas (.webp, .gif) muestran su primer cuadro fijo y solo se anima el canal marcado:
+    // con varias animaciones pesadas en el menú, volver a él congelaba la pantalla (mientras están ocultas siguen
+    // "avanzando", y al volver hay que decodificar cientos de cuadros).
+    function tileImage(src, cls = '') {
+      if (!/\.(webp|gif)(\?|$)/i.test(src)) {
+        const img = document.createElement('img');
+        img.className = cls;
+        img.decoding = 'async'; // las imágenes no detienen la pantalla mientras se cargan
+        img.src = src;
+        img.alt = '';
+        return img;
+      }
+      const c = document.createElement('canvas');
+      c.className = `${cls} tile-still`;
+      c.dataset.live = src;
+      firstFrame(src).then((frame) => {
+        if (!frame) return;
+        c.width = frame.width;
+        c.height = frame.height;
+        c.getContext('2d').drawImage(frame, 0, 0);
+      });
+      return c;
+    }
+    function firstFrame(src) {
+      if (!stills.has(src)) {
+        stills.set(
+          src,
+          (async () => {
+            const img = new Image();
+            img.src = src;
+            await img.decode();
+            const frame = document.createElement('canvas');
+            frame.width = Math.min(640, img.naturalWidth);
+            frame.height = Math.round((frame.width * img.naturalHeight) / img.naturalWidth);
+            frame.getContext('2d').drawImage(img, 0, 0, frame.width, frame.height);
+            img.src = '';
+            return frame;
+          })().catch(() => null)
+        );
+      }
+      return stills.get(src);
+    }
+    // El canal marcado (mouse, teclado o control) reproduce su animación, desde el principio
+    function setLiveTile(tile) {
+      if (liveTile === tile) return;
+      if (liveTile) liveTile.querySelectorAll('.tile-live').forEach((im) => im.remove());
+      liveTile = tile;
+      const still = tile && tile.querySelector('.tile-still');
+      if (!still) return;
+      const img = new Image();
+      img.className = `tile-live ${still.classList.contains('tile-bg') ? 'tile-bg' : ''}`;
+      img.alt = '';
+      img.decoding = 'async';
+      img.src = still.dataset.live;
+      img
+        .decode()
+        .then(() => liveTile === tile && still.after(img))
+        .catch(() => {});
     }
 
     function nameLabel(name) {
@@ -316,6 +379,18 @@
       }
       $('#page-prev').hidden = page === 0;
       $('#page-next').hidden = page >= pageCount() - 1;
+      // Solo se dibuja lo que se ve: esta página y la columna que se asoma a cada lado (con muchos juegos, decodificar
+      // todas las imágenes al volver al menú congelaba la pantalla). Mientras pasa de página, también la anterior.
+      clearTimeout(pageTimer);
+      showTiles(animate ? prev : page);
+      if (animate && page !== prev) pageTimer = setTimeout(() => showTiles(page), PAGE_SLIDE_MS);
+    }
+    function showTiles(also) {
+      grid.querySelectorAll('.tile').forEach((t) => {
+        const p = Number(t.dataset.p);
+        const col = Number(t.dataset.col);
+        t.classList.toggle('off', !(p === page || p === also || (p === page + 1 && col === 0) || (p === page - 1 && col === COLS - 1)));
+      });
     }
 
     $('#page-prev').addEventListener('click', () => setPage(page - 1));
@@ -326,9 +401,13 @@
     // RePág / AvPág (L1 / R1 del control): cambiar de página. Se ve solo después de usar las flechas.
     function paintKf() {
       root.querySelectorAll('.wkf').forEach((el) => el.classList.remove('wkf'));
-      if (!kf.on || view !== 'menu') return;
+      if (!kf.on || view !== 'menu') {
+        if (view === 'menu') setLiveTile(grid.querySelector('.tile.game:hover')); // volviste al mouse
+        return;
+      }
       const el = kf.area === 'grid' ? tileFor(kf.index) : $(BAR[kf.btn]);
       if (el) el.classList.add('wkf');
+      setLiveTile(kf.area === 'grid' ? el : null);
     }
     // Que la selección quede en la página que se ve (misma fila y columna, o el último canal de esa página)
     function kfToPage() {
@@ -543,7 +622,8 @@
       const from = stageRect(tile.querySelector('.tile-inner'));
       const zoomer = document.createElement('div');
       zoomer.className = 'zoomer';
-      if (g.hero || g.tile) zoomer.style.backgroundImage = `url("${g.hero || g.tile}")`;
+      setZoomerImage(zoomer, tile.querySelector('.tile-still, .tile-bg, .tile-inner img'), g);
+      setLiveTile(null);
       Object.assign(zoomer.style, px(from));
       root.appendChild(zoomer);
       menu.classList.add('dimmed');
@@ -581,7 +661,8 @@
 
       const zoomer = document.createElement('div');
       zoomer.className = 'zoomer';
-      if (g && (g.hero || g.tile)) zoomer.style.backgroundImage = `url("${g.hero || g.tile}")`;
+      setZoomerImage(zoomer, chMedia.querySelector('img.hero'), g);
+      chMedia.innerHTML = ''; // deja de reproducir el fondo si es animado
       Object.assign(zoomer.style, { left: '0px', top: '0px', width: `${STAGE_W}px`, height: `${TOP_H}px`, borderRadius: '0px' });
       root.appendChild(zoomer);
       channel.hidden = true;
@@ -603,6 +684,19 @@
       view = 'menu';
       if (current >= 0) Object.assign(kf, { area: 'grid', index: current }); // queda marcado el canal del que vienes
       paintKf();
+    }
+
+    // Lo que crece o se achica entre el menú y el canal: una foto de lo que ya se ve. Volver a cargar la imagen congelaba
+    // la pantalla si el fondo era una animación pesada (un .webp de cientos de cuadros parte desde cero).
+    function setZoomerImage(zoomer, img, g) {
+      const w = img && (img.naturalWidth || (img.tagName === 'CANVAS' && img.width));
+      if (w && (img.tagName === 'CANVAS' || img.complete)) {
+        const c = document.createElement('canvas');
+        c.width = Math.min(960, w);
+        c.height = Math.round((c.width * (img.naturalHeight || img.height)) / w);
+        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+        zoomer.appendChild(c);
+      } else if (g && (g.hero || g.tile) && !g.tileIsVideo) zoomer.style.backgroundImage = `url("${g.hero || g.tile}")`;
     }
 
     function px(r) {
@@ -661,7 +755,7 @@
     paintStats(g);
     channel.querySelector('.ch-desc-text').textContent = g.description || '';
     desc.hidden = !g.description && !stats;
-    $('#btn-ach').hidden = g.type !== 'steam';
+    $('#btn-ach').hidden = !g.hasAch;
 
     const many = games.length > 1;
       $('#ch-prev').style.visibility = many ? '' : 'hidden';
@@ -1341,6 +1435,7 @@
         stopVideo();
         clearInterval(tickTimer);
         clearInterval(playTimer);
+        clearTimeout(pageTimer);
         window.removeEventListener('keydown', onKey);
         if (offGames) offGames();
         if (offSummary) offSummary();

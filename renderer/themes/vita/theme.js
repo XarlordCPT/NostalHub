@@ -948,7 +948,7 @@
         </div>
         <div class="v-live">
           <div class="v-li"><div class="v-li-h">${icon('clock')}<span>Tu actividad</span></div><div class="v-li-t">${esc(act)}</div><div class="v-li-s">${esc(typeLabel(g))}</div></div>
-          <button class="v-li" data-f="troph"${g.type === 'steam' ? '' : ' hidden'}>
+          <button class="v-li" data-f="troph"${g.hasAch ? '' : ' hidden'}>
             <div class="v-li-h">${icon('trophy')}<span>Trofeos</span>${icon('chevron', 'v-li-go')}</div>
             ${
               U.isComplete(tp)

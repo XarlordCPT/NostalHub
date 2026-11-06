@@ -12,6 +12,7 @@
     steam: '<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="24" cy="24" r="19"/><circle cx="31" cy="18" r="5.5"/><circle cx="17" cy="31" r="4"/><path d="M27 22l-7 6M5 27l9 4"/></svg>',
     discord: '<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 32V24a16 16 0 0 1 32 0v8"/><rect x="6" y="28" width="8" height="12" rx="3"/><rect x="34" y="28" width="8" height="12" rx="3"/></svg>',
     spotify: '<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round"><circle cx="24" cy="24" r="19"/><path d="M14 19c7-2 14-1.5 20 2M15.5 25.5c5.5-1.5 11-1 16 1.6M17 31.5c4.3-1 8.3-.6 12 1"/></svg>',
+    retro: '<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 8h16v10a8 8 0 0 1-16 0Z"/><path d="M16 11H9v3a6 6 0 0 0 7 6M32 11h7v3a6 6 0 0 1-7 6"/><path d="M24 26v8M17 40h14M19 34h10v6H19z"/></svg>',
     close: '<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round"><path d="M12 12l24 24M36 12 12 36"/></svg>',
     check: '<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 25l9 9 19-20"/></svg>',
   };
@@ -26,6 +27,7 @@
           <button class="su-tab" data-t="steam">${ICON.steam}<span>Steam</span></button>
           <button class="su-tab" data-t="discord">${ICON.discord}<span>Discord</span></button>
           <button class="su-tab" data-t="spotify">${ICON.spotify}<span>Spotify</span></button>
+          <button class="su-tab" data-t="retro">${ICON.retro}<span>RetroAchievements</span></button>
         </div>
         <button class="su-x" aria-label="Cerrar">${ICON.close}</button>
       </div>
@@ -40,13 +42,13 @@
   let info = null; // lo que ya está guardado
   let discordState = null;
   let busy = false;
-  let lastResult = { steam: null, discord: null, spotify: null };
-  const TABS = ['steam', 'discord', 'spotify'];
+  let lastResult = { steam: null, discord: null, spotify: null, retro: null };
+  const TABS = ['steam', 'discord', 'spotify', 'retro'];
 
   // ---------- Abrir y cerrar ----------
   async function show(which) {
     tab = TABS.includes(which) ? which : 'steam';
-    lastResult = { steam: null, discord: null, spotify: null };
+    lastResult = { steam: null, discord: null, spotify: null, retro: null };
     if (!open) {
       open = true;
       box.hidden = false;
@@ -156,6 +158,28 @@
         <div class="su-actions"><button class="su-btn primary" data-save>Guardar y probar</button>${result(lastResult.steam)}</div>
         ${s.foundUser === false ? '<p class="su-note">No encontré tu usuario de Steam en este PC: abre Steam e inicia sesión para que se vean tus logros.</p>' : ''}
         <p class="su-note">No compartas la clave con nadie. <button class="su-link" data-open="apikey-file">Abrir el archivo de la clave</button></p>`;
+    } else if (tab === 'retro') {
+      const r = (info && info.retro) || {};
+      body.innerHTML = `
+        <div class="su-title"><h2>Conectar RetroAchievements</h2>${r.connected ? chip('ok', `Conectado como ${r.user}`) : chip('off', 'Sin conectar')}</div>
+        <p class="su-lead">Con tu cuenta se ven los <b>logros de tus juegos de emulador</b> en todas las consolas, y se suman a tu total. El emulador es el que los entrega, así que tu cuenta también tiene que estar iniciada ahí.</p>
+        ${step(1, `En tu emulador, activa los logros e inicia sesión. En PCSX2: <b>Ajustes → Logros</b>.`)}
+        ${step(2, `Abre tu configuración de RetroAchievements y busca la <b>Web API Key</b>. <button class="su-btn" data-open="retro-settings">Abrir RetroAchievements</button>`)}
+        ${step(3, `Pega aquí tu usuario y la clave:
+          <div class="su-two">${field('su-ra-user', 'Usuario', 'Tu nombre en RetroAchievements')}${field('su-ra-key', 'Web API Key', r.connected ? 'Ya hay una guardada (pega otra para cambiarla)' : 'Letras y números', true)}</div>`)}
+        <div class="su-actions"><button class="su-btn primary" data-save>Guardar y probar</button>
+          ${r.connected ? '<button class="su-btn" data-ra-off>Desconectar</button>' : ''}
+          ${result(lastResult.retro)}</div>
+        <p class="su-note">Los juegos se reconocen por su nombre; si alguno no aparece, se reconoce solo cuando lo juegues unos minutos. No compartas la clave con nadie.</p>`;
+      if (r.user) body.querySelector('#su-ra-user').value = r.user;
+      const off = body.querySelector('[data-ra-off]');
+      if (off)
+        off.addEventListener('click', async () => {
+          await call('disconnectRetro');
+          info = (await call('getSetup')) || info;
+          lastResult.retro = { ok: true, text: 'RetroAchievements quedó desconectado.' };
+          render();
+        });
     } else if (tab === 'spotify') {
       const sp = (info && info.spotify) || {};
       const redirect = sp.redirect || 'http://127.0.0.1:8957/callback';
@@ -277,6 +301,16 @@
           lastResult.steam = r.ok
             ? { ok: true, text: r.name ? `¡Listo! Conectado como ${r.name}. Tus logros se cargan en unos segundos.` : '¡Listo! La clave funciona y quedó guardada.', warning: r.warning }
             : { ok: false, text: r.message };
+          if (r.ok) info = (await call('getSetup')) || info;
+        }
+      } else if (tab === 'retro') {
+        const user = body.querySelector('#su-ra-user').value;
+        const key = body.querySelector('#su-ra-key').value;
+        if (!key.trim() && info.retro && info.retro.connected) {
+          lastResult.retro = { ok: true, text: 'Tu clave ya estaba guardada. Pega otra si quieres cambiarla.' };
+        } else {
+          const r = (await call('saveRetro', user, key)) || { ok: false, message: 'No se pudo guardar.' };
+          lastResult.retro = r.ok ? { ok: true, text: `¡Listo! Conectado como ${r.user}. Tus logros se cargan en unos segundos.` } : { ok: false, text: r.message };
           if (r.ok) info = (await call('getSetup')) || info;
         }
       } else if (tab === 'spotify') {

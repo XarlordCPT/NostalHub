@@ -824,7 +824,7 @@
       }
     }
     function detailActions(g) {
-      return g.type === 'steam'
+      return g.hasAch
         ? [
             ['Iniciar', startGame],
             ['Logros', openAch],

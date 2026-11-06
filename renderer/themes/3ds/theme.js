@@ -917,7 +917,7 @@
         `<b>${esc(g.name)}</b><small>${esc([U.hours(g.playtimeMin), g.lastPlayed ? `Jugado ${U.ago(g.lastPlayed)}` : '', tp && tp.total ? `${tp.done}/${tp.total} logros` : ''].filter(Boolean).join(' · ') || g.description || '')}</small>`,
         [
           { label: 'Abrir', run: () => startGame(g) },
-          ...(g.type === 'steam' ? [{ label: 'Logros', run: async () => (await openApp('trophies'), app.open(g)) }] : []),
+          ...(g.hasAch ? [{ label: 'Logros', run: async () => (await openApp('trophies'), app.open(g)) }] : []),
           { label: 'Cambiar imágenes', run: () => window.NostalHubGameEditor && window.NostalHubGameEditor.open(g.id) },
           { label: 'Ordenar', run: () => sortDlg() },
           { label: 'Mover', run: () => startMove() },

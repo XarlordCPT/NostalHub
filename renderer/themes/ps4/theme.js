@@ -434,7 +434,7 @@
             ? `<div class="p4-panel-t nh-done-text plat">${U.completeBadge('platinum')} Platino · ${tp.done} de ${tp.total}</div><div class="p4-bar plat"><i style="width:100%"></i></div>`
             : tp && tp.total
             ? `<div class="p4-panel-t">${tp.done} de ${tp.total} · ${Math.round((tp.done / tp.total) * 100)} %</div><div class="p4-bar"><i style="width:${(tp.done / tp.total) * 100}%"></i></div>`
-            : `<div class="p4-panel-t dim">${g.type === 'steam' ? (summary.hasKey ? 'Sin datos todavía' : 'Agrega tu clave de Steam') : 'No es de Steam'}</div>`
+            : `<div class="p4-panel-t dim">${g.hasAch ? (summary.hasKey ? 'Sin datos todavía' : 'Agrega tu clave de Steam') : g.type === 'emulator' ? 'Sin logros' : 'No es de Steam'}</div>`
         }</div>
         <div class="p4-panel wide"><div class="p4-panel-h">${icon('down')} Información</div><div class="p4-panel-t clamp">${esc(g.description || 'Baja para ver la ficha del juego.')}</div></div>`;
     }
@@ -540,7 +540,7 @@
       } else title.textContent = g.name;
       $('.p4g-meta').textContent = [typeLabel(g), U.hours(g.playtimeMin), g.lastPlayed ? `Jugado ${U.ago(g.lastPlayed)}` : ''].filter(Boolean).join('   ·   ');
       $('.p4g-desc').textContent = g.description || 'Sin descripción. Puedes escribir una en descripcion.txt, en la carpeta de personalización del juego.';
-      $('[data-g="troph"]').hidden = g.type !== 'steam';
+      $('[data-g="troph"]').hidden = !g.hasAch;
       setGameBtn(0);
       paintGameTrophies(g);
     }
@@ -550,8 +550,8 @@
     async function paintGameTrophies(g) {
       const body = $('.p4g-tp-body');
       const tp = trophiesOf(g);
-      if (g.type !== 'steam') {
-        body.innerHTML = '<div class="p4-panel-t dim">Este juego no es de Steam, así que no tiene trofeos.</div>';
+      if (!g.hasAch) {
+        body.innerHTML = '<div class="p4-panel-t dim">Este juego no tiene lista de trofeos.</div>';
         return;
       }
       body.innerHTML = U.isComplete(tp)

@@ -1,4 +1,5 @@
-// Emuladores: encuentra el programa y tus juegos, y arma cómo abrir cada uno directo. Por ahora PCSX2 (PS2).
+// Emuladores: encuentra el programa y tus juegos, y arma cómo abrir cada uno directo.
+// Por ahora PCSX2 (PS2) y RetroArch con el núcleo mGBA (GBA).
 // NostalHub no trae emuladores, juegos ni BIOS: solo abre lo que ya tienes.
 
 const fs = require('fs');
@@ -6,12 +7,44 @@ const path = require('path');
 
 const MAX_DEPTH = 6;
 
+// ---------- RetroArch ----------
+function retroarchExe() {
+  const roots = ['C:\\RetroArch-Win64', 'C:\\RetroArch'];
+  for (const base of [process.env.ProgramFiles, process.env['ProgramFiles(x86)'], process.env.LOCALAPPDATA && path.join(process.env.LOCALAPPDATA, 'Programs'), process.env.APPDATA]) {
+    if (base) roots.push(path.join(base, 'RetroArch'), path.join(base, 'RetroArch-Win64'));
+  }
+  for (const root of roots) {
+    const file = path.join(root, 'retroarch.exe');
+    if (fs.existsSync(file)) return file;
+  }
+  return null;
+}
+// Una opción de retroarch.cfg (solo se lee la que se pide). ":\\cores" significa la carpeta de RetroArch.
+function retroarchOption(exe, name) {
+  for (const file of [path.join(path.dirname(exe), 'retroarch.cfg'), process.env.APPDATA && path.join(process.env.APPDATA, 'RetroArch', 'retroarch.cfg')]) {
+    let text = '';
+    try {
+      text = fs.readFileSync(file, 'utf8');
+    } catch {
+      continue;
+    }
+    const m = text.match(new RegExp(`^${name}\\s*=\\s*"([^"]*)"`, 'm'));
+    if (m && m[1] && m[1] !== 'default') return m[1].startsWith(':') ? path.join(path.dirname(exe), m[1].slice(1)) : m[1];
+    return null;
+  }
+  return null;
+}
+function retroarchCore(exe, dll) {
+  return path.join(retroarchOption(exe, 'libretro_directory') || path.join(path.dirname(exe), 'cores'), dll);
+}
+
 const EMULATORS = {
   pcsx2: {
     name: 'PCSX2',
     system: 'PS2',
     idPrefix: 'ps2',
     artRepo: 'Sony_-_PlayStation_2', // carátulas por nombre de archivo (libretro-thumbnails)
+    raConsole: 21, // número de la consola en RetroAchievements
     exts: ['.iso', '.chd', '.cso', '.zso', '.gz', '.cue', '.mdf'],
     exe: () => {
       const roots = [process.env.ProgramFiles, process.env['ProgramFiles(x86)'], process.env.LOCALAPPDATA && path.join(process.env.LOCALAPPDATA, 'Programs')];
@@ -39,6 +72,22 @@ const EMULATORS = {
     // -batch: al cerrar el juego se cierra el emulador. Con su ventana principal (no -nogui), para que la pantalla
     // completa salga en la pantalla donde dejaste PCSX2: no tiene opción para elegirla y sin ventana sale en cualquiera
     args: (rom) => ['-batch', '-fullscreen', '--', rom],
+  },
+  gba: {
+    name: 'RetroArch',
+    system: 'GBA',
+    idPrefix: 'gba',
+    artRepo: 'Nintendo_-_Game_Boy_Advance',
+    raConsole: 5,
+    exts: ['.gba'],
+    exe: retroarchExe,
+    // La carpeta inicial de RetroArch (Ajustes → Directorio → Explorador de archivos)
+    folders(exe) {
+      const dir = retroarchOption(exe, 'rgui_browser_directory');
+      return dir ? [{ dir, recursive: true }] : [];
+    },
+    problem: (exe) => (fs.existsSync(retroarchCore(exe, 'mgba_libretro.dll')) ? null : 'Falta el núcleo mGBA: bájalo en RetroArch, en Online Updater → Core Downloader'),
+    args: (rom, exe) => ['-L', retroarchCore(exe, 'mgba_libretro.dll'), '--fullscreen', rom],
   },
 };
 

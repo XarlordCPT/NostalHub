@@ -25,6 +25,7 @@ Para abrirla: pega esa ruta en la barra del Explorador de Windows, o usa **Ajust
 ├── steam-api-key.txt          ← tu clave de Steam (logros, amigos, nombre y foto)   ¡no la compartas!
 ├── discord.txt                ← tu aplicación de Discord (el Grupo)                  ¡no la compartas!
 ├── spotify.json               ← la conexión con Spotify (cola, me gusta…)            ¡no la compartas!
+├── retroachievements.json     ← tu cuenta de RetroAchievements                       ¡no la compartas!
 ├── config.json                ← lista de juegos y opciones
 ├── estadisticas.db            ← tus horas de juego (el Resumen)
 ├── cache\                     ← cosas que la app descarga sola (y los registros spotify.log y discord.log)
@@ -338,17 +339,29 @@ progresos que agregan los mods salen con la copa.
 - **Ocultar un juego:** agrégale `"hidden": true`. No lo borres, porque los de Steam se vuelven a importar.
 - **Cambiar el orden:** cada consola tiene su opción para ordenar (sección 8, *Ordenar los juegos*).
 
-### Juegos de emulador (PS2 con PCSX2)
+### Juegos de emulador (PS2 y GBA)
 
-NostalHub no trae emuladores, juegos ni BIOS: abre lo que ya tienes. PCSX2 tiene que estar instalado y funcionando.
+NostalHub no trae emuladores, juegos ni BIOS: abre lo que ya tienes. El emulador tiene que estar instalado y funcionando:
+**PCSX2** para PS2, y **RetroArch** con el núcleo **mGBA** para GBA (`.gba`, en la carpeta que RetroArch usa para buscar juegos).
 
-1. **Ajustes → Implementación de Emuladores → Buscar juegos de PS2 (PCSX2)**. Usa las carpetas que configuraste en PCSX2; si no hay ninguna,
+1. **Ajustes → Implementación de Emuladores → Buscar juegos de PS2 (PCSX2)** o **de GBA (RetroArch)**. En PS2, usa las carpetas que configuraste en PCSX2. Si no hay ninguna carpeta,
    te pregunta dónde están tus juegos (`.iso`, `.chd`, `.cso`, `.zso`, `.gz`, `.cue` o `.mdf`).
 2. Los juegos aparecen en todas las consolas. Al elegir uno se abre directo en PCSX2, a pantalla completa, y al cerrarlo
    vuelves al menú. Sus horas se cuentan en el Resumen. Sale en la pantalla donde dejaste la ventana de PCSX2: para
    cambiarla, abre PCSX2 por su cuenta, déjalo en la otra pantalla y ciérralo.
 3. Si agregas otro juego a esas carpetas, aparece solo al abrir NostalHub, o al tiro apretando de nuevo ese botón. Los que
    borres se esconden.
+
+**Logros (RetroAchievements):** con tu cuenta, tus juegos de emulador muestran sus logros en todas las consolas, con el
+sello del 100 %, y se suman a tu total junto con los de Steam.
+
+1. En el emulador, activa los logros e inicia sesión (PCSX2: **Ajustes → Logros**; RetroArch: **Settings → Achievements**). Apaga
+   ahí sus notificaciones si no quieres ver el aviso doble.
+2. En NostalHub, **Ajustes → Cuentas → Conectar RetroAchievements**: pega tu usuario y tu **Web API Key**.
+
+Los juegos se reconocen por su nombre; si alguno no aparece, se reconoce solo cuando lo juegas un par de minutos. El
+aviso encima del juego **tarda hasta un minuto**, porque NostalHub tiene que preguntarle a RetroAchievements cada cierto
+rato. Solo avisa los juegos que abres desde NostalHub. No todos los juegos tienen logros ahí.
 
 La carátula y las imágenes se descargan por el **nombre del archivo**, así que funcionan mejor con nombres tipo
 `Guitar Hero (USA).iso`. Si alguna no aparece, ponla con clic derecho → Cambiar imágenes.
@@ -510,6 +523,7 @@ puede saber cuándo terminan: usa **Volver al menú**.
   botones de abajo); **RePág / AvPág** (L1 / R1 en el control) o la rueda pasan de página. Abajo, el reloj y los
   botones redondos: **engranaje** (ajustes), **flechas** (ordenar los canales), **sobre** (amigos de Steam) y
   **dado** (juego al azar).
+- Si un canal tiene una imagen animada (`.webp` o `.gif`), en el menú muestra su primer cuadro y **se anima al marcarlo**.
 - **Pantalla del canal**: al elegir un juego se abre su canal con el fondo, el logo y la animación (`video.mp4` o el
   tráiler de Steam, si los activaste). Botones **Menú**, **Iniciar** y **Logros** (↓). ← → cambian de canal.
 
