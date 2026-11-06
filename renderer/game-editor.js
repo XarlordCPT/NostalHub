@@ -13,7 +13,7 @@
   const CONSOLE_NAMES = { wii: 'Wii', ps2: 'PS2', x360: 'Xbox 360', ps4: 'PS4', vita: 'PS Vita', switch: 'Switch', ps3: 'PS3', '3ds': '3DS' };
   // Qué imágenes se ven en cada consola (en orden)
   const BY_CONSOLE = {
-    wii: ['tile', 'hero', 'logo', 'video'],
+    wii: ['tile', 'hero', 'logo', 'video', 'music'],
     ps2: ['model', 'logo'],
     x360: ['cover', 'hero', 'logo'],
     ps4: ['hero', 'logo'],
@@ -34,7 +34,7 @@
     cover: { label: 'Carátula', hint: 'La caja del juego, vertical (600×900).', shape: 'tall' },
     square: { label: 'Imagen cuadrada', hint: 'El cuadro del juego en la Switch y el icono en la 3DS (ej. 1024×1024). Si no hay, se arma con el fondo y el logo.', shape: 'square' },
     icon0: { label: 'Icono PS3', hint: 'El icono del juego en el menú de la PS3 (320×176). Si no hay, se usa la cabecera de Steam.', shape: 'ps3' },
-    music: { label: 'Música', hint: 'Suena al quedarte sobre el juego en la PS3 (mp3, ogg, m4a o wav; 30 a 60 segundos).', shape: 'audio' },
+    music: { label: 'Música', hint: 'Suena en el canal del juego en la Wii y al quedarte sobre él en la PS3 (mp3, ogg, m4a o wav; 30 a 60 segundos, se repite).', shape: 'audio' },
     bubble: { label: 'Burbuja', hint: 'Imagen cuadrada; se recorta en círculo (ej. 512×512). Si no hay, se usa la carátula.', shape: 'circle' },
   };
 

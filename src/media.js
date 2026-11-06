@@ -28,7 +28,7 @@ const CUSTOM_FILES = {
   bubble: { base: 'burbuja', ext: IMAGE_EXT },              // imagen de la burbuja redonda (tema PS Vita)
   square: { base: 'cuadrado', ext: IMAGE_EXT },             // imagen cuadrada (tema Nintendo Switch)
   icon0: { base: 'icono', ext: IMAGE_EXT },                 // icono rectangular 320×176 (tema PS3)
-  music: { base: 'musica', ext: ['.mp3', '.ogg', '.m4a', '.wav', '.opus', '.flac', '.webm'] }, // música del juego (tema PS3)
+  music: { base: 'musica', ext: ['.mp3', '.ogg', '.m4a', '.wav', '.opus', '.flac', '.webm'] }, // música del juego (temas Wii y PS3)
 };
 
 function safeId(id) {

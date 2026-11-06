@@ -731,6 +731,7 @@ void main(){
     let detailTimer = 0;
     let shownGame = null;
     let snd = null;
+    const { fadeAudio } = window.NostalHubUtil;
     function focusChanged() {
       const it = mode === 'xmb' || mode === 'opts' ? curItem() : null;
       const g = it && it.game;
@@ -771,17 +772,6 @@ void main(){
         fadeAudio(a, 0, 450, () => a.pause());
         ctx.duckMusic && ctx.duckMusic(false);
       }
-    }
-    function fadeAudio(a, to, ms, done) {
-      const from = a.volume;
-      const t0 = performance.now();
-      const step = () => {
-        const k = Math.min(1, (performance.now() - t0) / ms);
-        a.volume = Math.max(0, Math.min(1, from + (to - from) * k));
-        if (k < 1) setTimeout(step, 40);
-        else if (done) done();
-      };
-      step();
     }
 
     // =====================================================================

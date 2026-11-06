@@ -790,7 +790,21 @@
     };
   }
 
+  // Sube o baja el volumen de un audio de a poco
+  function fadeAudio(a, to, ms, done) {
+    const from = a.volume;
+    const t0 = performance.now();
+    const step = () => {
+      const k = Math.min(1, (performance.now() - t0) / ms);
+      a.volume = Math.max(0, Math.min(1, from + (to - from) * k));
+      if (k < 1) setTimeout(step, 40);
+      else if (done) done();
+    };
+    step();
+  }
+
   window.NostalHubUtil = {
+    fadeAudio,
     nowPlaying,
     clockHtml,
     clockTexts,

@@ -36,6 +36,7 @@ class RetroAchievements {
     this.cfg = this.read(this.file) || {};
     this.totals = this.read(this.totalsFile) || {};
     this.seen = null; // logros ya vistos, para avisar solo los nuevos
+    this.live = new Set(); // logros ya avisados por el registro del emulador
   }
 
   read(file) {
@@ -170,6 +171,7 @@ class RetroAchievements {
           hidden: false,
           icon: `${MEDIA}/Badge/${a.BadgeName}.png`,
           iconGray: `${MEDIA}/Badge/${a.BadgeName}_lock.png`,
+          points: Number(a.Points) || 0,
           done: !!when,
           unlockTime: when ? Date.parse(`${String(when).replace(' ', 'T')}Z`) : null,
           percent: players ? (Number(a.NumAwarded) / players) * 100 : null,
@@ -209,20 +211,27 @@ class RetroAchievements {
     const fresh = items.filter((a) => !this.seen.has(a.AchievementID));
     fresh.forEach((a) => this.seen.add(a.AchievementID));
     if (first) return [];
-    return fresh.map((a) => {
-      const key = this.key(a.GameID);
-      const t = this.totals[key];
-      if (t && t.done < t.total) this.setTotal(key, t.done + 1, t.total);
-      const now = this.totals[key];
-      return {
-        name: a.Title,
-        gamerscore: Number(a.Points) || 0,
-        tier: tierOf(Number(a.Points) || 0),
-        icon: `${MEDIA}/Badge/${a.BadgeName}.png`,
-        completed: !!(now && now.total && now.done >= now.total),
-        gameName: a.GameTitle,
-      };
-    });
+    return fresh
+      .filter((a) => !this.live.has(Number(a.AchievementID)))
+      .map((a) => this.notice(this.key(a.GameID), { name: a.Title, points: Number(a.Points) || 0, icon: `${MEDIA}/Badge/${a.BadgeName}.png`, gameName: a.GameTitle }));
+  }
+
+  // Un logro que el emulador acaba de escribir en su registro: se avisa al tiro y el repaso periódico ya no lo repite.
+  // list: los logros del juego (para el ícono y los puntos); si todavía no llegan, sale solo con el nombre.
+  liveUnlock(key, id, title, list, gameName) {
+    const n = Number(id);
+    if (this.live.has(n) || (this.seen && this.seen.has(n))) return null;
+    this.live.add(n);
+    const a = (list || []).find((x) => x.id === String(n));
+    return this.notice(key, { name: a ? a.name : title, points: a ? a.points : 0, icon: a ? a.icon : null, gameName });
+  }
+
+  // Suma el logro al total del juego y arma el aviso
+  notice(key, { name, points, icon, gameName }) {
+    const t = this.totals[key];
+    if (t && t.done < t.total) this.setTotal(key, t.done + 1, t.total);
+    const now = this.totals[key];
+    return { name, gamerscore: points, tier: tierOf(points), icon, completed: !!(now && now.total && now.done >= now.total), gameName };
   }
 }
 

@@ -91,8 +91,39 @@ const EMULATORS = {
     },
     problem: (exe) => (fs.existsSync(retroarchCore(exe, 'mgba_libretro.dll')) ? null : 'Falta el núcleo mGBA: bájalo en RetroArch, en Online Updater → Core Downloader'),
     args: (rom, exe) => ['-L', retroarchCore(exe, 'mgba_libretro.dll'), '--fullscreen', rom],
+    // Su registro dice al instante qué logro ganaste (no guarda tu token)
+    liveLog: {
+      args: (file) => ['--verbose', `--log-file=${file}`],
+      game: /\[RCHEEVOS\] Identified game: (\d+) /,
+      unlock: /\[RCHEEVOS\] Awarding achievement (\d+): (.*)$/,
+    },
   },
 };
+
+// Lee las líneas nuevas de un archivo mientras otro programa lo escribe. Devuelve la función para dejar de leer.
+function tailFile(file, onLine, everyMs = 500) {
+  let pos = 0;
+  const timer = setInterval(() => {
+    let fd = null;
+    try {
+      const size = fs.statSync(file).size;
+      if (size < pos) pos = 0; // empezó de nuevo
+      if (size === pos) return;
+      fd = fs.openSync(file, 'r');
+      const buf = Buffer.alloc(size - pos);
+      fs.readSync(fd, buf, 0, buf.length, pos);
+      const end = buf.lastIndexOf(10); // solo líneas completas
+      if (end < 0) return;
+      pos += end + 1;
+      buf.toString('utf8', 0, end).replace(/\r$/, '').split(/\r?\n/).forEach(onLine);
+    } catch {
+      // Todavía no existe el archivo
+    } finally {
+      if (fd !== null) fs.closeSync(fd);
+    }
+  }, everyMs);
+  return () => clearInterval(timer);
+}
 
 // Todos los juegos dentro de las carpetas
 function scanFolders(folders, exts) {
@@ -132,4 +163,4 @@ function gameId(prefix, file) {
   return `${prefix}-${slug}`;
 }
 
-module.exports = { EMULATORS, scanFolders, gameName, gameId };
+module.exports = { EMULATORS, scanFolders, gameName, gameId, tailFile };

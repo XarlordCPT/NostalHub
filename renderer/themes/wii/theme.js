@@ -610,6 +610,31 @@
       return new Promise((r) => setTimeout(r, ms));
     }
 
+    // Música propia del juego (musica.mp3): suena en su canal en vez de la música de la Wii
+    const ss = () => (ctx.soundSettings ? ctx.soundSettings() : { music: true, musicVolume: 0.35 });
+    const { fadeAudio } = window.NostalHubUtil;
+    let chSong = null; // { url, audio }
+    function setChannelMusic(url) {
+      const wanted = url && ss().music !== false ? url : null;
+      if ((chSong ? chSong.url : null) === wanted) return;
+      if (chSong) {
+        const old = chSong.audio;
+        fadeAudio(old, 0, 450, () => old.pause());
+      }
+      chSong = wanted ? { url: wanted, audio: new Audio(wanted) } : null;
+      if (chSong) {
+        const a = chSong.audio;
+        a.loop = true;
+        a.volume = 0;
+        a.addEventListener('error', () => {
+          if (chSong && chSong.audio === a) setChannelMusic(null); // archivo dañado: vuelve la música de la Wii
+        });
+        a.play().catch(() => {});
+        fadeAudio(a, Math.min(1, (ss().musicVolume || 0.35) * 1.6), 1200);
+      }
+      if (ctx.duckMusic) ctx.duckMusic(!!chSong);
+    }
+
     async function openChannel(index) {
       if (view !== 'menu') return;
       const g = games[index];
@@ -637,6 +662,7 @@
       );
 
       fillChannel(g);
+      setChannelMusic(g.music);
       await anim.finished;
       channel.hidden = false;
       channel.dataset.gameCurrent = g.id; // clic derecho / tecla I → imágenes de este juego
@@ -658,6 +684,7 @@
       channel.classList.remove('enter');
       channel.classList.add('leave');
       stopVideo();
+      setChannelMusic(null);
 
       const zoomer = document.createElement('div');
       zoomer.className = 'zoomer';
@@ -840,6 +867,7 @@
       current = (current + dir + games.length) % games.length;
       channel.dataset.gameCurrent = games[current].id;
       fillChannel(games[current]);
+      setChannelMusic(games[current].music);
       chTop.classList.remove('swap-next', 'swap-prev');
       chTop.offsetWidth; // reinicia la animación
       chTop.classList.add(dir > 0 ? 'swap-next' : 'swap-prev');
@@ -876,6 +904,7 @@
       playing.hidden = false;
       playing.classList.add('enter');
       document.body.classList.add('playing');
+      setChannelMusic(null);
       view = 'playing';
       nowPlaying.start(); // Spotify y Grupo a los lados
 
@@ -1405,6 +1434,7 @@
           current = -1;
           channel.hidden = true;
           stopVideo();
+          setChannelMusic(null);
           menu.classList.remove('dimmed');
           view = 'menu';
         }
@@ -1416,6 +1446,7 @@
         channel.querySelector('.ch-stats').textContent = statsLine(g);
         const hero = chMedia.querySelector('img.hero');
         if (hero && (g.hero || g.tile) && hero.src !== (g.hero || g.tile)) hero.src = g.hero || g.tile;
+        setChannelMusic(g.music); // la acabas de poner o quitar en el editor
       }
     }
 
@@ -1433,6 +1464,7 @@
         nowPlaying.dispose();
         feed.dispose();
         stopVideo();
+        setChannelMusic(null);
         clearInterval(tickTimer);
         clearInterval(playTimer);
         clearTimeout(pageTimer);

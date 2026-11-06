@@ -62,7 +62,7 @@ Para abrirla: pega esa ruta en la barra del Explorador de Windows, o usa **Ajust
         ├── burbuja.png        (PS Vita)
         ├── cuadrado.png       (Switch y 3DS)
         ├── icono.png          (PS3)
-        ├── musica.mp3         (PS3)
+        ├── musica.mp3         (Wii y PS3)
         └── descripcion.txt    (todas)
 ```
 
@@ -160,7 +160,7 @@ NostalHub. También puedes poner los archivos a mano:
 | `burbuja.png` / `burbuja.jpg` | PS Vita | La imagen de la **burbuja redonda** (cuadrada, ej. 512×512; se recorta en círculo) |
 | `cuadrado.png` / `cuadrado.jpg` | Switch y 3DS | El **cuadro del juego** en la Switch y su **icono** en la 3DS (cuadrado, ej. 1024×1024). Si no está, se arma con el fondo y el logo |
 | `icono.png` / `icono.jpg` | PS3 | El **icono del juego** en el menú de la PS3 (rectangular, **320×176**). Si no está, se usa la cabecera de Steam |
-| `musica.mp3` | PS3 | Música que **suena al quedarte sobre el juego** (como en la consola de verdad). También `.ogg`, `.m4a`, `.wav`. Ideal 30 a 60 segundos; se repite |
+| `musica.mp3` | Wii y PS3 | La música del juego, en vez de la de la consola: en la Wii suena en la **pantalla de su canal**, y en la PS3 **al quedarte sobre el juego**. También `.ogg`, `.m4a`, `.wav`. Ideal 30 a 60 segundos; se repite |
 | `descripcion.txt` | Todas | La descripción del juego (reemplaza la de Steam) |
 
 Las imágenes también pueden ser `.webp` o `.gif`, incluso animados.
@@ -343,7 +343,9 @@ instalas de nuevo y terminan de descargarse.
 1. **Agregándolos a Steam** (en Steam: *Juegos* → *Añadir un juego que no es de Steam a mi biblioteca*).
    NostalHub los toma de ahí solos, con las imágenes que les hayas puesto en Steam (portada, fondo y logo). Se abren
    directo con su `.exe`, así que al cerrarlos vuelves solo al menú.
-2. **Desde NostalHub:** Ajustes → Juegos → **Agregar juego o programa**, y elige su `.exe` o su acceso directo.
+2. **Desde NostalHub:** Ajustes → Juegos → **Agregar juego o programa**, y elige su `.exe` o su acceso directo. Los accesos
+   directos de Epic (`.url`, como el de Fortnite) también sirven: NostalHub vigila los programas de la carpeta del juego,
+   vuelve solo al menú unos 15 segundos después de cerrarlo y cuenta sus horas.
 
 Para ponerle arte propio a cualquiera de ellos, usa clic derecho → Cambiar imágenes (sección 2).
 
@@ -418,9 +420,13 @@ sello del 100 %, y se suman a tu total junto con los de Steam.
 2. En NostalHub, **Ajustes → Cuentas → Conectar RetroAchievements**: pega tu usuario y tu **Web API Key**. La ventana trae
    un botón para abrir la página donde está. No la compartas con nadie.
 
-Los juegos se reconocen por su nombre; si alguno no aparece, se reconoce solo cuando lo juegas un par de minutos. El
-aviso encima del juego **tarda hasta un minuto**, porque NostalHub tiene que preguntarle a RetroAchievements cada cierto
-rato. Solo avisa los juegos que abres desde NostalHub. No todos los juegos tienen logros ahí.
+Los juegos se reconocen por su nombre; si alguno no aparece, se reconoce solo cuando lo juegas un par de minutos. Solo
+avisa los juegos que abres desde NostalHub. No todos los juegos tienen logros ahí.
+
+**Cuánto tarda el aviso encima del juego:**
+- **RetroArch:** al instante. NostalHub lo abre con su registro activado solo para esa partida, lo lee mientras juegas y lo
+  borra al terminar (no guarda tu cuenta ni tu token).
+- **PCSX2:** hasta un minuto, porque NostalHub tiene que preguntarle a RetroAchievements cada cierto rato.
 
 ---
 
@@ -484,7 +490,8 @@ General → Resumen de horas**.
 - **← →** cambia entre Semana, Mes, Año y Todo. **Q / E** (L1 / R1 en el control) va al período anterior o siguiente. **Esc** cierra.
 - **Cuenta desde la versión 1.1.0**, y se guarda en `estadisticas.db`. Al desinstalar NostalHub no se borra.
 - Tiene que estar NostalHub abierta. Los juegos de Steam se cuentan aunque los abras desde Steam; los demás, cuando los
-  abres desde NostalHub y se puede saber cuándo se cierran (no los que se abren por un enlace de otro launcher).
+  abres desde NostalHub y se puede saber cuándo se cierran. Eso incluye los accesos `.url` de Epic cuyo ícono es el programa
+  del juego, pero no otros enlaces de launchers. **Volver al menú** no detiene la cuenta: sigue hasta que cierras el juego.
 - Mide el tiempo con el juego abierto, aunque no lo estés usando. Las sesiones de menos de 30 segundos no cuentan.
 
 ### Mostrar en Discord lo que juegas
@@ -518,8 +525,8 @@ En **Ajustes → Pantalla**:
   - Las que no tenían logros tienen uno hecho a su estilo: **Wii** (cartel blanco con borde celeste, arriba al
     centro), **PS2** (panel azul que brilla, arriba a la derecha), **Switch** (notificación oscura, arriba a la
     izquierda) y **3DS** (aviso blanco con la luz azul parpadeando, arriba al centro).
-- En Steam se detecta **al instante** leyendo los archivos de logros que guarda en tu PC (no necesita internet). En los
-  juegos de emulador tarda hasta un minuto (sección 7).
+- En Steam se detecta **al instante** leyendo los archivos de logros que guarda en tu PC (no necesita internet). En
+  RetroArch también es al instante, y en PCSX2 tarda hasta un minuto (sección 7).
 - El juego tiene que estar en **ventana sin bordes** ("Borderless" / "Ventana completa"). En pantalla completa
   "exclusiva" no se ve encima (muchos juegos con DirectX 12 sí funcionan).
 - **Ajustes → Pantalla**: activar o desactivar **Logros sobre el juego** y elegir la **Pantalla de los logros**.
@@ -570,8 +577,8 @@ actualiza cada 30 segundos.
 Al abrir un juego, cada consola muestra su pantalla de "jugando" con el tiempo que llevas y, debajo, la hora y la fecha
 (por ejemplo `04:35 PM  Domingo 18-Oct-2026`). A los lados aparecen la
 **música** (izquierda) y tu **Grupo de Discord** (derecha). Al cerrar el juego vuelves solo al menú (también con
-los accesos directos `.lnk` a un `.exe`). Con los que se abren por un enlace de otro launcher (Epic, etc.) no se
-puede saber cuándo terminan: usa **Volver al menú**.
+los accesos directos `.lnk` a un `.exe` y los `.url` de Epic). Con otros enlaces de launchers no se puede saber cuándo
+terminan: usa **Volver al menú**.
 
 ---
 
@@ -586,6 +593,8 @@ puede saber cuándo terminan: usa **Volver al menú**.
 - Si un canal tiene una imagen animada (`.webp` o `.gif`), en el menú muestra su primer cuadro y **se anima al marcarlo**.
 - **Pantalla del canal**: al elegir un juego se abre su canal con el fondo, el logo y la animación (`video.mp4` o el
   tráiler de Steam, si los activaste). Botones **Menú**, **Iniciar** y **Logros** (↓). ← → cambian de canal.
+- **Música del canal**: clic derecho o **I** sobre el juego → **Música** → **Elegir archivo**. Suena en vez de la música de la
+  Wii mientras estás en ese canal; si un juego no tiene, sigue la de la Wii.
 
 ### PlayStation 2
 
@@ -747,7 +756,7 @@ juegos.
   *Buscar juegos…* en Ajustes → Implementación de Emuladores.
 - **RetroArch no reconoce el control de PS5:** cambia su driver a **sdl2** (sección 7).
 - **No salen los logros de un juego de emulador:** revisa que tu cuenta esté iniciada en el emulador y en NostalHub, y
-  que el juego tenga logros en RetroAchievements. El aviso tarda hasta un minuto.
+  que el juego tenga logros en RetroAchievements. En PCSX2 el aviso tarda hasta un minuto.
 - **La portada de la canción no es la del álbum:** revisa `cache\spotify.log`; con Spotify conectado la portada sale
   directo de Spotify.
 - **Ver errores:** Ajustes → Archivos → *Herramientas de desarrollo*, o `npm run dev`.

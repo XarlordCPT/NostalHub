@@ -197,10 +197,53 @@ async function trackTick() {
 }
 
 // ---------- RetroAchievements: reconocer los juegos y avisar los logros nuevos ----------
-const RETRO_POLL_MS = 45000; // no avisa al instante: hay que preguntarle cada cierto rato
+const RETRO_POLL_MS = 45000; // la API no avisa al instante: hay que preguntarle cada cierto rato
 const RETRO_LINK_AFTER_MS = 90000;
 let retroSession = null;
 let retroBusy = false;
+let retroLog = null; // { gameId, file, stop }: el registro del emulador abierto, para avisar al instante
+
+// Si el emulador lo permite, lee su registro mientras juegas. Devuelve lo que hay que agregarle al abrirlo.
+function startRetroLog(game) {
+  stopRetroLog();
+  const emu = game.type === 'emulator' && emulators.EMULATORS[game.emulator];
+  if (!emu || !emu.liveLog || !retro.connected) return [];
+  const file = path.join(DATA_DIR, 'cache', `${game.emulator}.log`);
+  try {
+    fs.mkdirSync(path.dirname(file), { recursive: true });
+    fs.rmSync(file, { force: true });
+  } catch (e) {
+    console.warn('[retro]', e.message);
+    return [];
+  }
+  let raGame = game.raId;
+  let list = [];
+  const load = () => retro.achievements(retro.key(raGame)).then((r) => (list = r.list));
+  if (raGame) load();
+  const stop = emulators.tailFile(file, (line) => {
+    const known = line.match(emu.liveLog.game);
+    if (known && Number(known[1]) !== Number(raGame)) {
+      raGame = Number(known[1]);
+      load();
+    }
+    const won = line.match(emu.liveLog.unlock);
+    const a = won && raGame && retro.liveUnlock(retro.key(raGame), won[1], won[2], list, game.name);
+    if (a) {
+      showAchievement(a);
+      sendSummary();
+    }
+  });
+  retroLog = { gameId: game.id, file, stop };
+  return emu.liveLog.args(file);
+}
+function stopRetroLog() {
+  if (!retroLog) return;
+  retroLog.stop();
+  try {
+    fs.rmSync(retroLog.file, { force: true });
+  } catch {}
+  retroLog = null;
+}
 function retroKeys() {
   return config.games.filter((g) => g.raId && !g.uninstalled).map((g) => retro.key(g.raId));
 }
@@ -251,6 +294,7 @@ async function retroTick(game) {
     if (retroSession && (!emu || game.id !== retroSession.gameId)) {
       // Se cerró el juego: una última revisión, y otra después porque el logro puede tardar en llegar
       const raId = (config.findGame(retroSession.gameId) || {}).raId;
+      if (retroLog && retroLog.gameId === retroSession.gameId) stopRetroLog();
       retroSession = null;
       await retroPoll();
       setTimeout(async () => {
@@ -483,7 +527,7 @@ function gamesView() {
         square: fileUrl(c.square), // imagen cuadrada propia (Switch)
         icon0: fileUrl(c.icon0), // icono propio de la PS3 (320×176)
         header: fileUrl(m.header), // cabecera horizontal de Steam (460×215)
-        music: fileUrl(c.music), // música propia del juego (PS3)
+        music: fileUrl(c.music), // música propia del juego (Wii y PS3)
         lastPlayed: Math.max((g.appId && localStats[g.appId] && localStats[g.appId].lastPlayed) || 0, (g.appId && webPlay[g.appId] && webPlay[g.appId].lastPlayed) || 0, (config.data.launchLog || {})[g.id] || 0),
         playtimeMin: Math.max((g.appId && localStats[g.appId] && localStats[g.appId].playtimeMin) || 0, (g.appId && webPlay[g.appId] && webPlay[g.appId].playtimeMin) || 0),
       };
@@ -1530,13 +1574,13 @@ ipcMain.handle('game:launch', async (_e, id) => {
     config.data.launchLog = { ...(config.data.launchLog || {}), [game.id]: Date.now() };
     config.save();
     pushGamesSoon();
-    return await launcher.launch(game);
+    return await launcher.launch(game, startRetroLog(game));
   } catch (e) {
     return { ok: false, error: e.message };
   }
 });
 
-ipcMain.handle('game:dismiss', () => launcher.stopWatching());
+ipcMain.handle('game:dismiss', () => launcher.dismiss());
 
 // Resumen de horas: el período pedido, con el arte de cada juego
 ipcMain.handle('stats:get', (_e, range, offset) => {

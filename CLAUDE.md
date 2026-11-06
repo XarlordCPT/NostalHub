@@ -77,7 +77,8 @@ src/minecraft-icons.js  Ícono de cada progreso desde el .jar del juego (advance
                         16×16 agrandada sin suavizar), guardado en cache\minecraft\<versión>\
 src/emulators.js        Emuladores (EMULATORS: PCSX2 y RetroArch con mGBA): dónde está, carpetas, cómo abrir un juego
 src/retroachievements.js Logros de los juegos de emulador: reconoce por nombre, lista con la forma de Steam, avisos
-src/launcher.js         Abre los juegos y avisa cuando terminan (Minecraft: abre el launcher y vigila javaw.exe)
+src/launcher.js         Abre los juegos y avisa cuando terminan (Minecraft: vigila javaw.exe; .url de Epic: los .exe de su
+                        carpeta, sacada de IconFile). `dismiss()` (Volver al menú) no corta las horas
 src/media.js            Descarga el arte de Steam y busca el arte propio (CUSTOM_FILES)
 src/spotify.js          Música por los controles multimedia de Windows (SMTC) + datos de la Web API
 src/spotify-smtc.ps1    Ayudante de PowerShell para SMTC (Spotify / Apple Music / YouTube Music / auto)
@@ -173,7 +174,9 @@ descripción), `cache\` (arte descargado, `spotify.log`, `discord.log`) y las cl
   conexión, con una aplicación pública cuyo ID va en el código (el ID no es secreto; el Client Secret sí).
 - RetroAchievements: en los juegos de emulador `appId` del renderer es `ra-<número>` (`achievementKey`) y `hasAch` dice
   si tiene logros: las pantallas usan `g.hasAch`, no `g.type === 'steam'`. La clave va en la dirección de la API: nunca
-  escribas esa dirección en un registro. No avisa al instante: pregunta cada 45 s mientras el juego está abierto.
+  escribas esa dirección en un registro. La API pregunta cada 45 s. RetroArch además avisa al instante: `startRetroLog` de `main.js` lo abre con
+  `--verbose --log-file` y lee `Awarding achievement <id>: <nombre>` (`liveLog` en `emulators.js`). El registro no guarda el
+  token ni deja esas opciones en `retroarch.cfg` (probado). PCSX2 sigue solo con la API.
 - Imágenes animadas pesadas (`fondo.webp` de cientos de cuadros): mientras están ocultas siguen "avanzando" y al mostrarlas
   hay que decodificar todos los cuadros hasta alcanzar ese punto (más de 1 s). En la Wii: el menú muestra el primer cuadro y
   solo se anima el canal marcado, solo se dibuja la página visible y la transición usa una foto (`setZoomerImage`).
@@ -182,6 +185,8 @@ descripción), `cache\` (arte descargado, `spotify.log`, `discord.log`) y las cl
 - Horas: `trackTick` de `main.js` revisa cada 15 s qué juego está abierto (`RunningAppID` de Steam o
   `launcher.playingId()`), le avisa a `PlayLog` y actualiza la presencia. Un salto de más de 3 min entre revisiones es
   PC suspendido: corta la sesión.
+- Los juegos de Epic pasan por varios programas (Fortnite: Bootstrapper → Launcher → Client): por eso se vigilan todos los de
+  la carpeta, con 15 s de margen (`HANDOFF_MS`) antes de dar el juego por cerrado.
 - Battle.net no tiene API pública de amigos: no se puede. YouTube Music tampoco tiene API oficial: se queda con SMTC.
 - Para probar la app con otra carpeta de datos **no sirve** cambiar `APPDATA`: Electron pide la carpeta a Windows
   directo y usa el `config.json` real de Cristóbal (solo `src/minecraft.js` sí lee `APPDATA`).
