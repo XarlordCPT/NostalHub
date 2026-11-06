@@ -211,12 +211,18 @@
         description: { custom: c.desc || '', steam: g.description || '' },
       };
     },
-    pickGameFile: async (id, kind) => {
+    pickGameFile: async () => ({ ok: true, crop: { preview: art(1600, 900, ['#ffd166', '#ef476f'], '★', 300), source: 'prueba.png', ext: '.png' } }),
+    cropGameFile: async (id, kind, bytes) => {
+      window.mockLastCrop = { kind, bytes: bytes.length };
       (mockCustom[id] = mockCustom[id] || {})[kind] = art(600, 600, ['#ffd166', '#ef476f'], '★', 200);
       return { ok: true, info: await window.mockNostalHub.getGameCustom(id) };
     },
     pasteGameFile: async () => ({ ok: false, message: 'No hay una imagen copiada. En el navegador: clic derecho en la imagen → "Copiar imagen".' }),
-    setGameFileFrom: async (id, kind) => window.mockNostalHub.pickGameFile(id, kind),
+    setGameFileFrom: async (id, kind, from) => {
+      if (!(from && from.whole)) return window.mockNostalHub.pickGameFile(id, kind);
+      (mockCustom[id] = mockCustom[id] || {})[kind] = art(600, 600, ['#ffd166', '#ef476f'], '★', 200);
+      return { ok: true, info: await window.mockNostalHub.getGameCustom(id) };
+    },
     clearGameFile: async (id, kind) => {
       if (mockCustom[id]) delete mockCustom[id][kind];
       return { ok: true, info: await window.mockNostalHub.getGameCustom(id) };

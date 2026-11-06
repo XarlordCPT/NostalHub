@@ -877,7 +877,7 @@ body.playing .theme-wii .ch-media .hero { animation-play-state: paused; }
   position: absolute;
   top: 100px;
   width: 440px;
-  height: 610px;
+  height: 680px;
   z-index: 2;
   padding: 26px 28px;
   border-radius: 38px;
@@ -911,6 +911,7 @@ body.playing .theme-wii .ch-media .hero { animation-play-state: paused; }
   color: #b7c4cb;
 }
 #playing .np-cover .np-ic { width: 96px; height: 96px; }
+#theme-root #playing .np-music.has-api .np-cover { width: 140px; height: 140px; }
 #playing .np-title,
 #playing .np-artist { text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-shadow: none; }
 #playing .np-title { font-size: 34px; font-weight: 800; color: #4b4b4b; }

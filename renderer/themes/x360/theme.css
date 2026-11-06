@@ -884,8 +884,8 @@ body.playing .theme-x360 .sp-eq i { animation-play-state: paused !important; }
 /* ---------- Jugando: Spotify (izquierda) y Grupo de Discord (derecha) ---------- */
 .xb-playing .np-panel {
   position: absolute;
-  top: 298px;
-  height: 484px;
+  top: 240px;
+  height: 600px; /* a la altura del cuadro de "Jugando a…" */
   width: 340px;
   z-index: 2;
   display: flex;
@@ -913,6 +913,7 @@ body.playing .theme-x360 .sp-eq i { animation-play-state: paused !important; }
   color: #666;
 }
 .xb-playing .np-cover .np-ic { width: 80px; height: 80px; }
+#theme-root .xb-playing .np-music.has-api .np-cover { width: 130px; height: 130px; }
 .xb-playing .np-title,
 .xb-playing .np-artist { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .xb-playing .np-title { font-size: 32px; font-weight: 300; }

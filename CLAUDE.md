@@ -95,7 +95,8 @@ renderer/gamepad.js     Control (PS5/Xbox): convierte botones en las teclas de c
                         modo 0x31 y la Gamepad API no lo ve. Permiso HID solo para Sony en main.js
 renderer/setup.js       Ventana "Conectar Steam / Discord / Spotify"
 renderer/stats.js/.css  Resumen de horas: pantalla sin consola (botón del selector, tecla R o Ajustes → General)
-renderer/game-editor.js Editor de imágenes por juego (clic derecho o tecla I): BY_CONSOLE, SLOTS
+renderer/game-editor.js Editor de imágenes por juego (clic derecho o tecla I): BY_CONSOLE, SLOTS. Recorte: CROP_RATIOS;
+                        `offerOrSave` de main.js decide qué se recorta (las animaciones se guardan completas)
 renderer/console-model.js, models/   Modelos 3D (Three.js) del selector y de los íconos de la PS2
 renderer/overlay/       Avisos de logro de cada consola (STYLES, SYNTH, copa del trofeo)
 renderer/mock.js        Datos falsos para abrir index.html en un navegador normal (sin Electron)

@@ -460,6 +460,32 @@ img, video { -webkit-user-drag: none; }
 @keyframes ge-pop { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 .ge-foot { flex: none; display: flex; align-items: center; gap: 16px; }
 .ge-gap { flex: 1; }
+/* Recortar la imagen: igual en todas las consolas */
+.gc-wrap { position: absolute; inset: 0; z-index: 60; display: flex; flex-direction: column; padding: 26px 40px 24px; background: #101319; color: #f2f5fa; font-family: 'M PLUS Rounded 1c', 'Segoe UI', sans-serif; font-size: 24px; text-align: left; }
+.gc-head { flex: none; display: flex; align-items: baseline; gap: 22px; height: 56px; }
+.gc-head b { font-size: 36px; font-weight: 800; }
+.gc-size { font-size: 24px; color: #a9b3c4; font-variant-numeric: tabular-nums; }
+.gc-area { flex: 1; min-height: 0; display: grid; place-items: center; }
+.gc-pic { position: relative; overflow: hidden; user-select: none; background: repeating-conic-gradient(#2a2f3a 0% 25%, #1c2029 0% 50%) 0 0 / 28px 28px; }
+.gc-img { display: block; width: 100%; height: 100%; pointer-events: none; }
+.gc-frame { position: absolute; cursor: move; touch-action: none; box-shadow: 0 0 0 4000px rgba(5, 8, 14, 0.68); outline: 2px solid #fff; }
+.gc-wrap.round .gc-frame { border-radius: 50%; }
+.gc-grid { position: absolute; inset: 0; pointer-events: none; border-radius: inherit; background: linear-gradient(rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0.35)) 33.33% 0 / 1px 100% no-repeat, linear-gradient(rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0.35)) 66.66% 0 / 1px 100% no-repeat, linear-gradient(rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0.35)) 0 33.33% / 100% 1px no-repeat, linear-gradient(rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0.35)) 0 66.66% / 100% 1px no-repeat; }
+.gc-h { position: absolute; width: 34px; height: 34px; border: 0 solid #fff; }
+.gc-h.nw { left: 0; top: 0; border-width: 7px 0 0 7px; cursor: nwse-resize; }
+.gc-h.ne { right: 0; top: 0; border-width: 7px 7px 0 0; cursor: nesw-resize; }
+.gc-h.sw { left: 0; bottom: 0; border-width: 0 0 7px 7px; cursor: nesw-resize; }
+.gc-h.se { right: 0; bottom: 0; border-width: 0 7px 7px 0; cursor: nwse-resize; }
+.gc-foot { flex: none; display: flex; align-items: center; gap: 14px; height: 78px; margin-top: 14px; }
+.gc-ratios { display: flex; gap: 8px; }
+.gc-hints { flex: 1; display: flex; align-items: center; justify-content: flex-end; gap: 10px; margin-right: 18px; font-size: 21px; color: #a9b3c4; }
+.gc-hints .gc-key:not(:first-child) { margin-left: 16px; }
+.gc-key { padding: 1px 10px; border-radius: 7px; border: 2px solid #7c879c; font-size: 19px; font-weight: 700; color: #f2f5fa; }
+.gc-wrap .gc-btn { height: 62px; padding: 0 24px; display: flex; align-items: center; gap: 12px; border: 0; border-radius: 12px; background: #252b38; color: #f2f5fa; font: inherit; font-size: 24px; font-weight: 700; cursor: pointer; }
+.gc-wrap .gc-btn:hover { background: #333b4c; }
+.gc-wrap .gc-btn.on { background: #f2f5fa; color: #101319; }
+.gc-wrap .gc-btn.main { background: #3d8ce0; }
+.gc-wrap .gc-btn.main:hover { background: #529be8; }
 .ge-ctx { position: absolute; z-index: 56; width: 460px; animation: ge-fade 0.15s ease both; }
 .ge-ctx-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ge-ci { display: flex; align-items: center; width: 100%; text-align: left; cursor: pointer; font-family: inherit; }
@@ -655,6 +681,8 @@ body[data-console='3ds'] .wb-close:hover { background: #fde8e8; color: #e2402a; 
 .theme-wii .ms-overlay { --ms-bg: linear-gradient(to bottom, #ffffff, #f2f4f5); --ms-fg: #555; --ms-acc: #34bfed; --ms-on-acc: #fff; --ms-line: rgba(92, 198, 236, 0.5); --ms-border: 5px; --ms-sel: #eef7fb; --ms-radius: 40px; --ms-font: 'M PLUS Rounded 1c', 'Segoe UI', sans-serif; }
 .theme-ps2 .ms-overlay { --ms-bg: linear-gradient(135deg, rgba(14, 30, 78, 0.97), rgba(2, 6, 20, 0.97)); --ms-fg: #e8f0ff; --ms-acc: #8fb4ff; --ms-on-acc: #061033; --ms-line: rgba(120, 170, 255, 0.4); --ms-sel: rgba(80, 140, 255, 0.25); --ms-radius: 6px; --ms-font: 'M PLUS Rounded 1c', 'Segoe UI', sans-serif; }
 #theme-root .np-music > * { flex-shrink: 0; }
+/* Foto del Grupo: la imagen llega hasta el borde (si no, se repite por debajo del borde transparente y se ve estirada) */
+#theme-root .np-av, #theme-root #playing .np-av { background-origin: border-box; background-repeat: no-repeat; }
 
 /* ============ Juego completado al 100 % (NostalHubUtil.completeBadge) ============ */
 .nh-done { display: inline-block; width: 1.1em; height: 1.1em; vertical-align: -0.2em; flex: none; line-height: 0; }

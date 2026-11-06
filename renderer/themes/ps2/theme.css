@@ -703,6 +703,7 @@ body.playing .theme-ps2 .ps-big * { animation-play-state: running !important; }
   transform: perspective(600px) rotateY(-8deg);
 }
 .theme-ps2 .np-cover .np-ic { width: 90px; height: 90px; }
+#theme-root.theme-ps2 .np-music.has-api .np-cover { width: 150px; height: 150px; }
 .theme-ps2 .np-title,
 .theme-ps2 .np-artist { text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 4px; }
 .theme-ps2 .np-title { font-size: 34px; color: #fff; }

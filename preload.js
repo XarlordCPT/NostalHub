@@ -52,6 +52,7 @@ contextBridge.exposeInMainWorld('nostalhub', {
   setGameFileFrom: (id, kind, from) => ipcRenderer.invoke('game:custom-from', id, kind, from),
   pasteGameFile: (id, kind) => ipcRenderer.invoke('game:custom-paste', id, kind),
   clearGameFile: (id, kind) => ipcRenderer.invoke('game:custom-clear', id, kind),
+  cropGameFile: (id, kind, bytes, ext) => ipcRenderer.invoke('game:custom-crop', id, kind, bytes, ext),
   setGameDescription: (id, text) => ipcRenderer.invoke('game:description-set', id, text),
   openGameFolder: (id) => ipcRenderer.invoke('game:open-folder', id),
   pathForFile: (file) => {

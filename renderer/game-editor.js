@@ -146,6 +146,7 @@
   }
   function closeEditor() {
     if (!ed) return;
+    closeCrop();
     ed.el.classList.add('leave');
     const el = ed.el;
     ed = null;
@@ -216,11 +217,12 @@
     m.offsetWidth;
     m.classList.add('pop');
   }
-  async function apply(promise, okText) {
+  async function apply(promise, okText, kind) {
     const res = await promise;
     if (!ed || !res) return;
     if (res.canceled) return;
     if (!res.ok) return msg(res.message || 'No se pudo cambiar.', false);
+    if (res.crop) return openCrop(kind, res.crop);
     if (res.info) ed.info = res.info;
     render(true);
     msg(okText);
@@ -232,8 +234,8 @@
       const kind = slot.dataset.kind;
       slot.querySelectorAll('[data-a]').forEach((b) =>
         b.addEventListener('click', () => {
-          if (b.dataset.a === 'pick') apply(call('pickGameFile', ed.id, kind), 'Listo, ya se ve en el menú.');
-          else if (b.dataset.a === 'paste') apply(call('pasteGameFile', ed.id, kind), 'Listo, se usó la imagen copiada.');
+          if (b.dataset.a === 'pick') apply(call('pickGameFile', ed.id, kind), 'Listo, ya se ve en el menú.', kind);
+          else if (b.dataset.a === 'paste') apply(call('pasteGameFile', ed.id, kind), 'Listo, se usó la imagen copiada.', kind);
           else if (b.dataset.a === 'clear') apply(call('clearGameFile', ed.id, kind), 'Listo, volvió la imagen automática.');
         })
       );
@@ -250,8 +252,8 @@
         const file = e.dataTransfer.files && e.dataTransfer.files[0];
         const p = file && api.pathForFile ? api.pathForFile(file) : '';
         const url = (e.dataTransfer.getData('text/uri-list') || e.dataTransfer.getData('text/plain') || '').split('\n')[0].trim();
-        if (p) apply(call('setGameFileFrom', ed.id, kind, { path: p }), 'Listo, ya se ve en el menú.');
-        else if (url) apply(call('setGameFileFrom', ed.id, kind, { url }), 'Listo, ya se ve en el menú.');
+        if (p) apply(call('setGameFileFrom', ed.id, kind, { path: p }), 'Listo, ya se ve en el menú.', kind);
+        else if (url) apply(call('setGameFileFrom', ed.id, kind, { url }), 'Listo, ya se ve en el menú.', kind);
       });
     });
     const ta = el.querySelector('.ge-text');
@@ -313,15 +315,216 @@
     if (scroll) (slot || t).scrollIntoView({ block: 'nearest', behavior: 'smooth' });
   }
 
+  // ---------- Recortar la imagen antes de guardarla ----------
+  // El marco tiene la forma de ese espacio (o libre): se mueve arrastrándolo o con las flechas y cambia de tamaño con
+  // las esquinas, la rueda o Q / E. "Usar completa" guarda el archivo tal cual.
+  const CROP_RATIOS = {
+    tile: [['16:9', 16 / 9], ['Libre', 0]],
+    hero: [['Ancho', 1920 / 620], ['16:9', 16 / 9], ['Libre', 0]],
+    logo: [['Libre', 0]],
+    cover: [['Caja 2:3', 2 / 3], ['Libre', 0]],
+    square: [['Cuadrado', 1]],
+    bubble: [['Círculo', 1]],
+    icon0: [['Icono PS3', 320 / 176], ['Libre', 0]],
+  };
+  const CROP_BOX_W = 1640;
+  const CROP_BOX_H = 760;
+  const CROP_MAX_SIDE = 4096;
+  let crop = null; // { el, kind, data, img, W, H, s, ratios, ri, x, y, w, h, busy }
+
+  async function openCrop(kind, data) {
+    closeCrop();
+    const img = new Image();
+    img.src = data.preview;
+    try {
+      await img.decode();
+    } catch {
+      return msg('No se pudo abrir esa imagen.', false);
+    }
+    if (!ed) return;
+    const W = img.naturalWidth;
+    const H = img.naturalHeight;
+    const s = Math.min(CROP_BOX_W / W, CROP_BOX_H / H);
+    const ratios = CROP_RATIOS[kind] || [['Libre', 0]];
+    const el = document.createElement('div');
+    el.className = `gc-wrap${kind === 'bubble' ? ' round' : ''}`;
+    el.innerHTML = `
+      <div class="gc-head"><b>Recortar: ${esc(SLOTS[kind].label)}</b><span class="gc-size"></span></div>
+      <div class="gc-area"><div class="gc-pic" style="width:${Math.round(W * s)}px;height:${Math.round(H * s)}px">
+        <div class="gc-frame"><i class="gc-grid"></i>${['nw', 'ne', 'sw', 'se'].map((c) => `<b class="gc-h ${c}" data-c="${c}"></b>`).join('')}</div>
+      </div></div>
+      <div class="gc-foot">
+        <div class="gc-ratios">${ratios.length > 1 ? ratios.map(([label], i) => `<button class="gc-btn" data-r="${i}">${esc(label)}</button>`).join('') : ''}</div>
+        <div class="gc-hints"><span class="gc-key">Q / E</span> Tamaño${ratios.length > 1 ? '<span class="gc-key">O</span> Forma' : ''}<span class="gc-key">Esc</span> Cancelar</div>
+        <button class="gc-btn" data-a="whole"><span class="gc-key">I</span> Usar completa</button>
+        <button class="gc-btn main" data-a="save"><span class="gc-key">Enter</span> Recortar y guardar</button>
+      </div>`;
+    el.querySelector('.gc-pic').prepend(img);
+    img.className = 'gc-img';
+    img.draggable = false;
+    ed.el.appendChild(el);
+    crop = { el, kind, data, img, W, H, s, ratios, ri: 0, x: 0, y: 0, w: W, h: H, busy: false };
+    fitCrop();
+    const frame = el.querySelector('.gc-frame');
+    frame.addEventListener('pointerdown', cropDrag);
+    el.querySelector('.gc-area').addEventListener('wheel', (e) => {
+      e.preventDefault();
+      sizeCrop(e.deltaY > 0 ? 0.95 : 1.05);
+    });
+    el.querySelectorAll('[data-r]').forEach((b) => b.addEventListener('click', () => setCropRatio(Number(b.dataset.r))));
+    el.querySelector('[data-a="whole"]').addEventListener('click', cropWhole);
+    el.querySelector('[data-a="save"]').addEventListener('click', cropSave);
+  }
+  function closeCrop() {
+    if (crop) crop.el.remove();
+    crop = null;
+  }
+  const cropRatio = () => crop.ratios[crop.ri][1];
+  // El marco más grande de esa forma, al centro
+  function fitCrop() {
+    const r = cropRatio();
+    crop.w = r ? Math.min(crop.W, crop.H * r) : crop.W;
+    crop.h = r ? crop.w / r : crop.H;
+    crop.x = (crop.W - crop.w) / 2;
+    crop.y = (crop.H - crop.h) / 2;
+    paintCrop();
+  }
+  function setCropRatio(i) {
+    crop.ri = (i + crop.ratios.length) % crop.ratios.length;
+    fitCrop();
+  }
+  function paintCrop() {
+    const { s, x, y, w, h } = crop;
+    crop.x = Math.max(0, Math.min(crop.W - w, x));
+    crop.y = Math.max(0, Math.min(crop.H - h, y));
+    const f = crop.el.querySelector('.gc-frame');
+    Object.assign(f.style, { left: `${crop.x * s}px`, top: `${crop.y * s}px`, width: `${w * s}px`, height: `${h * s}px` });
+    crop.el.querySelector('.gc-size').textContent = `${Math.round(w)} × ${Math.round(h)}`;
+    crop.el.querySelectorAll('[data-r]').forEach((b) => b.classList.toggle('on', Number(b.dataset.r) === crop.ri));
+  }
+  // Cambia el tamaño sin moverse del centro
+  function sizeCrop(k) {
+    const r = cropRatio();
+    const min = Math.min(32, crop.W, crop.H);
+    const cx = crop.x + crop.w / 2;
+    const cy = crop.y + crop.h / 2;
+    let w = crop.w * k;
+    let h = crop.h * k;
+    if (r) {
+      w = Math.max(r >= 1 ? min * r : min, Math.min(w, crop.W, crop.H * r));
+      h = w / r;
+    } else {
+      w = Math.max(min, Math.min(w, crop.W));
+      h = Math.max(min, Math.min(h, crop.H));
+    }
+    Object.assign(crop, { w, h, x: cx - w / 2, y: cy - h / 2 });
+    paintCrop();
+  }
+  function cropDrag(e) {
+    if (e.button !== 0 || !crop) return;
+    e.preventDefault();
+    const corner = e.target.dataset.c;
+    const scale = (stage.getBoundingClientRect().width / 1920) * crop.s; // pantalla → píxeles de la imagen
+    const start = { px: e.clientX, py: e.clientY, x: crop.x, y: crop.y, w: crop.w, h: crop.h };
+    const target = e.currentTarget;
+    target.setPointerCapture(e.pointerId);
+    const move = (ev) => {
+      if (!crop) return;
+      const dx = (ev.clientX - start.px) / scale;
+      const dy = (ev.clientY - start.py) / scale;
+      if (!corner) {
+        crop.x = start.x + dx;
+        crop.y = start.y + dy;
+      } else {
+        // La esquina contraria se queda quieta
+        const left = corner.includes('w');
+        const up = corner.includes('n');
+        const ax = left ? start.x + start.w : start.x;
+        const ay = up ? start.y + start.h : start.y;
+        const roomW = left ? ax : crop.W - ax;
+        const roomH = up ? ay : crop.H - ay;
+        const min = Math.min(32, crop.W, crop.H);
+        let w = Math.max(min, Math.min(roomW, start.w + (left ? -dx : dx)));
+        let h = Math.max(min, Math.min(roomH, start.h + (up ? -dy : dy)));
+        const r = cropRatio();
+        if (r) {
+          w = Math.min(Math.max(w, h * r), roomW, roomH * r);
+          h = w / r;
+        }
+        Object.assign(crop, { w, h, x: left ? ax - w : ax, y: up ? ay - h : ay });
+      }
+      paintCrop();
+    };
+    const up = () => {
+      target.removeEventListener('pointermove', move);
+      target.removeEventListener('pointerup', up);
+      target.removeEventListener('pointercancel', up);
+    };
+    target.addEventListener('pointermove', move);
+    target.addEventListener('pointerup', up);
+    target.addEventListener('pointercancel', up);
+  }
+  async function cropWhole() {
+    if (!crop || crop.busy) return;
+    crop.busy = true;
+    const { data, kind } = crop;
+    const res = await call('setGameFileFrom', ed.id, kind, { path: data.source, whole: true });
+    closeCrop();
+    apply(Promise.resolve(res), 'Listo, se guardó la imagen completa.');
+  }
+  async function cropSave() {
+    if (!crop || crop.busy) return;
+    crop.busy = true;
+    const { img, x, y, w, h, kind, data } = crop;
+    const k = Math.min(1, CROP_MAX_SIDE / Math.max(w, h));
+    const c = document.createElement('canvas');
+    c.width = Math.max(1, Math.round(w * k));
+    c.height = Math.max(1, Math.round(h * k));
+    c.getContext('2d').drawImage(img, x, y, w, h, 0, 0, c.width, c.height);
+    // Las fotos siguen como JPG; lo que puede tener transparencia, como PNG
+    const jpg = data.ext === '.jpg' || data.ext === '.jpeg';
+    const blob = await new Promise((r) => c.toBlob(r, jpg ? 'image/jpeg' : 'image/png', 0.92));
+    if (!crop) return;
+    if (!blob) {
+      crop.busy = false;
+      return msg('No se pudo recortar esa imagen.', false);
+    }
+    const bytes = new Uint8Array(await blob.arrayBuffer());
+    const res = await call('cropGameFile', ed.id, kind, bytes, jpg ? '.jpg' : '.png');
+    closeCrop();
+    apply(Promise.resolve(res), 'Listo, se guardó el recorte.');
+  }
+  function cropKey(k) {
+    const step = Math.max(1, Math.round(Math.min(crop.W, crop.H) / 100));
+    if (k === 'Escape' || k === 'Backspace') closeCrop();
+    else if (k === 'Enter' || k === ' ') cropSave();
+    else if (k === 'i' || k === 'I') cropWhole();
+    else if (k === 'o' || k === 'O') setCropRatio(crop.ri + 1);
+    else if (k === 'q' || k === 'Q' || k === 'PageUp') sizeCrop(0.95);
+    else if (k === 'e' || k === 'E' || k === 'PageDown') sizeCrop(1.05);
+    else if (k.startsWith('Arrow')) {
+      crop.x += k === 'ArrowLeft' ? -step : k === 'ArrowRight' ? step : 0;
+      crop.y += k === 'ArrowUp' ? -step : k === 'ArrowDown' ? step : 0;
+      paintCrop();
+    }
+  }
+
   // ---------- Teclado (mientras el menú o la ventana están abiertos, el tema no recibe las teclas) ----------
   window.addEventListener(
     'keydown',
     (e) => {
       if (ed && !ed.el.isConnected) ed = null;
+      if (crop && !crop.el.isConnected) crop = null;
       if (menu && !menu.el.isConnected) menu = null;
       const setupOpen = document.getElementById('setup') && !document.getElementById('setup').hidden;
       if (setupOpen) return;
       const k = e.key;
+      if (crop) {
+        e.stopImmediatePropagation();
+        e.preventDefault();
+        cropKey(k);
+        return;
+      }
       if (menu) {
         e.stopImmediatePropagation();
         e.preventDefault();

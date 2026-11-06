@@ -1643,6 +1643,68 @@ function afterCustomChange(id) {
   pushGamesSoon();
   return { ok: true, info: customInfo(id) };
 }
+// Recortar antes de guardar: las imágenes fijas pasan por la pantalla de recorte (renderer/game-editor.js). Lo demás
+// (video, modelo, música, animaciones) se guarda tal cual: recortar una animación dejaría solo un cuadro.
+const CROPPABLE = ['tile', 'hero', 'logo', 'cover', 'square', 'icon0', 'bubble'];
+const CROP_MAX_BYTES = 40 * 1024 * 1024;
+const CROP_DIR = path.join(DATA_DIR, 'cache', 'recorte');
+function isStillImage(file) {
+  const ext = path.extname(file).toLowerCase();
+  if (['.jpg', '.jpeg', '.png'].includes(ext)) return true;
+  if (ext !== '.webp') return false;
+  try {
+    const fd = fs.openSync(file, 'r');
+    const head = Buffer.alloc(21);
+    fs.readSync(fd, head, 0, 21, 0);
+    fs.closeSync(fd);
+    return !(head.toString('latin1', 12, 16) === 'VP8X' && head[20] & 2); // bit de "animada"
+  } catch {
+    return false;
+  }
+}
+function clearCropDir(except) {
+  try {
+    for (const n of fs.readdirSync(CROP_DIR)) {
+      const f = path.join(CROP_DIR, n);
+      if (f !== except) fs.rmSync(f, { force: true });
+    }
+  } catch {}
+}
+// Lo pasa a la pantalla de recorte si se puede; si no, lo guarda al tiro
+function offerOrSave(g, id, kind, file) {
+  const ext = path.extname(file).toLowerCase();
+  let size = Infinity;
+  try {
+    size = fs.statSync(file).size;
+  } catch {}
+  if (CROPPABLE.includes(kind) && media.CUSTOM_FILES[kind].ext.includes(ext) && size <= CROP_MAX_BYTES && isStillImage(file)) {
+    clearCropDir(file);
+    const mime = { '.png': 'image/png', '.webp': 'image/webp' }[ext] || 'image/jpeg';
+    return { ok: true, crop: { preview: `data:${mime};base64,${fs.readFileSync(file).toString('base64')}`, source: file, ext } };
+  }
+  const res = saveCustomFile(g, kind, file);
+  if (path.dirname(file) === CROP_DIR) clearCropDir();
+  return res.ok ? afterCustomChange(id) : res;
+}
+async function downloadForCrop(url) {
+  fs.mkdirSync(CROP_DIR, { recursive: true });
+  return media.downloadImage(url, path.join(CROP_DIR, `img-${Date.now()}`));
+}
+ipcMain.handle('game:custom-crop', (_e, id, kind, bytes, extArg) => {
+  const g = gameById(id);
+  const ext = String(extArg);
+  const buf = Buffer.from(bytes || []);
+  if (!g || !CROPPABLE.includes(kind) || !media.CUSTOM_FILES[kind].ext.includes(ext)) return { ok: false, message: 'No se pudo guardar el recorte.' };
+  const isPng = ext === '.png' && buf.toString('latin1', 1, 4) === 'PNG';
+  const isJpg = ext === '.jpg' && buf[0] === 0xff && buf[1] === 0xd8;
+  if ((!isPng && !isJpg) || buf.length > CROP_MAX_BYTES) return { ok: false, message: 'No se pudo guardar el recorte.' };
+  fs.mkdirSync(CROP_DIR, { recursive: true });
+  const tmp = path.join(CROP_DIR, `recorte${ext}`);
+  fs.writeFileSync(tmp, buf);
+  const res = saveCustomFile(g, kind, tmp);
+  clearCropDir();
+  return res.ok ? afterCustomChange(id) : res;
+});
 ipcMain.handle('game:custom-get', (_e, id) => customInfo(id));
 ipcMain.handle('game:custom-pick', async (_e, id, kind) => {
   const g = gameById(id);
@@ -1655,25 +1717,22 @@ ipcMain.handle('game:custom-pick', async (_e, id, kind) => {
     filters: [{ name: names[kind] || 'Imagen', extensions: spec.ext.map((e) => e.slice(1)) }],
   });
   if (r.canceled || !r.filePaths[0]) return { ok: false, canceled: true };
-  const res = saveCustomFile(g, kind, r.filePaths[0]);
-  return res.ok ? afterCustomChange(id) : res;
+  return offerOrSave(g, id, kind, r.filePaths[0]);
 });
 // Archivo arrastrado (ruta) o imagen arrastrada desde el navegador (dirección web)
 ipcMain.handle('game:custom-from', async (_e, id, kind, from) => {
   const g = gameById(id);
   if (!g || !media.CUSTOM_FILES[kind]) return { ok: false, message: 'No se encontró el juego.' };
   if (from && from.path && fs.existsSync(from.path)) {
-    const res = saveCustomFile(g, kind, from.path);
+    if (!from.whole) return offerOrSave(g, id, kind, from.path);
+    const res = saveCustomFile(g, kind, from.path); // "Usar completa"
+    clearCropDir();
     return res.ok ? afterCustomChange(id) : res;
   }
   if (from && /^https?:\/\//i.test(from.url || '')) {
-    const tmpDir = path.join(DATA_DIR, 'cache', 'descargas');
-    fs.mkdirSync(tmpDir, { recursive: true });
-    const file = await media.downloadImage(from.url, path.join(tmpDir, `img-${Date.now()}`));
+    const file = await downloadForCrop(from.url);
     if (!file) return { ok: false, message: 'No se pudo descargar esa imagen. Prueba guardándola en tu PC y eligiéndola.' };
-    const res = saveCustomFile(g, kind, file);
-    fs.rmSync(file, { force: true });
-    return res.ok ? afterCustomChange(id) : res;
+    return offerOrSave(g, id, kind, file);
   }
   return { ok: false, message: 'Eso no es un archivo que se pueda usar.' };
 });
@@ -1684,27 +1743,16 @@ ipcMain.handle('game:custom-paste', async (_e, id, kind) => {
   if (!g || !spec) return { ok: false, message: 'No se encontró el juego.' };
   const png = spec.ext.includes('.png') ? await clipboardImagePng() : null;
   if (png) {
-    const tmp = path.join(DATA_DIR, 'cache', `pegada-${Date.now()}.png`);
-    fs.mkdirSync(path.dirname(tmp), { recursive: true });
+    fs.mkdirSync(CROP_DIR, { recursive: true });
+    const tmp = path.join(CROP_DIR, `pegada-${Date.now()}.png`);
     fs.writeFileSync(tmp, png);
-    const res = saveCustomFile(g, kind, tmp);
-    fs.rmSync(tmp, { force: true });
-    return res.ok ? afterCustomChange(id) : res;
+    return offerOrSave(g, id, kind, tmp);
   }
   const text = (await clipboardText()).replace(/^"(.*)"$/, '$1');
-  if (text && fs.existsSync(text)) {
-    const res = saveCustomFile(g, kind, text);
-    return res.ok ? afterCustomChange(id) : res;
-  }
+  if (text && fs.existsSync(text)) return offerOrSave(g, id, kind, text);
   if (/^https?:\/\//i.test(text)) {
-    const tmpDir = path.join(DATA_DIR, 'cache', 'descargas');
-    fs.mkdirSync(tmpDir, { recursive: true });
-    const file = await media.downloadImage(text, path.join(tmpDir, `img-${Date.now()}`));
-    if (file) {
-      const res = saveCustomFile(g, kind, file);
-      fs.rmSync(file, { force: true });
-      return res.ok ? afterCustomChange(id) : res;
-    }
+    const file = await downloadForCrop(text);
+    if (file) return offerOrSave(g, id, kind, file);
   }
   return { ok: false, message: 'No hay una imagen copiada. En el navegador: clic derecho en la imagen → "Copiar imagen".' };
 });

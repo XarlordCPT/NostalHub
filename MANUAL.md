@@ -18,6 +18,18 @@ Para abrirla: pega esa ruta en la barra del Explorador de Windows, o usa **Ajust
 
 ---
 
+## Novedades de la versión 1.1.0
+
+- **Juegos de emulador**: PS2 con PCSX2 y GBA con RetroArch, en todas las consolas (sección 7).
+- **RetroAchievements**: los logros de tus juegos de emulador, con su aviso encima del juego y sumados a tu total (sección 7).
+- **Resumen de horas**: cuánto has jugado y a qué, por semana, mes y año (sección 8).
+- **Mostrar en Discord lo que juegas**: opcional, viene apagado (sección 8).
+- **Recortar imágenes** antes de ponérselas a un juego (sección 2).
+- **Arreglos**: en la Wii ya no se traba el botón **Menú** con fondos animados, el panel de música ya no se sale de su cuadro
+  y las fotos del Grupo ya no se ven estiradas.
+
+---
+
 ## Mapa rápido
 
 ```
@@ -54,8 +66,8 @@ Para abrirla: pega esa ruta en la barra del Explorador de Windows, o usa **Ajust
         └── descripcion.txt    (todas)
 ```
 
-Todos los archivos son **opcionales**. Si no pones nada, se usa lo que se descarga solo de Steam, y los sonidos que
-la app trae hechos con código.
+Todos los archivos son **opcionales**. Si no pones nada, se usa lo que se descarga solo (de Steam o, en los juegos de
+emulador, por el nombre del archivo) y los sonidos que la app trae hechos con código.
 
 ---
 
@@ -127,7 +139,8 @@ Consejos:
 **Lo más fácil, desde la app:** haz **clic derecho sobre un juego** (en cualquier consola) → **Cambiar imágenes**, o
 márcalo y presiona la tecla **I**. Se abre una ventana con el estilo de esa consola que muestra **solo las imágenes que
 se ven en esa consola**. En cada una puedes **Elegir archivo**, **arrastrar** una imagen encima (también desde el
-navegador), **Pegar** una imagen copiada ("Copiar imagen" en el navegador) o **volver a la automática**. Abajo está la
+navegador), **Pegar** una imagen copiada ("Copiar imagen" en el navegador) o **volver a la automática**. Antes de guardar
+una imagen puedes **recortarla** (más abajo, *Recortar una imagen*). Abajo está la
 **descripción** para escribir la tuya (si la dejas igual o la borras, se usa la de Steam) y el botón **Ver todas las
 consolas**. Los cambios se ven al tiro.
 
@@ -150,6 +163,8 @@ NostalHub. También puedes poner los archivos a mano:
 | `musica.mp3` | PS3 | Música que **suena al quedarte sobre el juego** (como en la consola de verdad). También `.ogg`, `.m4a`, `.wav`. Ideal 30 a 60 segundos; se repite |
 | `descripcion.txt` | Todas | La descripción del juego (reemplaza la de Steam) |
 
+Las imágenes también pueden ser `.webp` o `.gif`, incluso animados.
+
 Para volver al arte automático, **borra tu archivo** (o usa *Volver a la automática* en la ventana).
 
 **Dónde conseguir arte:** [SteamGridDB](https://www.steamgriddb.com). Busca el juego y usa estas pestañas:
@@ -158,6 +173,33 @@ Para volver al arte automático, **borra tu archivo** (o usa *Volver a la autom�
 - **Grids** verticales (600×900): para `caratula.jpg`. Los **cuadrados** sirven para `cuadrado.png`.
 - **Icons**: para `burbuja.png`.
 - **Grids** horizontales (460×215 o 920×430): sirven para `icono.png` de la PS3 (se recorta un poquito).
+
+### Recortar una imagen
+
+Al elegir, pegar o arrastrar una imagen fija, se abre una pantalla para **recortarla** antes de guardarla. El marco tiene la
+forma de ese espacio:
+
+| Espacio | Formas |
+|---|---|
+| Canal | 16:9 o libre |
+| Fondo | Ancho, 16:9 o libre |
+| Logo | Libre |
+| Carátula | Caja 2:3 o libre |
+| Imagen cuadrada | Cuadrado |
+| Burbuja | Círculo |
+| Icono PS3 | Su medida o libre |
+
+| Qué | Mouse | Teclado | Control |
+|---|---|---|---|
+| Mover el marco | Arrastrarlo | Flechas | Cruceta |
+| Cambiar el tamaño | Esquinas o rueda | Q / E | L1 / R1 |
+| Cambiar la forma | Botones de abajo | O | △ |
+| Recortar y guardar | *Recortar y guardar* | Enter | ✕ |
+| Guardar sin recortar | *Usar completa* | I | □ |
+| Cancelar | | Esc | ○ |
+
+Tu archivo original no se toca. Las animaciones (`.gif` y `.webp` animados) y los videos se guardan completos, sin recortar,
+porque si no quedaría solo un cuadro.
 
 ---
 
@@ -341,30 +383,44 @@ progresos que agregan los mods salen con la copa.
 
 ### Juegos de emulador (PS2 y GBA)
 
-NostalHub no trae emuladores, juegos ni BIOS: abre lo que ya tienes. El emulador tiene que estar instalado y funcionando:
-**PCSX2** para PS2, y **RetroArch** con el núcleo **mGBA** para GBA (`.gba`, en la carpeta que RetroArch usa para buscar juegos).
+NostalHub no trae emuladores, juegos ni BIOS: abre lo que ya tienes. El emulador tiene que estar instalado y funcionando.
 
-1. **Ajustes → Implementación de Emuladores → Buscar juegos de PS2 (PCSX2)** o **de GBA (RetroArch)**. En PS2, usa las carpetas que configuraste en PCSX2. Si no hay ninguna carpeta,
-   te pregunta dónde están tus juegos (`.iso`, `.chd`, `.cso`, `.zso`, `.gz`, `.cue` o `.mdf`).
-2. Los juegos aparecen en todas las consolas. Al elegir uno se abre directo en PCSX2, a pantalla completa, y al cerrarlo
-   vuelves al menú. Sus horas se cuentan en el Resumen. Sale en la pantalla donde dejaste la ventana de PCSX2: para
-   cambiarla, abre PCSX2 por su cuenta, déjalo en la otra pantalla y ciérralo.
-3. Si agregas otro juego a esas carpetas, aparece solo al abrir NostalHub, o al tiro apretando de nuevo ese botón. Los que
+| Sistema | Emulador | Archivos | Dónde busca tus juegos |
+|---|---|---|---|
+| PS2 | **PCSX2** | `.iso`, `.chd`, `.cso`, `.zso`, `.gz`, `.cue`, `.mdf` | Las carpetas que configuraste en PCSX2 (Ajustes → Lista de juegos) |
+| GBA | **RetroArch** con el núcleo **mGBA** | `.gba` | La carpeta inicial de RetroArch (Settings → Directory → File Browser) |
+
+1. En RetroArch, baja el núcleo mGBA: **Main Menu → Online Updater → Core Downloader**. Si falta, NostalHub te avisa.
+2. **Ajustes → Implementación de Emuladores → Buscar juegos de PS2 (PCSX2)** o **Buscar juegos de GBA (RetroArch)**. Si no
+   encuentra el emulador, te pregunta dónde está. Si no tiene ninguna carpeta configurada, te pregunta dónde están tus juegos.
+3. Los juegos aparecen en todas las consolas. Al elegir uno se abre directo en el emulador, a pantalla completa, y al
+   cerrarlo vuelves al menú. Sus horas se cuentan en el Resumen.
+4. Si agregas otro juego a esas carpetas, aparece solo al abrir NostalHub, o al tiro apretando de nuevo ese botón. Los que
    borres se esconden.
+
+La carátula y las imágenes se descargan por el **nombre del archivo**, así que funcionan mejor con nombres tipo
+`Guitar Hero (USA).iso`. Si alguna no aparece, ponla con clic derecho → Cambiar imágenes.
+
+**En qué pantalla sale (PS2):** en la pantalla donde dejaste la ventana de PCSX2. Para cambiarla, abre PCSX2 por su cuenta,
+déjalo en la otra pantalla y ciérralo.
+
+**Control en RetroArch:**
+- Si no reconoce tu control de PS5: **Settings → Drivers → Controller** → **sdl2**. Después ciérralo con **Main Menu → Quit
+  RetroArch** y ábrelo de nuevo.
+- Para salir de un juego con el control, configura una combinación en **Settings → Input → Hotkeys → Menu Toggle (Controller
+  Combo)**, por ejemplo L3 + R3. Abre el menú de RetroArch, y ahí eliges **Quit RetroArch**.
 
 **Logros (RetroAchievements):** con tu cuenta, tus juegos de emulador muestran sus logros en todas las consolas, con el
 sello del 100 %, y se suman a tu total junto con los de Steam.
 
-1. En el emulador, activa los logros e inicia sesión (PCSX2: **Ajustes → Logros**; RetroArch: **Settings → Achievements**). Apaga
-   ahí sus notificaciones si no quieres ver el aviso doble.
-2. En NostalHub, **Ajustes → Cuentas → Conectar RetroAchievements**: pega tu usuario y tu **Web API Key**.
+1. En el emulador, activa los logros e inicia sesión (PCSX2: **Ajustes → Logros**; RetroArch: **Settings → Achievements**).
+   Apaga ahí sus notificaciones si no quieres ver el aviso doble.
+2. En NostalHub, **Ajustes → Cuentas → Conectar RetroAchievements**: pega tu usuario y tu **Web API Key**. La ventana trae
+   un botón para abrir la página donde está. No la compartas con nadie.
 
 Los juegos se reconocen por su nombre; si alguno no aparece, se reconoce solo cuando lo juegas un par de minutos. El
 aviso encima del juego **tarda hasta un minuto**, porque NostalHub tiene que preguntarle a RetroAchievements cada cierto
 rato. Solo avisa los juegos que abres desde NostalHub. No todos los juegos tienen logros ahí.
-
-La carátula y las imágenes se descargan por el **nombre del archivo**, así que funcionan mejor con nombres tipo
-`Guitar Hero (USA).iso`. Si alguna no aparece, ponla con clic derecho → Cambiar imágenes.
 
 ---
 
@@ -387,7 +443,8 @@ Son las mismas opciones del menú del ícono junto al reloj, con el estilo de ca
 
 Las secciones son: **General** (cambiar de consola, resumen de horas, recargar, abrir este manual, salir), **Juegos** (buscar juegos
 nuevos, agregar un juego, volver a descargar el arte, título encima de cada canal de la Wii, tráileres de Steam),
-**Pantalla**, **Sonido**, **Implementación de Emuladores**, **Cuentas** (Steam, Spotify y Discord) y **Archivos** (las carpetas, `config.json` y las
+**Pantalla**, **Sonido**, **Implementación de Emuladores** (buscar juegos de PS2 y GBA), **Cuentas** (Steam, Spotify,
+RetroAchievements, Discord y mostrar en Discord lo que juegas) y **Archivos** (las carpetas, `config.json` y las
 herramientas de desarrollo). "Salir de NostalHub" siempre pregunta antes de cerrar.
 
 ### Ordenar los juegos
@@ -424,8 +481,8 @@ Una pantalla que no es de ninguna consola: cuánto has jugado y a qué, con el t
 por día o por mes. Se abre con el botón **Resumen** del selector (tecla **R**, **Create** en el control) o en **Ajustes →
 General → Resumen de horas**.
 
-- **← →** cambia entre Semana, Mes, Año y Todo. **Q / E** (L1 / R1 en el control) va al período anterior o siguiente.
-- **Cuenta desde esta versión**, y se guarda en `estadisticas.db`. Al desinstalar NostalHub no se borra.
+- **← →** cambia entre Semana, Mes, Año y Todo. **Q / E** (L1 / R1 en el control) va al período anterior o siguiente. **Esc** cierra.
+- **Cuenta desde la versión 1.1.0**, y se guarda en `estadisticas.db`. Al desinstalar NostalHub no se borra.
 - Tiene que estar NostalHub abierta. Los juegos de Steam se cuentan aunque los abras desde Steam; los demás, cuando los
   abres desde NostalHub y se puede saber cuándo se cierran (no los que se abren por un enlace de otro launcher).
 - Mide el tiempo con el juego abierto, aunque no lo estés usando. Las sesiones de menos de 30 segundos no cuentan.
@@ -452,7 +509,8 @@ En **Ajustes → Pantalla**:
 
 ### Logros sobre el juego
 
-- Cuando ganas un logro de Steam, aparece **encima del juego** el aviso de la **última consola que elegiste**:
+- Cuando ganas un logro (de Steam, de RetroAchievements o un progreso de Minecraft), aparece **encima del juego** el aviso
+  de la **última consola que elegiste**:
   - **Xbox 360**: arriba al centro, "Logro desbloqueado" con los puntos G según qué tan raro es.
   - **PS3** (arriba a la derecha), **PS4** (arriba a la izquierda) y **PS Vita** (arriba a la derecha): "Has obtenido
     un trofeo" con la copa de **bronce, plata u oro** según qué tan raro es. Si con ese logro completas el juego,
@@ -460,7 +518,8 @@ En **Ajustes → Pantalla**:
   - Las que no tenían logros tienen uno hecho a su estilo: **Wii** (cartel blanco con borde celeste, arriba al
     centro), **PS2** (panel azul que brilla, arriba a la derecha), **Switch** (notificación oscura, arriba a la
     izquierda) y **3DS** (aviso blanco con la luz azul parpadeando, arriba al centro).
-- Se detecta **al instante** leyendo los archivos de logros que Steam guarda en tu PC (no necesita internet).
+- En Steam se detecta **al instante** leyendo los archivos de logros que guarda en tu PC (no necesita internet). En los
+  juegos de emulador tarda hasta un minuto (sección 7).
 - El juego tiene que estar en **ventana sin bordes** ("Borderless" / "Ventana completa"). En pantalla completa
   "exclusiva" no se ve encima (muchos juegos con DirectX 12 sí funcionan).
 - **Ajustes → Pantalla**: activar o desactivar **Logros sobre el juego** y elegir la **Pantalla de los logros**.
@@ -471,7 +530,8 @@ En **Ajustes → Pantalla**:
 
 Cuando consigues **todos** los logros de un juego, aparece un sello especial en su ícono, en su ficha y en la lista
 de logros: **trofeo de platino** (PS3, PS4 y PS Vita), **medalla dorada** (Xbox 360), **estrella dorada**
-(PS2 y 3DS), **sello dorado** (Wii) y **corona dorada** (Switch).
+(PS2 y 3DS), **sello dorado** (Wii) y **corona dorada** (Switch). Los juegos de emulador con RetroAchievements tienen su
+lista en los mismos lugares.
 
 | Consola | Dónde |
 | --- | --- |
@@ -642,10 +702,10 @@ mientras usas el control en otra cosa o en un juego.
 | L2 / R2 | Subir / bajar rápido (RePág / AvPág) |
 | Options | Menú de la consola: Guía (Xbox 360), menú rápido (PS4 y PS Vita), Configuración (PS2), ordenar (selector) |
 | Create | Ordenar (tecla S); en la Wii y la PS2, Amigos; en el selector, el Resumen de horas |
+| Stick derecho | Como la rueda del mouse |
 
 En la Wii, la PS2, la PS Vita, la 3DS, la Xbox 360 (Mis juegos) y el inicio de la PS4, **△** abre el orden de los
 juegos.
-| Stick derecho | Como la rueda del mouse |
 
 - Cuando usas el control, las pistas de la pantalla muestran sus botones (✕ ○ △ □); si vuelves al teclado,
   vuelven las teclas.
@@ -654,6 +714,7 @@ juegos.
   cuenta cada botón dos veces.
 - **Con Steam abierto** el control de PS5 igual funciona: Steam lo cambia a un modo que Windows no muestra como
   control, así que NostalHub lo lee directo (solo lo lee, no cambia nada del control).
+- **En los juegos de emulador** el control lo maneja el emulador. Si RetroArch no reconoce el de PS5, mira la sección 7.
 
 ---
 
@@ -662,6 +723,8 @@ juegos.
 | Dónde | Teclas |
 |---|---|
 | Selector de consolas | ↑ ↓ elegir · Enter entrar · **O** ordenar las consolas · **R** resumen de horas · **Esc** pregunta si cerrar la app (Esc otra vez = cerrar) |
+| Resumen de horas | ← → semana, mes, año o todo · **Q / E** período anterior o siguiente · Esc cerrar |
+| Recortar una imagen | Flechas mover · **Q / E** o la rueda cambiar el tamaño · **O** forma · **I** usar completa · Enter recortar y guardar · Esc cancelar |
 | Cualquier consola | **Clic derecho** sobre un juego, o **I** con el juego marcado: cambiar imágenes y descripción · **F3** FPS · **Ctrl + Alt + Shift + L** logro de prueba |
 | Wii | Flechas elegir canal (↓ a los botones de abajo) · RePág / AvPág páginas · ← → cambiar de canal (dentro de un canal) · Enter abrir / iniciar · ↓ logros (en el canal) · **A** amigos · **O** ordenar · Esc volver (en el menú: selector) |
 | PS2 | Flechas moverse · Enter elegir · **A** amigos · **C** configuración · **O** ordenar · Esc volver (en la Memory Card: selector) |
@@ -680,6 +743,11 @@ juegos.
 - **Juegos nuevos de Steam:** Ajustes → Juegos → *Buscar juegos nuevos de Steam*.
 - **La barra de tareas tapa el menú:** Ajustes → Pantalla → desactiva *Cubrir la barra de tareas*.
 - **Algo se ve raro:** Ajustes → General → *Recargar*.
+- **No aparece un juego de emulador:** revisa que esté en la carpeta que usa el emulador (sección 7) y aprieta de nuevo
+  *Buscar juegos…* en Ajustes → Implementación de Emuladores.
+- **RetroArch no reconoce el control de PS5:** cambia su driver a **sdl2** (sección 7).
+- **No salen los logros de un juego de emulador:** revisa que tu cuenta esté iniciada en el emulador y en NostalHub, y
+  que el juego tenga logros en RetroAchievements. El aviso tarda hasta un minuto.
 - **La portada de la canción no es la del álbum:** revisa `cache\spotify.log`; con Spotify conectado la portada sale
   directo de Spotify.
 - **Ver errores:** Ajustes → Archivos → *Herramientas de desarrollo*, o `npm run dev`.
