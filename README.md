@@ -1,229 +1,149 @@
-# NostalHub — menú de juegos para la segunda pantalla
+# NostalHub
 
-> **¿Dónde pongo mis imágenes, logos, modelos o la clave de Steam?** Todo eso está en **[MANUAL.md](MANUAL.md)**.
+**Tus juegos, con los menús de las consolas de siempre.**
 
-Un lanzador con estética de menú de consola: se abre con Windows, se queda en tu pantalla derecha
-y cada juego es un "canal". Al hacer clic se abre la pantalla del canal con su animación, y
-**Iniciar** lo abre desde Steam (o desde su acceso directo).
+NostalHub es un lanzador de juegos para Windows pensado para tu segunda pantalla. Reúne tus juegos de Steam, Epic, emuladores
+y otros programas, y los muestra con el menú de la consola que elijas, con su diseño, sus animaciones y sus sonidos.
 
-## Instalar y actualizar (para tus amigos)
+> ¿Dónde pongo mis imágenes, sonidos o claves? ¿Cómo se usa cada consola? Todo está en el **[Manual](MANUAL.md)**.
 
-1. Abre `NostalHub-Setup-<versión>.exe` (sale en `dist\` con `npm run dist`).
-2. Si Windows muestra **"Windows protegió su PC"**: **Más información → Ejecutar de todas formas**. Sale porque el
-   instalador no tiene firma digital (es pagada); no es un virus.
-3. **Siguiente** hasta el final. Al terminar se puede abrir NostalHub al tiro.
+## Consolas
 
-**Actualizar**: abre el instalador de la versión nueva encima, sin desinstalar nada. Tus juegos, ajustes, fondos,
-sonidos y claves no se pierden (están en `%APPDATA%\NostalHub`). Al desinstalar tampoco se borran.
+| Consola | Año | Cómo se ve |
+|---|---|---|
+| **Wii** | 2006 | Menú de canales, con su pantalla de canal y animación |
+| **PlayStation 2** | 2000 | Memory Card con íconos 3D que giran |
+| **Xbox 360** | 2005 | Pestañas *home*, *social* y *settings*, con la Guía y carátulas |
+| **PlayStation 3** | 2006 | Barra de categorías con la ola de fondo y el color de cada mes |
+| **PlayStation 4** | 2013 | Fila de juegos, Biblioteca y menú rápido |
+| **PS Vita** | 2011 | Burbujas y tarjetas con la esquina que se despega |
+| **Nintendo Switch** | 2017 | Fila de juegos con botones redondos, en tema claro u oscuro |
+| **Nintendo 3DS** | 2011 | Las dos pantallas, con profundidad 3D y la consola abierta |
 
-## Primera vez (para programar)
+## Qué puedes hacer
 
-Abre una terminal en esta carpeta (en el Explorador: clic derecho → "Abrir en Terminal") y escribe:
+- **Juegos:** los de Steam aparecen solos. También puedes agregar otros programas, accesos directos de Epic y Minecraft Java.
+- **Emuladores:** PS2 con PCSX2 y GBA con RetroArch. NostalHub los abre directo en pantalla completa y vuelve al menú al cerrarlos.
+- **Logros:** los de Steam, RetroAchievements y los progresos de Minecraft, con un aviso encima del juego al estilo de tu
+  consola y un sello cuando completas un juego.
+- **Personalizar cada juego:** imágenes, logo, video, modelo 3D, música y descripción, con clic derecho o la tecla **I**.
+  Las imágenes se pueden recortar antes de guardarlas.
+- **Personalizar cada consola:** ícono o modelo 3D en el selector, música, sonidos, video de inicio y fondos propios.
+- **Resumen de horas:** cuánto has jugado y a qué, por semana, mes y año.
+- **Música:** controla Spotify, Apple Music o YouTube Music. Con Spotify conectado también tienes cola, me gusta,
+  dispositivos y más.
+- **Amigos de Steam:** quién está en línea y a qué juega, con acceso a su perfil y su chat.
+- **Discord:** tu canal de voz con quiénes están contigo y, si lo activas, lo que juegas en tu estado.
+- **Control:** funciona con mando de PS5, PS4 o Xbox, además de teclado y mouse.
+- **Pantalla:** pantalla completa o ventana, en el monitor que elijas.
 
-```
+## Instalar
+
+Necesitas **Windows 10 u 11**. No hace falta tener una segunda pantalla.
+
+1. Descarga `NostalHub-Setup-<versión>.exe` desde [Releases](https://github.com/XarlordCPT/NostalHub/releases/latest).
+2. Si aparece **"Windows protegió su PC"**, elige **Más información → Ejecutar de todas formas**. Sale porque el instalador no
+   tiene firma digital.
+3. Sigue los pasos del instalador.
+
+La primera vez, NostalHub importa tus juegos de Steam y queda configurada para **iniciar con Windows**. Puedes apagarlo en
+**Ajustes → Pantalla**.
+
+**Para actualizar**, abre el instalador nuevo encima del anterior, sin desinstalar nada. Tus juegos, ajustes, imágenes y claves
+se mantienen, y tampoco se borran si desinstalas.
+
+**Para cerrar la app**, usa **Esc** en el selector de consolas, **Ajustes → General → Salir de NostalHub** o el ícono junto al
+reloj de Windows. Alt+F4 no la cierra, a propósito.
+
+## Conectar tus cuentas
+
+Todo es opcional. Sin conectar nada ya puedes abrir tus juegos y ver sus horas y su arte. Las conexiones se hacen en
+**Ajustes → Cuentas**, con los pasos en la misma ventana.
+
+| Cuenta | Qué agrega | Qué necesitas |
+|---|---|---|
+| **Steam** | Logros, amigos, nombre y foto | Una clave de la Web API de Steam (gratis) |
+| **Spotify** | Cola, avance de la canción, me gusta, volumen y dispositivos | Spotify Premium y una app propia en Spotify for Developers (gratis) |
+| **Discord (Grupo)** | Tu canal de voz y quiénes están contigo | Discord de escritorio y una aplicación propia en Discord Developers (gratis) |
+| **Discord (estado)** | Muestra lo que juegas en tu perfil. Viene apagado porque es público | Discord de escritorio |
+| **RetroAchievements** | Logros de tus juegos de emulador | Tu usuario, tu Web API Key y la sesión iniciada en el emulador |
+
+Tus claves y conexiones se guardan solo en tu PC, en `%APPDATA%\NostalHub`. **No las compartas con nadie.**
+
+## Emuladores
+
+NostalHub no trae emuladores, juegos ni BIOS: solo abre lo que ya tienes instalado.
+
+| Sistema | Emulador | Archivos |
+|---|---|---|
+| PS2 | PCSX2 | `.iso`, `.chd`, `.cso`, `.zso`, `.gz`, `.cue`, `.mdf` |
+| GBA | RetroArch con el núcleo mGBA | `.gba` |
+
+Se agregan en **Ajustes → Implementación de Emuladores**. Los pasos, los logros y cómo usar el control están en la
+[sección 7 del manual](MANUAL.md#7-agregar-juegos).
+
+## Para programar
+
+Necesitas [Node.js](https://nodejs.org). Desde la carpeta del proyecto:
+
+```bash
 npm install
+```
+```bash
 npm start
 ```
 
-`npm install` se hace la primera vez y cada vez que el proyecto sume una librería nueva (descarga Electron, ~100 MB). Después basta con `npm start`.
+| Comando | Para qué |
+|---|---|
+| `npm start` | Abre la app |
+| `npm run dev` | Abre la app con las herramientas de desarrollo |
+| `npm run dist` | Crea el instalador en `dist\` |
+| `npm run dist:portable` | Crea la versión portable en `dist\` |
 
-Al abrirla por primera vez:
-- Importa sola todos tus juegos de Steam instalados y les busca el arte.
-- Se registra para **iniciar con Windows** (lo puedes desactivar en el menú).
+Si después de `npm install` falta `node_modules/electron/dist`, corre `node node_modules/electron/install.js`.
 
-## Selector de consola
+**Probar sin Electron:** abre `renderer/index.html` en un navegador. Usa los datos falsos de `renderer/mock.js`, así que sirve
+para revisar el diseño sin tocar tus datos ni tus cuentas.
 
-**Esc en el selector** pregunta si quieres cerrar NostalHub: Esc otra vez (o *Cerrar*) la cierra, *Cancelar* o un clic
-afuera vuelve.
+**Hecho con:** [Electron](https://www.electronjs.org), [Three.js](https://threejs.org) para los modelos 3D y
+[hls.js](https://github.com/video-dev/hls.js) para los tráileres de Steam.
 
-Al prender aparece el selector: la consola a la izquierda (empresa, nombre) y su ícono a la derecha.
-Se cambia con las flechas ↑ ↓, la rueda del mouse o los botones de arriba y abajo. Para entrar, haz clic
-o presiona Enter. Queda marcada la última consola que usaste.
+### Dónde está cada cosa
 
-- **Volver al selector** desde el menú de la Wii: tecla Esc, o engranaje → *Cambiar de consola*.
-- **Ícono de cada consola**: ajustes → Archivos → *Carpeta de consolas* → carpeta de la consola → deja
-  `icono.png` (ideal cuadrado y con fondo transparente). Opcional: `fondo.jpg` para cambiar el fondo del selector
-  y `logo.png` para mostrar el logo de la consola en vez de su nombre escrito.
-- Todas las consolas muestran los mismos juegos; lo que cambia es el diseño del menú.
+```
+main.js              Proceso principal: ventana, bandeja, juegos, opciones de Ajustes y avisos de logros
+preload.js           Puente seguro entre la interfaz y el proceso principal
+src/                 Steam, Epic, emuladores, RetroAchievements, Minecraft, música, Discord, horas y arte
+renderer/shell.*     Selector de consolas, escalado de la pantalla y sonidos
+renderer/common.js   Funciones compartidas por todas las consolas
+renderer/themes/     Un menú por consola (theme.js + theme.css)
+renderer/stats.*     Pantalla del Resumen de horas
+renderer/game-editor.js  Editor de imágenes de cada juego y su recorte
+renderer/gamepad.js  Control de PS5, PS4 y Xbox
+renderer/overlay/    Avisos de logro encima del juego
+renderer/models/     Modelos 3D hechos con código para la PS2
+build/               Textos del instalador
+```
 
-### PlayStation 2 (Memory Card)
+Tus datos se guardan fuera del proyecto, en `%APPDATA%\NostalHub`:
 
-- Tus juegos aparecen como íconos 3D flotando y girando, en una grilla de 5 columnas (con más de 20 se
-  desplaza con la rueda o las flechas).
-- El ícono es el **logo** del juego (el mismo `logo.png` de la carpeta de personalización). Si no tiene logo,
-  se muestran sus **iniciales** en letras 3D, con un color propio para cada juego.
-- **Modelos 3D**: si un juego tiene un modelo en `renderer/models/`, se usa ese en vez del logo
-  (por ahora: un bloque neón original para Geometry Dash). Para agregar otro, copia `bloque-neon.js`,
-  cambia `match` (ID de Steam o nombre del juego) y la figura, y súmalo en `index.html` junto a los otros.
-- Arriba muestra el espacio libre real del disco donde están la mayoría de tus juegos.
-- Clic (o Enter) en un juego → el ícono pasa a la izquierda y aparecen *Iniciar* y *Volver*.
-- Teclado: flechas para moverte, Enter para elegir, Esc para volver (y Esc en la grilla vuelve al selector).
-
-### Xbox 360
-
-- Pestañas **home / social / settings**, que se cambian con Q / E, con las flechas al llegar al borde o con un
-  clic en la pestaña o en los mosaicos que se asoman al lado.
-- **home**:
-  - El último juego que abriste (arriba a la izquierda) y un reproductor de **Spotify** que controla tu app de escritorio.
-  - Abajo: Recientes, Mis juegos (tus juegos como cajas, en un carrusel), Perfil, Ajustes y Consolas.
-- **Ficha del juego**: carátula, horas jugadas, última vez, descripción, *Jugar* y *Logros*.
-- **Logros**: los saca de Steam con tu clave de API. Muestra los desbloqueados con su fecha, los bloqueados y qué %
-  de jugadores tiene cada uno.
-- **social**: tu foto y nombre de Steam, el total de logros, los juegos recientes y el mosaico **Grupo** (tu canal de voz de Discord).
-- **settings**: ajustes, carpetas, clave de Steam, manual, cambiar consola y apagar.
-
-### PlayStation 4
-
-- **Menú principal**: tus 5 juegos más recientes y la Biblioteca. ↓ abre la ficha del juego y ↑ la fila de funciones
-  (Tienda, Amigos, Grupo, Perfil, Trofeos, Ajustes, Energía).
-- **Biblioteca** con filtros, búsqueda y orden; **Trofeos** con tus logros de Steam; **menú rápido** con la tecla P.
-- **Grupo**: tu canal de voz de Discord y quiénes están contigo (pasos en MANUAL.md).
-
-### Modelos 3D en el selector
-
-Si dejas `modelo.glb` en la carpeta de una consola (`%APPDATA%\NostalHub\consolas\<consola>\`), gira en el selector
-en vez de su imagen. Se puede arrastrar con el mouse.
-
-### Agregar una consola nueva
-
-1. Copia la carpeta `renderer/themes/wii` con otro nombre, por ejemplo `renderer/themes/ps3`, y cambia
-   en su `theme.js` la línea `window.Themes.wii` por `window.Themes.ps3` y en su `theme.css` `.theme-wii` por `.theme-ps3`.
-2. En `renderer/consoles.js` agrega una entrada con `id: 'ps3'`, la empresa, el nombre, el año y los colores
-   del selector (`look`).
-3. En `renderer/index.html` agrega `<script src="themes/ps3/theme.js"></script>` junto al de la Wii.
-
-Si una consola está en la lista pero todavía no tiene tema, el selector la muestra y avisa que su menú no está hecho.
-
-## Dónde está cada cosa
-
-- **Ícono en la bandeja del sistema** (junto al reloj de Windows): clic derecho para el menú.
-- **Ajustes dentro de cada consola**, con las mismas opciones: engranaje de la Wii (pantalla "Configuración de NostalHub"),
-  mosaico Ajustes o tecla G en la Xbox (la Guía) y botón Configuración o tecla C en la PS2. Las opciones se definen una
-  sola vez en `menuSections()` de `main.js`; la bandeja y las tres consolas salen de ahí.
-- **Botón del dado** (abajo a la derecha): abre un juego al azar.
-- **Para cerrar la app**: menú → *Salir*. Alt+F4 no la cierra a propósito.
-- **Teclado**: ← → cambian de página o de juego, Enter = Iniciar, Esc = volver al menú.
-
-Los datos se guardan en `%APPDATA%\NostalHub`:
-
-| Archivo / carpeta | Para qué |
+| Archivo o carpeta | Para qué |
 |---|---|
 | `config.json` | Lista de juegos y opciones |
-| `media\` | Arte descargado automáticamente (no hace falta tocarlo) |
-| `personalizar\` | Tu arte propio, una carpeta por juego |
-| `consolas\` | Ícono (y fondo opcional) de cada consola del selector |
+| `estadisticas.db` | Horas de juego |
+| `consolas\` | Lo que le pones a cada consola: ícono, modelo, música, sonidos y fondos |
+| `personalizar\` | Lo que le pones a cada juego, una carpeta por juego |
+| `media\`, `cache\` | Arte descargado y registros; no hace falta tocarlos |
+| `steam-api-key.txt`, `discord.txt`, `spotify.json`, `retroachievements.json` | Tus claves: **nunca las subas ni las compartas** |
 
-## Cómo se arma cada canal del menú
+### Más documentación
 
-Igual que en la consola: **una imagen de fondo del juego + su título encima**.
-- El fondo es el arte "hero" de Steam (o una captura del juego si no tiene).
-- El título es el logo oficial del juego (PNG transparente). Si no hay logo, se escribe el nombre
-  con letras redondeadas y contorno.
+- **[MANUAL.md](MANUAL.md):** cómo se usa todo y dónde va cada archivo.
+- **[CONSOLA-NUEVA.md](CONSOLA-NUEVA.md):** lista de lo que necesita una consola nueva.
+- **[CLAUDE.md](CLAUDE.md):** arquitectura, reglas del proyecto y errores que no hay que repetir.
 
-Si prefieres la portada de Steam tal cual, desmarca en el menú *Título encima de cada canal*.
+## Aviso
 
-## Cambiar el arte o la animación a mano
-
-1. Ajustes → Archivos → **Carpeta de personalización**.
-2. Entra a la carpeta del juego (tiene el nombre del juego).
-3. Deja ahí el archivo con uno de estos nombres:
-
-| Nombre | Qué cambia |
-|---|---|
-| `fondo.jpg` / `fondo.png` | El fondo del canal en el menú **y** de la pantalla de canal |
-| `logo.png` | El título, en el menú y en la pantalla de canal (ideal con fondo transparente) |
-| `canal.jpg` / `canal.png` / `canal.mp4` | Reemplaza el cuadrito completo, tal cual, sin título encima (sí, puede ser un video) |
-| `video.mp4`, `video.webm` o `video.gif` | La animación de la pantalla de canal |
-| `modelo.glb` (o `.gltf`) | El ícono 3D del juego en la PS2 (ver "Modelos 3D con Blockbench") |
-| `descripcion.txt` | La descripción del juego (reemplaza la de Steam) |
-
-Se aplica solo al guardar el archivo. Para volver al arte automático, borra tu archivo.
-
-Consejos:
-- **Para cambiar solo el texto del título** (cuando no hay logo), edita `"name"` del juego en `config.json`.
-- **Logos y fondos buenos**: en [SteamGridDB](https://www.steamgriddb.com) busca el juego. En la pestaña
-  *Logos* están los títulos con fondo transparente (`logo.png`) y en *Heroes* los fondos anchos (`fondo.jpg`).
-- **Para los videos**: lo ideal son 10–20 segundos, en 1920×800 o similar. El audio no importa, porque se
-  reproduce en silencio.
-
-## Descripción de cada juego
-
-Al elegir un juego (pantalla de canal en la Wii, pantalla de detalle en la PS2) aparece su descripción corta.
-Sale de la tienda de Steam, en español cuando existe, y se descarga sola la primera vez que la app abre con
-internet. Para escribir la tuya, crea `descripcion.txt` en la carpeta de personalización del juego.
-
-## Modelos 3D con Blockbench
-
-1. En Blockbench crea un modelo **Generic Model** (cualquier tamaño: la app lo centra y lo ajusta sola).
-2. Si quieres animación, hazla en la pestaña *Animate*. Ponle de nombre `idle` (o `loop`); si no, se usa la
-   primera. Se repite en bucle automáticamente, y además la app lo hace girar lento como los íconos de la PS2.
-3. **File → Export → Export glTF Model**: elige el formato **binario (.glb)** y deja marcadas las opciones de
-   exportar animaciones y de incrustar texturas.
-4. Guarda el archivo como `modelo.glb` en la carpeta del juego (ajustes → Archivos → *Carpeta de personalización*).
-   Se aplica solo al guardar.
-
-Las texturas pequeñas (estilo pixel) se muestran nítidas, sin difuminar. Si el modelo no carga, el juego vuelve
-a su logo o iniciales. Prioridad en la PS2: `modelo.glb` tuyo → modelo hecho en código (`renderer/models/`) →
-logo → iniciales.
-
-## De dónde sale la animación automática
-
-1. Las imágenes que Steam ya tiene guardadas en tu PC (portada, fondo y logo).
-2. Lo que falte se baja de la tienda de Steam.
-3. La animación es el **tráiler de Steam**, transmitido mientras miras el canal (necesita internet; se
-   desactiva en menú → *Mostrar tráileres de Steam*). Mientras carga, o si no hay tráiler, el fondo se
-   mueve lentamente.
-
-Si algo salió mal: menú → **Volver a descargar el arte**.
-
-## Agregar juegos
-
-- **Steam:** se agregan solos, también los que descargues con NostalHub abierta.
-- **Juegos que no son de Steam:** agrégalos a Steam como "juego que no es de Steam" (NostalHub los toma de ahí) o
-  usa ajustes → Juegos → *Agregar juego o programa*.
-- Los detalles (y cómo hacerlo a mano en `config.json`) están en MANUAL.md, sección 7.
-
-## "Jugando a…"
-
-Al iniciar un juego, el menú muestra "Jugando a X" con el tiempo de juego y pausa las animaciones.
-- **Juegos de Steam y .exe**: cuando cierras el juego, vuelve solo al menú.
-- **Accesos directos y URLs**: Windows no avisa cuándo terminan, así que vuelves con el botón
-  *Volver al menú*.
-
-## Opciones del menú
-
-- **Pantalla**: automática (la que está a la derecha de la principal) o una fija.
-- **Cubrir la barra de tareas**: si la barra de Windows aparece encima del menú en la segunda pantalla,
-  desactiva esto. Otra opción: en Windows, Configuración → Personalización → Barra de tareas →
-  Comportamientos de la barra de tareas → desmarcar "Mostrar mi barra de tareas en todas las pantallas".
-- **Iniciar con Windows**.
-
-## Estructura del código
-
-```
-main.js            Proceso principal: ventana, bandeja, arranque, juegos
-preload.js         Puente seguro entre la interfaz y main.js
-src/steam.js       Encuentra Steam, lee tu biblioteca y detecta qué juego está corriendo
-src/vdf.js         Lector de los archivos .vdf/.acf de Steam
-src/media.js       Busca y descarga el arte de cada juego
-src/launcher.js    Abre los juegos y avisa cuando terminan
-src/config.js      Lee y guarda config.json
-renderer/index.html        Estructura base
-renderer/shell.js/.css     Selector de consolas y escalado de la pantalla
-renderer/consoles.js       Lista de consolas del selector
-renderer/themes/wii/       El menú estilo Wii (theme.js + theme.css)
-renderer/themes/ps2/       El menú estilo Memory Card de PS2
-renderer/themes/x360/      El menú estilo Xbox 360
-src/steamweb.js            Logros y perfil de Steam (con clave de API)
-src/spotify.js             Lee y controla la app de escritorio de Spotify
-src/spotify-smtc.ps1       Ayudante de Windows para Spotify (canción, portada y controles)
-src/discord.js             Canal de voz de Discord (conexión local con la app de Discord)
-renderer/console-model.js  Modelos 3D de las consolas en el selector
-renderer/themes/ps4/       El menú estilo PS4
-renderer/themes/vita/      El menú estilo PS Vita (burbujas, tarjetas LiveArea y esquina que se despega)
-renderer/common.js         Textos compartidos (horas jugadas, logros, valores de las opciones)
-renderer/models/           Modelos 3D para los íconos de la PS2 (Three.js)
-renderer/mock.js           Datos de prueba para abrir index.html en el navegador sin Electron
-```
-
-Para depurar: `npm run dev` abre las herramientas de desarrollo.
+NostalHub es un proyecto personal de Cristóbal Medina, sin relación con Nintendo, Sony, Microsoft, Valve, Epic Games, Spotify,
+Discord ni RetroAchievements. Sus nombres y marcas pertenecen a sus dueños. El proyecto no incluye sus logos ni sus sonidos
+originales: cada consola trae sonidos hechos con código, y quien quiera puede agregar los suyos en su propia carpeta de datos.
