@@ -1,6 +1,7 @@
 // Prueba de pantallas: abre NostalHub con los datos de prueba (renderer/mock.js, nunca tus datos ni tus cuentas),
 // entra a cada consola y recorre sus pantallas con el teclado, como el control. Falla si una pantalla no se abre o si
-// aparece un error. De cada pantalla saca una captura y la compara píxel a píxel con la de referencia.
+// aparece un error. De cada pantalla saca una captura y la compara con la de referencia, en cuadritos de 4×4 píxeles
+// (así un borde de letra suavizado distinto no cuenta, pero algo movido, más grande o de otro color sí).
 //
 //   npx electron tests/pantallas.js               compara con las capturas de referencia
 //   npx electron tests/pantallas.js --referencia  guarda las capturas actuales como referencia
@@ -17,8 +18,13 @@ const CAPTURAS = path.join(__dirname, 'capturas');
 const args = process.argv.slice(2).filter((a) => !a.startsWith('-') && !a.endsWith('.js') && a !== '.');
 const REFERENCIA = process.argv.includes('--referencia');
 const EN_PARALELO = 4;
-const PIXELES_PERMITIDOS = 150; // de 2 millones: bordes suavizados que pueden variar un poco
+const BLOQUE = 4; // se compara el promedio de cada cuadrito de 4×4 píxeles
+const BLOQUES_PERMITIDOS = 12; // de 129 600 cuadritos
 const ORDEN = ['wii', 'ps2', 'x360', 'ps4', 'vita', 'switch', 'ps3', '3ds']; // orden del selector
+
+// Que el dibujo no dependa de este PC: letras suavizadas en gris (no con los colores de ClearType) y escala 1
+app.commandLine.appendSwitch('disable-lcd-text');
+app.commandLine.appendSwitch('force-device-scale-factor', '1');
 
 // ---------- Pasos ----------
 // ['tecla', 'Enter', veces] · ['clic', selector] · ['clicTexto', 'Logros'] · ['espera', ms] · ['js', código]
@@ -250,15 +256,29 @@ function comparar(nombre, img) {
   const a = nativeImage.createFromPath(ref).toBitmap();
   const b = img.toBitmap();
   if (a.length !== b.length) return { distintos: Infinity };
+  const { width: ancho, height: alto } = img.getSize();
   const marca = Buffer.from(b);
   let distintos = 0;
-  for (let i = 0; i < a.length; i += 4) {
-    if (Math.abs(a[i] - b[i]) > 24 || Math.abs(a[i + 1] - b[i + 1]) > 24 || Math.abs(a[i + 2] - b[i + 2]) > 24) {
+  for (let by = 0; by < alto; by += BLOQUE) {
+    for (let bx = 0; bx < ancho; bx += BLOQUE) {
+      // Promedio de cada color (BGRA) del cuadrito en las dos capturas
+      const sa = [0, 0, 0];
+      const sb = [0, 0, 0];
+      for (let y = by; y < by + BLOQUE; y++) {
+        for (let x = bx; x < bx + BLOQUE; x++) {
+          const i = (y * ancho + x) * 4;
+          for (let c = 0; c < 3; c++) (sa[c] += a[i + c]), (sb[c] += b[i + c]);
+        }
+      }
+      const n = BLOQUE * BLOQUE;
+      if (![0, 1, 2].some((c) => Math.abs(sa[c] - sb[c]) / n > 16)) continue;
       distintos++;
-      marca[i] = 0; // BGRA: los píxeles distintos quedan en rojo
-      marca[i + 1] = 0;
-      marca[i + 2] = 255;
-      marca[i + 3] = 255;
+      for (let y = by; y < by + BLOQUE; y++) {
+        for (let x = bx; x < bx + BLOQUE; x++) {
+          const i = (y * ancho + x) * 4;
+          (marca[i] = 0), (marca[i + 1] = 0), (marca[i + 2] = 255), (marca[i + 3] = 255); // BGRA: en rojo
+        }
+      }
     }
   }
   if (distintos) fs.writeFileSync(path.join(CAPTURAS, 'diferencias', archivo), nativeImage.createFromBitmap(marca, img.getSize()).toPNG());
@@ -276,12 +296,13 @@ async function probarPantalla(consola, nombre, receta) {
     for (const p of receta.pasos) await ac.paso(p);
     if (!(await ac.hasta(receta.ve))) throw new Error(`no se abrió (no se ve ${receta.ve})`);
     await esperar(1200);
+    await ac.js('document.fonts.ready.then(() => 1)'); // que no saque la captura con una letra de reemplazo
     const { img, donde } = await quieta(w, ac);
     if (!img) throw new Error(`la pantalla nunca se quedó quieta (se mueve ${donde})`);
     const c = comparar(`${consola || 'general'}-${nombre}`, img);
     if (c.nueva) r.nota = 'captura de referencia guardada';
-    else if (c.distintos > PIXELES_PERMITIDOS) (r.ok = false), (r.nota = c.distintos === Infinity ? 'la captura cambió de tamaño' : `cambiaron ${c.distintos} píxeles (ver tests/capturas/diferencias)`);
-    else if (c.distintos) r.nota = `${c.distintos} píxeles distintos (dentro de lo permitido)`;
+    else if (c.distintos > BLOQUES_PERMITIDOS) (r.ok = false), (r.nota = c.distintos === Infinity ? 'la captura cambió de tamaño' : `cambiaron ${c.distintos} cuadritos de 4×4 (ver tests/capturas/diferencias)`);
+    else if (c.distintos) r.nota = `${c.distintos} cuadritos distintos (dentro de lo permitido)`;
     const enPagina = await ac.js('window.__errores || []');
     errores.push(...enPagina);
   } catch (e) {

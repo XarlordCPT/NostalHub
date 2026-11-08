@@ -8,7 +8,8 @@ const path = require('path');
 const leer = (f) => fs.readFileSync(path.join(__dirname, '..', '..', f), 'utf8');
 const preload = leer('preload.js');
 const mock = leer('renderer/mock.js');
-const main = leer('main.js');
+// Los canales están en main.js y en las partes que se sacaron de él (src/editor-juegos.js…)
+const main = [leer('main.js'), ...fs.readdirSync(path.join(__dirname, '..', '..', 'src')).filter((f) => f.endsWith('.js')).map((f) => leer(`src/${f}`))].join('\n');
 
 test('mock.js tiene todas las funciones de preload.js', () => {
   const funciones = [...new Set([...preload.matchAll(/^\s{2,4}([a-zA-Z]\w+)\s*:/gm)].map((m) => m[1]))];
@@ -17,7 +18,7 @@ test('mock.js tiene todas las funciones de preload.js', () => {
   assert.deepEqual(faltan, [], 'agrégalas a renderer/mock.js');
 });
 
-test('cada canal que usa preload.js existe en main.js', () => {
+test('cada canal que usa preload.js existe en main.js (o en src/)', () => {
   const canales = [...new Set([...preload.matchAll(/ipcRenderer\.(?:invoke|send)\('([^']+)'/g)].map((m) => m[1]))];
   const faltan = canales.filter((c) => !main.includes(`'${c}'`));
   assert.deepEqual(faltan, []);
