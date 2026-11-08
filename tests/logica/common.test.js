@@ -13,6 +13,10 @@ test('textos: horas jugadas, escapar HTML y logros secretos', () => {
   assert.equal(U.hours(45), '45 min jugados');
   assert.equal(U.hours(150), '2,5 h jugadas');
   assert.equal(U.escapeHtml('<b>"A & B"</b>'), '&lt;b&gt;&quot;A &amp; B&quot;&lt;/b&gt;');
+  assert.equal(U.escapeHtml("Baldur's Gate"), 'Baldur&#39;s Gate', 'también la comilla simple');
+  assert.equal(U.escapeHtml(0), '0', 'el 0 se muestra');
+  assert.equal(U.escapeHtml(null), '');
+  assert.equal(U.pad2(7), '07');
   const t = U.achievementTexts({ name: 'Real', description: 'x', hidden: true, done: false });
   assert.equal(t.name, 'Logro secreto');
   assert.equal(U.achievementTexts({ name: 'Real', hidden: true, done: true, unlockTime: Date.UTC(2026, 10, 8, 12) }).name, 'Real');

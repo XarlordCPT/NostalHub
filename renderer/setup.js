@@ -5,7 +5,7 @@
   const api = window.nostalhub || window.mockNostalHub;
   const stage = document.getElementById('stage');
   if (!api || !stage) return;
-  const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+  const esc = window.NostalHubUtil.escapeHtml;
   const call = (fn, ...a) => (typeof api[fn] === 'function' ? api[fn](...a) : Promise.resolve(null));
 
   const ICON = {

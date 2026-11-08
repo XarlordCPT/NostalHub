@@ -7,7 +7,7 @@
   const stage = document.getElementById('stage');
   const themeRoot = document.getElementById('theme-root');
   if (!api || !stage || !themeRoot) return;
-  const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+  const esc = window.NostalHubUtil.escapeHtml;
   const call = (fn, ...a) => (typeof api[fn] === 'function' ? api[fn](...a) : Promise.resolve(null));
 
   const CONSOLE_NAMES = { wii: 'Wii', ps2: 'PS2', x360: 'Xbox 360', ps4: 'PS4', vita: 'PS Vita', switch: 'Switch', ps3: 'PS3', '3ds': '3DS' };

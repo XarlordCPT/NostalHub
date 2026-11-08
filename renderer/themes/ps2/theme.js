@@ -548,8 +548,7 @@
     return `${mb.toLocaleString('en-US')} MB Free`;
   }
 
-  const wait = (ms) => new Promise((r) => setTimeout(r, ms));
-  const pad = (n) => String(n).padStart(2, '0');
+  const { wait, pad2: pad } = window.NostalHubUtil;
 
   // root: contenedor del tema. ctx: { api, stage, stageRect, toast, openSelector }
   function mount(root, ctx) {

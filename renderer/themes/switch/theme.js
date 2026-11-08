@@ -46,8 +46,7 @@
   const STRIDE = 418; // ancho de cada cuadro + separación
   const LIB_COLS = 6;
   const LIB_ROW = 300;
-  const pad2 = (n) => String(n).padStart(2, '0');
-  const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+  const { wait, pad2 } = window.NostalHubUtil;
 
   const MARKUP = `
 <header class="sw-top">

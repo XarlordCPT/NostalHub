@@ -8,8 +8,7 @@
    Las pantallas se diseñan en su tamaño real y se agrandan (K). Se registra en window.Themes['3ds']. */
 (() => {
   // Pantallas nativas de 400×240 y 320×240, dibujadas 1,75 veces más grandes (700×420 y 560×420) en el CSS
-  const wait = (ms) => new Promise((r) => setTimeout(r, ms));
-  const pad2 = (n) => String(n).padStart(2, '0');
+  const { wait, pad2 } = window.NostalHubUtil;
   const store = {
     get(k, d) {
       try {

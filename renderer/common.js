@@ -46,9 +46,12 @@
     return [hours(g.playtimeMin), g.lastPlayed ? `Jugado ${ago(g.lastPlayed)}` : ''].filter(Boolean).join('  ·  ');
   }
 
+  // Texto seguro para meter en HTML (también entre comillas simples). null/undefined → '' (el 0 se muestra).
   function escapeHtml(s) {
-    return String(s || '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+    return String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
   }
+  const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+  const pad2 = (n) => String(n).padStart(2, '0');
 
   // Mensaje para cuando no hay logros que mostrar
   function achievementMessage(res) {
@@ -860,6 +863,8 @@
   }
 
   window.NostalHubUtil = {
+    wait,
+    pad2,
     fadeAudio,
     nowPlaying,
     clockHtml,

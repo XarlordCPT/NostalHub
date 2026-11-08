@@ -240,27 +240,8 @@
 `;
 
   const PANEL_SHIFT = 1474;
-  const wait = (ms) => new Promise((r) => setTimeout(r, ms));
-  const pad2 = (n) => String(n).padStart(2, '0');
-  const rtf = new Intl.RelativeTimeFormat('es', { numeric: 'auto' });
-
-  function ago(ms) {
-    if (!ms) return '';
-    const diff = (ms - Date.now()) / 1000;
-    const abs = Math.abs(diff);
-    if (abs < 3600) return rtf.format(Math.round(diff / 60), 'minute');
-    if (abs < 86400) return rtf.format(Math.round(diff / 3600), 'hour');
-    if (abs < 86400 * 30) return rtf.format(Math.round(diff / 86400), 'day');
-    if (abs < 86400 * 365) return rtf.format(Math.round(diff / (86400 * 30)), 'month');
-    return rtf.format(Math.round(diff / (86400 * 365)), 'year');
-  }
-  function hours(min) {
-    if (!min) return '';
-    return min < 60 ? `${min} min jugados` : `${Math.round(min / 6) / 10} h jugadas`.replace('.', ',');
-  }
-  function escapeHtml(s) {
-    return String(s || '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
-  }
+  const { wait, pad2 } = window.NostalHubUtil;
+  const { ago, hours, escapeHtml } = window.NostalHubUtil;
 
   // Caja del juego: carátula vertical, o una armada con el fondo y el logo si no hay
   let doneIds = new Set(); // appId de los juegos al 100 % (lo pone loadSummary): su caja lleva medalla dorada
@@ -786,13 +767,11 @@
       if (token !== achToken || view !== 'ach') return;
 
       if (res.status !== 'ok') {
-        const texts = {
-          'no-key': 'Para ver tus logros, conecta tu Steam.<br><small>settings → "Clave de Steam" (se hace aquí mismo, en 1 minuto).</small>',
-          private: 'Steam no deja ver tus logros.<br><small>En Steam → tu perfil → Editar perfil → Privacidad, pon "Detalles de juegos" en Público.</small>',
-          none: 'Este juego no tiene logros.',
-          error: `No se pudieron cargar los logros.<br><small>${escapeHtml(res.message || 'Revisa tu conexión a internet.')}</small>`,
-        };
-        msg.innerHTML = texts[res.status] || texts.error;
+        // El de "conecta tu Steam" dice dónde está en la Xbox (el mosaico Clave de Steam); los demás son los de siempre
+        msg.innerHTML =
+          res.status === 'no-key'
+            ? 'Para ver tus logros, conecta tu Steam.<br><small>settings → "Clave de Steam" (se hace aquí mismo, en 1 minuto).</small>'
+            : window.NostalHubUtil.achievementMessage(res);
         return;
       }
       msg.hidden = true;

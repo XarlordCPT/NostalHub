@@ -117,7 +117,7 @@
   }
   api.onToast && api.onToast(toast);
 
-  const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+  const { wait } = window.NostalHubUtil;
 
   // ---------- Selector ----------
   const GAMEPAD_SVG = `<svg viewBox="0 0 120 80" aria-hidden="true"><path d="M30 14h60c14 0 24 10 27 26l2 14c2 12-10 20-19 12l-11-10H31L20 66c-9 8-21 0-19-12l2-14C6 24 16 14 30 14Z" fill="none" stroke="currentColor" stroke-width="5" stroke-linejoin="round"/><path d="M30 32v16M22 40h16" stroke="currentColor" stroke-width="5" stroke-linecap="round"/><circle cx="84" cy="34" r="4.5" fill="currentColor"/><circle cx="94" cy="44" r="4.5" fill="currentColor"/></svg>`;

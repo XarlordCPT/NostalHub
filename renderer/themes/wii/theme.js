@@ -202,7 +202,7 @@
     const kf = { area: 'grid', index: 0, btn: 0, on: false }; // selección con teclado o control (ver paintKf)
 
     // ---------- Reloj ----------
-    const pad = (n) => String(n).padStart(2, '0');
+    const { wait, pad2: pad } = window.NostalHubUtil;
     function tick() {
       const now = new Date();
       $('#clock-h').textContent = pad(now.getHours());
@@ -606,9 +606,6 @@
     }
 
     // ---------- Pantalla de canal ----------
-    function wait(ms) {
-      return new Promise((r) => setTimeout(r, ms));
-    }
 
     // Música propia del juego (musica.mp3): suena en su canal en vez de la música de la Wii
     const ss = () => (ctx.soundSettings ? ctx.soundSettings() : { music: true, musicVolume: 0.35 });

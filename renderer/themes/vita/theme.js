@@ -23,8 +23,7 @@
   const CARD_H = H - CARD_TOP + 40; // sigue un poco bajo el borde de la pantalla
   const MAX_CARDS = 5;
   const TAG = 124; // burbuja colgando arriba de la tarjeta
-  const wait = (ms) => new Promise((r) => setTimeout(r, ms));
-  const pad2 = (n) => String(n).padStart(2, '0');
+  const { wait, pad2 } = window.NostalHubUtil;
   const DAYS = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
   const MONTHS = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
 

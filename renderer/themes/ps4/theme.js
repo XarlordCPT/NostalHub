@@ -198,8 +198,7 @@
   const LIB_COLS = 4;
   const LIB_ROW_H = 158;
   const LIB_VIEW_H = 760;
-  const wait = (ms) => new Promise((r) => setTimeout(r, ms));
-  const pad2 = (n) => String(n).padStart(2, '0');
+  const { wait, pad2 } = window.NostalHubUtil;
 
   window.Themes = window.Themes || {};
   window.Themes.ps4 = { mount };
