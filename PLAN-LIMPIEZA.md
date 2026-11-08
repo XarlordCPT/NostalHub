@@ -1,0 +1,56 @@
+# Plan de limpieza de NostalHub
+
+Rama: `limpieza`. `main` no se toca hasta que Cristóbal la junte. Un commit por paso, para poder deshacer solo ese paso.
+
+## Reglas de cada paso
+
+1. Un cambio chico, de un solo tema.
+2. `npm test` pasa entero: la lógica, las 8 consolas y las capturas.
+3. Las capturas de antes y de después son iguales; si cambia algo, tiene que ser a propósito y quedar explicado.
+4. Commit en `limpieza` con un mensaje en español que diga qué cambió.
+5. Al terminar cada etapa: prueba con la app real (sin mostrar claves) y un resumen para Cristóbal.
+
+## Etapa 1: red de seguridad (sin cambiar el código de la app)
+
+- [ ] `tests/` con `npm test` (usa `node --test` y el Electron que ya está; nada que instalar).
+- [ ] Pruebas de lógica: `vdf`, `achievements` (parseKV, setsOf), `playlog` (sesiones y resumen), `emulators` (nombres, `retroarchOption`, `tailFile`),
+      `retroachievements` (subsets, avisos, totales), `launcher` (`.url` de Epic, Volver al menú), `config` y los ayudantes de `common.js`.
+- [ ] Prueba de pantallas: entra a las 8 consolas con el mock y recorre el menú, la ficha, los logros (con sets), los ajustes, los amigos y la música,
+      con teclado. Falla si sale un error en la consola o si una pantalla no se abre.
+- [ ] Capturas de referencia: cada pantalla con la hora, el azar y las animaciones congelados. Cada cambio se compara píxel a píxel.
+
+## Etapa 2: limpieza de bajo riesgo
+
+- [ ] Registro de errores único (`cache\nostalhub.log`) en vez de los `catch {}` vacíos que esconden fallas reales.
+- [ ] Ayudantes repetidos a `common.js`: `esc` (9 copias), `wait` (12), `$$` (6), `pad` (4); la Xbox usa los de `common.js`
+      (`escapeHtml`, `ago`, `hours`, `achievementMessage`).
+- [ ] Código muerto (ej. el `return null` que nunca se ejecuta en `retroarchOption`).
+- [ ] `mock.js`: las 7 funciones que le faltan del puente.
+- [ ] Animaciones con nombres genéricos (`fade-in`, `pulse`…) → con el prefijo de su consola.
+- [ ] Documentación al día (`CLAUDE.md`: `mount` devuelve `{ unmount }`; `CONSOLA-NUEVA.md`: sets, música del canal, recorte).
+
+## Etapa 3: separar `main.js`
+
+- [ ] Sacar a `src/` lo que tiene su propio tema: editor de imágenes y recorte, emuladores y RetroAchievements, opciones de Ajustes
+      (`menuSections`), presencia y horas. `main.js` queda como el que arma y conecta todo.
+
+## Etapa 4: ordenar las consolas (una por commit, de la más chica a la más grande)
+
+- [ ] Un ayudante común para moverse por listas y cuadrículas (hoy hay 4 formas distintas).
+- [ ] Separar el `mount` de cada consola por pantallas (menú, ficha, logros, amigos, ajustes, música).
+      Orden: PS2 → Switch → Xbox 360 → 3DS → PS3 → Wii → PS4 → Vita.
+
+## Etapa 5: CSS y HTML
+
+- [ ] Menos `!important` (Vita 56, Switch 20, PS3 13): selectores más precisos.
+- [ ] HTML larguísimo en una línea → partido en piezas que se lean, y siempre con `esc` en los textos de los juegos.
+
+## Etapa 6: cierre
+
+- [ ] Prueba completa con la app real y una lista de 5 minutos para Cristóbal (Steam, Spotify, Discord, control y sonidos).
+- [ ] Cómo juntar `limpieza` con `main`.
+- [ ] Preguntar antes de borrar `dist/` (778 MB) y `_to_delete/` (272 MB).
+
+## Avance
+
+(Se va anotando aquí qué se hizo en cada commit.)
