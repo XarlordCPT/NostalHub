@@ -27,7 +27,7 @@
   left: 120px;
   top: 60px;
   background: rgba(255, 255, 255, 0.75);
-  animation: drift-a 26s ease-in-out infinite alternate;
+  animation: ps2-drift-a 26s ease-in-out infinite alternate;
 }
 .ps-light.b {
   width: 800px;
@@ -35,10 +35,10 @@
   right: -100px;
   bottom: -120px;
   background: rgba(150, 160, 190, 0.6);
-  animation: drift-b 32s ease-in-out infinite alternate;
+  animation: ps2-drift-b 32s ease-in-out infinite alternate;
 }
-@keyframes drift-a { from { transform: translate(0, 0); } to { transform: translate(380px, 160px); } }
-@keyframes drift-b { from { transform: translate(0, 0); } to { transform: translate(-420px, -140px); } }
+@keyframes ps2-drift-a { from { transform: translate(0, 0); } to { transform: translate(380px, 160px); } }
+@keyframes ps2-drift-b { from { transform: translate(0, 0); } to { transform: translate(-420px, -140px); } }
 
 /* Contorno negro de los textos amarillos/blancos, como en la consola */
 .ps-title,
@@ -422,10 +422,10 @@ body.playing .theme-ps2 .ps-big * { animation-play-state: running !important; }
 .ps-detail.away { opacity: 0; pointer-events: none; transition: opacity 0.25s ease; }
 
 /* ============ Vista de logros (estilo Memory Card) ============ */
-.ps-ach { position: absolute; inset: 0; z-index: 2; animation: fade-in-ps 0.35s ease both; }
+.ps-ach { position: absolute; inset: 0; z-index: 2; animation: ps2-fade-in 0.35s ease both; }
 .ps-ach[hidden] { display: none; }
 .ps-ach.leave { opacity: 0; transition: opacity 0.2s ease; }
-@keyframes fade-in-ps { from { opacity: 0; } to { opacity: 1; } }
+@keyframes ps2-fade-in { from { opacity: 0; } to { opacity: 1; } }
 
 /* El logro elegido, grande, flotando y balanceándose como un ícono de la consola */
 .pa-icon {
@@ -562,8 +562,8 @@ body.playing .theme-ps2 .ps-big * { animation-play-state: running !important; }
 .ps-cfg.leave { animation: pc-in 0.3s ease reverse both; }
 @keyframes pc-in { from { opacity: 0; filter: brightness(2.2) blur(6px); } to { opacity: 1; filter: none; } }
 .pc-glow { position: absolute; border-radius: 50%; filter: blur(80px); pointer-events: none; }
-.pc-glow.a { width: 760px; height: 520px; left: -120px; top: -80px; background: rgba(70, 120, 255, 0.35); animation: drift-a 24s ease-in-out infinite alternate; }
-.pc-glow.b { width: 700px; height: 600px; right: -160px; bottom: -160px; background: rgba(40, 200, 255, 0.18); animation: drift-b 30s ease-in-out infinite alternate; }
+.pc-glow.a { width: 760px; height: 520px; left: -120px; top: -80px; background: rgba(70, 120, 255, 0.35); animation: ps2-drift-a 24s ease-in-out infinite alternate; }
+.pc-glow.b { width: 700px; height: 600px; right: -160px; bottom: -160px; background: rgba(40, 200, 255, 0.18); animation: ps2-drift-b 30s ease-in-out infinite alternate; }
 
 .pc-title {
   position: absolute;
@@ -680,11 +680,11 @@ body.playing .theme-ps2 .ps-big * { animation-play-state: running !important; }
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35), inset 0 2px 0 rgba(255, 255, 255, 0.12);
   backdrop-filter: blur(6px);
   font-weight: 800;
-  animation: np-in 0.6s 0.2s ease both;
+  animation: ps2-np-in 0.6s 0.2s ease both;
 }
 .theme-ps2.is-playing .np-music { left: 70px; }
 .theme-ps2.is-playing .np-party { right: 70px; }
-@keyframes np-in { from { opacity: 0; transform: scale(0.94); } to { opacity: 1; transform: none; } }
+@keyframes ps2-np-in { from { opacity: 0; transform: scale(0.94); } to { opacity: 1; transform: none; } }
 .theme-ps2 .np-ic { width: 34px; height: 34px; flex: none; }
 .theme-ps2 .np-head { display: flex; align-items: center; gap: 12px; font-size: 40px; color: var(--yellow); }
 .theme-ps2 .np-head span,

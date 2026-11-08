@@ -266,13 +266,13 @@
   width: 104%;
   height: 104%;
   object-fit: cover;
-  animation: kenburns 22s ease-in-out infinite alternate;
+  animation: wii-kenburns 22s ease-in-out infinite alternate;
 }
 .ch-media .hero.blank {
   background:
     radial-gradient(ellipse at 50% 40%, #ffffff, #e6f3f2 60%, #d3e7e5);
 }
-@keyframes kenburns {
+@keyframes wii-kenburns {
   0% { transform: scale(1.0) translate(0, 0); }
   100% { transform: scale(1.12) translate(-2.5%, -1.5%); }
 }
@@ -384,24 +384,24 @@
 .pill.wide { width: 700px; }
 
 /* Animaciones de entrada de la pantalla de canal */
-#channel.enter .ch-bottom { animation: slide-up 0.45s var(--ease) both; }
-#channel.enter .ch-title { animation: title-in 0.6s 0.15s var(--ease) both; }
-#channel.enter .ch-arrow { animation: fade-in 0.4s 0.3s ease both; }
-#channel.leave .ch-bottom { animation: slide-up 0.35s ease-in reverse both; }
+#channel.enter .ch-bottom { animation: wii-slide-up 0.45s var(--ease) both; }
+#channel.enter .ch-title { animation: wii-title-in 0.6s 0.15s var(--ease) both; }
+#channel.enter .ch-arrow { animation: wii-fade-in 0.4s 0.3s ease both; }
+#channel.leave .ch-bottom { animation: wii-slide-up 0.35s ease-in reverse both; }
 #channel.leave .ch-title,
 #channel.leave .ch-arrow { opacity: 0; transition: opacity 0.2s; }
 
-@keyframes slide-up { from { transform: translateY(100%); } to { transform: translateY(0); } }
-@keyframes title-in { from { opacity: 0; transform: scale(0.85); } to { opacity: 1; transform: scale(1); } }
-@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes wii-slide-up { from { transform: translateY(100%); } to { transform: translateY(0); } }
+@keyframes wii-title-in { from { opacity: 0; transform: scale(0.85); } to { opacity: 1; transform: scale(1); } }
+@keyframes wii-fade-in { from { opacity: 0; } to { opacity: 1; } }
 
 /* Cambio de juego con las flechas */
 .ch-top.swap-next .ch-media,
-.ch-top.swap-next .ch-title { animation: swap-from-right 0.45s var(--ease) both; }
+.ch-top.swap-next .ch-title { animation: wii-swap-from-right 0.45s var(--ease) both; }
 .ch-top.swap-prev .ch-media,
-.ch-top.swap-prev .ch-title { animation: swap-from-left 0.45s var(--ease) both; }
-@keyframes swap-from-right { from { transform: translateX(120px); opacity: 0; } to { transform: none; opacity: 1; } }
-@keyframes swap-from-left { from { transform: translateX(-120px); opacity: 0; } to { transform: none; opacity: 1; } }
+.ch-top.swap-prev .ch-title { animation: wii-swap-from-left 0.45s var(--ease) both; }
+@keyframes wii-swap-from-right { from { transform: translateX(120px); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes wii-swap-from-left { from { transform: translateX(-120px); opacity: 0; } to { transform: none; opacity: 1; } }
 
 /* El cuadrito que crece hasta llenar la pantalla */
 .zoomer canvas { display: block; width: 100%; height: 100%; object-fit: cover; }
@@ -467,15 +467,15 @@
   border-radius: 50%;
   background: #5be3a1;
   box-shadow: 0 0 0 0 rgba(91, 227, 161, 0.6);
-  animation: pulse 1.8s ease-out infinite;
+  animation: wii-pulse 1.8s ease-out infinite;
   vertical-align: 6px;
 }
-@keyframes pulse {
+@keyframes wii-pulse {
   0% { box-shadow: 0 0 0 0 rgba(91, 227, 161, 0.6); }
   100% { box-shadow: 0 0 0 22px rgba(91, 227, 161, 0); }
 }
-#playing.enter .pl-center { animation: title-in 0.7s 0.2s var(--ease) both; }
-#playing.enter .ch-bottom { animation: slide-up 0.45s 0.1s var(--ease) both; }
+#playing.enter .pl-center { animation: wii-title-in 0.7s 0.2s var(--ease) both; }
+#playing.enter .ch-bottom { animation: wii-slide-up 0.45s 0.1s var(--ease) both; }
 #playing .ch-top-line {
   position: absolute;
   left: 0;
@@ -548,10 +548,10 @@ body.playing .theme-wii .ch-media .hero { animation-play-state: paused; }
 
 
 /* Entrada al llegar desde el selector de consolas */
-#menu.intro .tile { animation: tile-in 0.55s var(--d, 0ms) var(--ease) both; }
-#menu.intro #bar { animation: bar-in 0.6s 0.1s var(--ease) both; }
-@keyframes tile-in { from { opacity: 0; transform: scale(0.82); } to { opacity: 1; transform: none; } }
-@keyframes bar-in { from { transform: translateY(100%); } to { transform: none; } }
+#menu.intro .tile { animation: wii-tile-in 0.55s var(--d, 0ms) var(--ease) both; }
+#menu.intro #bar { animation: wii-bar-in 0.6s 0.1s var(--ease) both; }
+@keyframes wii-tile-in { from { opacity: 0; transform: scale(0.82); } to { opacity: 1; transform: none; } }
+@keyframes wii-bar-in { from { transform: translateY(100%); } to { transform: none; } }
 
 /* Horas, logros y descripción del juego en la pantalla de canal */
 .ch-desc {
@@ -593,10 +593,10 @@ body.playing .theme-wii .ch-media .hero { animation-play-state: paused; }
 }
 .ch-desc-text:empty { display: none; }
 .ch-desc[hidden] { display: none; }
-#channel.enter .ch-desc { animation: fade-in 0.6s 0.35s ease both; }
+#channel.enter .ch-desc { animation: wii-fade-in 0.6s 0.35s ease both; }
 #channel.leave .ch-desc { opacity: 0; transition: opacity 0.2s; }
 .ch-top.swap-next .ch-desc,
-.ch-top.swap-prev .ch-desc { animation: fade-in 0.5s ease both; }
+.ch-top.swap-prev .ch-desc { animation: wii-fade-in 0.5s ease both; }
 
 /* Botón redondo de logros en la banda de abajo */
 .ch-round {
@@ -640,7 +640,7 @@ body.playing .theme-wii .ch-media .hero { animation-play-state: paused; }
   background: rgba(255, 255, 255, 0.55);
   -webkit-backdrop-filter: blur(6px);
   backdrop-filter: blur(6px);
-  animation: fade-in 0.3s ease both;
+  animation: wii-fade-in 0.3s ease both;
 }
 .wa-box {
   position: absolute;
@@ -656,7 +656,7 @@ body.playing .theme-wii .ch-media .hero { animation-play-state: paused; }
   display: flex;
   flex-direction: column;
   color: #555;
-  animation: title-in 0.45s var(--ease) both;
+  animation: wii-title-in 0.45s var(--ease) both;
 }
 #wii-ach.leave .wa-box,
 #wii-ach.leave::before { opacity: 0; transition: opacity 0.2s ease; }
@@ -748,7 +748,7 @@ body.playing .theme-wii .ch-media .hero { animation-play-state: paused; }
   animation: wa-spin 0.9s linear infinite;
 }
 @keyframes wa-spin { to { transform: rotate(360deg); } }
-.wa-bottom { animation: slide-up 0.35s var(--ease) both; }
+.wa-bottom { animation: wii-slide-up 0.35s var(--ease) both; }
 
 /* ============ Configuración (engranaje): estilo "Configuración de la consola Wii" ============ */
 #wii-set {
@@ -793,8 +793,8 @@ body.playing .theme-wii .ch-media .hero { animation-play-state: paused; }
 .ws-main { position: absolute; left: 0; right: 0; top: 200px; bottom: 210px; display: grid; place-items: center; }
 .ws-main[hidden] { display: none; }
 .ws-list { display: flex; flex-direction: column; gap: 20px; width: 1240px; }
-.ws-list.from-right { animation: swap-from-right 0.4s var(--ease) both; }
-.ws-list.from-left { animation: swap-from-left 0.4s var(--ease) both; }
+.ws-list.from-right { animation: wii-swap-from-right 0.4s var(--ease) both; }
+.ws-list.from-left { animation: wii-swap-from-left 0.4s var(--ease) both; }
 .ws-item {
   position: relative;
   height: 96px;
@@ -822,7 +822,7 @@ body.playing .theme-wii .ch-media .hero { animation-play-state: paused; }
 /* Sub-pantalla: elegir y confirmar */
 .ws-sub { position: absolute; left: 0; right: 0; top: 220px; bottom: 220px; display: flex; flex-direction: column; align-items: center; }
 .ws-sub[hidden] { display: none; }
-.ws-sub.pop { animation: title-in 0.35s var(--ease) both; }
+.ws-sub.pop { animation: wii-title-in 0.35s var(--ease) both; }
 .ws-sub-title { font-size: 70px; font-weight: 700; color: #4d4d4d; text-shadow: 0 2px 0 #fff; margin-top: 10px; }
 .ws-sub-desc { font-size: 38px; color: #8a8a8a; margin: 18px 0 50px; max-width: 1300px; text-align: center; line-height: 1.35; }
 .ws-opts { display: flex; gap: 60px; justify-content: center; }
@@ -871,8 +871,8 @@ body.playing .theme-wii .ch-media .hero { animation-play-state: paused; }
 #ws-ok[hidden] { display: block; visibility: hidden; }
 
 #wii-set.enter .ws-head { animation: ws-down 0.45s var(--ease) both; }
-#wii-set.enter .ws-bottom { animation: slide-up 0.45s var(--ease) both; }
-#wii-set.enter .ws-main { animation: fade-in 0.4s 0.15s ease both; }
+#wii-set.enter .ws-bottom { animation: wii-slide-up 0.45s var(--ease) both; }
+#wii-set.enter .ws-main { animation: wii-fade-in 0.4s 0.15s ease both; }
 #wii-set.leave { opacity: 0; transition: opacity 0.25s ease; }
 @keyframes ws-down { from { transform: translateY(-100%); } to { transform: none; } }
 
@@ -895,10 +895,10 @@ body.playing .theme-wii .ch-media .hero { animation-play-state: paused; }
 }
 #playing .np-music { left: 70px; }
 #playing .np-party { right: 70px; }
-#playing.enter .np-music { animation: np-left 0.6s 0.15s var(--ease) both; }
-#playing.enter .np-party { animation: np-right 0.6s 0.15s var(--ease) both; }
-@keyframes np-left { from { opacity: 0; transform: translateX(-60px); } to { opacity: 1; transform: none; } }
-@keyframes np-right { from { opacity: 0; transform: translateX(60px); } to { opacity: 1; transform: none; } }
+#playing.enter .np-music { animation: wii-np-left 0.6s 0.15s var(--ease) both; }
+#playing.enter .np-party { animation: wii-np-right 0.6s 0.15s var(--ease) both; }
+@keyframes wii-np-left { from { opacity: 0; transform: translateX(-60px); } to { opacity: 1; transform: none; } }
+@keyframes wii-np-right { from { opacity: 0; transform: translateX(60px); } to { opacity: 1; transform: none; } }
 #playing .np-ic { width: 34px; height: 34px; flex: none; }
 #playing .np-head { display: flex; align-items: center; gap: 12px; font-size: 30px; font-weight: 800; color: #5a5a5a; }
 #playing .np-head .np-ic { color: var(--cyan); }
@@ -969,7 +969,7 @@ body.playing .theme-wii .ch-media .hero { animation-play-state: paused; }
     repeating-linear-gradient(to bottom, #f2f2f2 0 3px, #e8e8e8 3px 4px);
   box-shadow: 0 0 0 10px var(--cyan-soft), 0 30px 70px rgba(0, 0, 0, 0.18);
   color: var(--text);
-  animation: title-in 0.35s var(--ease) both;
+  animation: wii-title-in 0.35s var(--ease) both;
 }
 .theme-wii .ge-head { padding: 22px 56px 14px; text-align: center; border-bottom: 4px solid #dadada; background: linear-gradient(#fff, #ececec); }
 .theme-wii .ge-title { font-size: 52px; font-weight: 700; text-shadow: 0 2px 0 #fff; }
@@ -1069,9 +1069,9 @@ body.playing .theme-wii .ch-media .hero { animation-play-state: paused; }
 .theme-wii .round-btn.left.small svg { stroke: #a3a3a3; }
 .theme-wii .round-btn.left.small:hover svg,
 .theme-wii .round-btn.left.small.wkf svg { stroke: #6fb9d6; }
-.theme-wii .wo-pop { position: absolute; inset: 0; z-index: 40; display: grid; place-items: center; background: rgba(236, 236, 236, 0.72); animation: fade-in 0.2s ease both; }
+.theme-wii .wo-pop { position: absolute; inset: 0; z-index: 40; display: grid; place-items: center; background: rgba(236, 236, 236, 0.72); animation: wii-fade-in 0.2s ease both; }
 .theme-wii .wo-pop[hidden] { display: none; }
-.theme-wii .wo-box { width: 820px; padding: 34px 40px 40px; border-radius: 46px; background: #fff; border: 5px solid var(--cyan); box-shadow: 0 0 0 10px var(--cyan-soft), 0 24px 50px rgba(0, 0, 0, 0.18); animation: title-in 0.3s var(--ease) both; }
+.theme-wii .wo-box { width: 820px; padding: 34px 40px 40px; border-radius: 46px; background: #fff; border: 5px solid var(--cyan); box-shadow: 0 0 0 10px var(--cyan-soft), 0 24px 50px rgba(0, 0, 0, 0.18); animation: wii-title-in 0.3s var(--ease) both; }
 .theme-wii .wo-title { font-size: 46px; font-weight: 700; color: var(--text); text-align: center; margin-bottom: 26px; }
 .theme-wii .wo-list { display: flex; flex-direction: column; gap: 14px; }
 .theme-wii .wo-opt { height: 88px; border-radius: 26px; border: 4px solid #c9c9c9; font: inherit; font-size: 38px; color: #4b4b4b; background: linear-gradient(to bottom, #ffffff 0%, #ffffff 45%, #f1f3f4 46%, #e6eaec 100%); transition: transform 0.15s var(--ease), border-color 0.15s, box-shadow 0.15s; }
