@@ -62,8 +62,9 @@ Los cambios del renderer se ven con **Ajustes → General → Recargar**.
 ## Estructura
 
 ```
-main.js                 Proceso principal: ventana, bandeja, juegos, IPC, menú de opciones (menuSections),
-                        archivos de consolas (CONSOLE_FILES), arte por juego, logros encima del juego (ACH_STYLES)
+main.js                 Proceso principal: arma y conecta todo. Ventana y pantallas, bandeja, lista de juegos para la
+                        interfaz (gamesView), horas y presencia (trackTick), logros encima del juego (ACH_STYLES), la
+                        lista de opciones de Ajustes (menuSections) y el resto de los canales IPC
 preload.js              Puente seguro: expone window.nostalhub al renderer
 overlay-preload.js      Puente de la ventanita de logros
 src/config.js           config.json (lista de juegos y opciones)
@@ -86,8 +87,13 @@ src/spotify-web.js      Spotify Web API: OAuth PKCE (http://127.0.0.1:8957/callb
 src/discord.js          Canal de voz de Discord por RPC local (Grupo)
 src/discord-presence.js Presencia en Discord (SET_ACTIVITY) con la app pública DISCORD_PRESENCE_ID de main.js
 src/playlog.js          Contador de horas: sesiones en estadisticas.db (node:sqlite) y resumen por período
-src/registro.js         Registro de errores (cache
-ostalhub.log): `anotar('dónde', error)` en vez de un catch vacío
+src/registro.js         Registro de errores (cache\nostalhub.log): `anotar('dónde', error)` en vez de un catch vacío
+src/editor-juegos.js    Editor de imágenes de cada juego (canales game:custom-*, recorte, descripción) y portapapeles
+src/consolas-archivos.js Archivos de cada consola (CONSOLE_FILES, trimImage, consoleAssets, fondos propios, consoles:*)
+src/juegos-emulador.js  Juegos de emulador (sync/addEmulatorGames) y RetroAchievements mientras juegas (startRetroLog,
+                        retroTick, linkRetroGames)
+src/biblioteca.js       Importar Steam, agregar juego a mano, vigilar la biblioteca de Steam y descargar el arte
+src/opciones.js         Convierte las opciones de menuSections(): menú de la bandeja, modelo para las consolas y ejecutar
 renderer/index.html     Carga todo (un <script> y un <link> por tema)
 renderer/shell.js/.css  Selector de consolas, escalado del escenario, sonidos, barra de ventana, F3
 renderer/consoles.js    Lista de consolas (id, empresa, nombre, año, colores)
@@ -178,9 +184,12 @@ descripción), `cache\` (arte descargado, `spotify.log`, `discord.log`) y las cl
   Spotify en pausa la API no da `playback` y antes salían los botones básicos. Se apaga con `config.spotifyApi`.
 - Las `@keyframes` de todos los temas comparten nombre global (todo el CSS se carga junto): usa nombres con prefijo
   (`wii-`, `ps2-`, `x360-`…). `tests/logica/css.test.js` avisa si una se repite o si se usa una que no existe.
-- Errores que no se ven en pantalla: `anotar('dónde', e)` de `src/registro.js` (queda en `cache
-ostalhub.log`). Un
+- Errores que no se ven en pantalla: `anotar('dónde', e)` de `src/registro.js` (queda en `cache\nostalhub.log`). Un
   `catch {}` vacío solo cuando fallar es normal (borrar algo que ya no está, cerrar una conexión).
+- Las partes sacadas de `main.js` (`src/editor-juegos.js`, `consolas-archivos.js`, `juegos-emulador.js`, `biblioteca.js`)
+  reciben lo de `main.js` con `registrar(nh)` (`nh.config`, `nh.ventana()`, `nh.pushGamesSoon()`…). Si una función de
+  `main.js` se pasa antes de definirse con `const`, pásala como `(x) => funcion(x)` (si no, la app se cae al abrir).
+  Sus canales (`ipcMain.handle`) están en esos archivos: `tests/logica/puente.test.js` los busca en `main.js` y `src/`.
 - Capturas con una ventana de Electron **oculta** (`show: false`): las animaciones CSS no avanzan y lo que entra con
   animación queda invisible. Usa una ventana visible fuera de la pantalla (`x: -5000`).
 - Spotify Web API (2026): la app del dueño necesita **Premium** y hay máximo 5 usuarios por app; "me gusta" usa
