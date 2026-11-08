@@ -6,7 +6,7 @@ const fs = require('fs');
 const path = require('path');
 const { pathToFileURL } = require('url');
 
-const { Config, detectType } = require('./src/config');
+const { Config } = require('./src/config');
 const steam = require('./src/steam');
 const media = require('./src/media');
 const { Launcher } = require('./src/launcher');
@@ -203,7 +203,7 @@ async function trackTick() {
 
 // ---------- Juegos de emulador y RetroAchievements (src/juegos-emulador.js) ----------
 const juegosEmulador = require('./src/juegos-emulador');
-juegosEmulador.registrar({ config, retro, dataDir: DATA_DIR, ventana: () => win, showAchievement, sendSummary, pushGamesSoon, ensureCustomFolders, refreshMedia, send });
+juegosEmulador.registrar({ config, retro, dataDir: DATA_DIR, ventana: () => win, showAchievement, sendSummary, pushGamesSoon, ensureCustomFolders, refreshMedia: (o) => refreshMedia(o), send }); // refreshMedia viene de src/biblioteca.js, más abajo
 const { startRetroLog, retroTick, linkRetroGames, refreshRetroTotals, syncEmulatorGames, addEmulatorGames } = juegosEmulador;
 
 function openStats() {
@@ -441,170 +441,10 @@ const consolasArchivos = require('./src/consolas-archivos');
 consolasArchivos.registrar({ config, dataDir: DATA_DIR, consolesDir: CONSOLES_DIR, fileUrl });
 const { consoleAssets, consoleBackgroundsDir } = consolasArchivos;
 
-// ---------- Steam ----------
-
-// Agrega lo nuevo de Steam: juegos instalados y los "juegos que no son de Steam" que agregaste a Steam.
-// Devuelve la lista de nombres agregados.
-async function importSteamGames() {
-  const addedNames = [];
-  const installed = await steam.listInstalledGames();
-  const known = new Set(config.games.filter((g) => g.type === 'steam').map((g) => g.appId));
-
-  // Desinstalados: se ocultan solos (sin borrarlos) y vuelven, con su arte y sus horas, cuando los
-  // reinstalas y terminan de descargarse. Los que se están descargando o actualizando no se tocan.
-  let installChanged = false;
-  const present = new Set((await steam.listInstalledGames({ all: true })).map((g) => g.appId));
-  const ready = new Set(installed.map((g) => g.appId));
-  if (present.size) {
-    for (const g of config.games) {
-      if (g.type !== 'steam' || !g.appId) continue;
-      if (!present.has(g.appId) && !g.uninstalled) {
-        g.uninstalled = true;
-        installChanged = true;
-      } else if (ready.has(g.appId) && g.uninstalled) {
-        delete g.uninstalled;
-        installChanged = true;
-        addedNames.push(g.name);
-      }
-    }
-  }
-
-  for (const s of installed) {
-    if (known.has(s.appId)) continue;
-    config.games.push({
-      id: `steam-${s.appId}`,
-      name: s.name,
-      type: 'steam',
-      appId: s.appId,
-      args: [],
-      hidden: false,
-      media: {},
-      custom: {},
-      mediaCheckedAt: 0,
-    });
-    addedNames.push(s.name);
-  }
-
-  // Accesos directos de Steam (shortcuts.vdf)
-  let changed = false;
-  try {
-    const user = steamUser || (await steam.getSteamUser());
-    const shortcuts = user ? await steam.listShortcuts(user.accountId) : [];
-    for (const sc of shortcuts) {
-      const id = `steam-shortcut-${sc.appId || sc.name}`;
-      const game = config.games.find((g) => g.id === id);
-      const fields = {
-        name: sc.name,
-        type: detectType(sc.exe),
-        target: sc.exe,
-        args: splitArgs(sc.launchOptions),
-        steamShortcut: sc.appId,
-        startDir: sc.startDir || undefined,
-        media: sc.art, // las imágenes que le pusiste en Steam
-      };
-      if (!game) {
-        config.games.push({ id, hidden: false, custom: {}, mediaCheckedAt: 0, ...fields });
-        addedNames.push(sc.name);
-      } else if (JSON.stringify({ ...game, ...fields }) !== JSON.stringify(game)) {
-        Object.assign(game, fields); // cambió algo en Steam (nombre, ruta o imágenes)
-        changed = true;
-      }
-    }
-  } catch (e) {
-    anotar('steam', `no se pudieron leer los accesos directos: ${e.message}`);
-  }
-
-  if (addedNames.length || changed || installChanged) config.save();
-  ensureCustomFolders();
-  return addedNames;
-}
-
-// "--a b --c=\"d e\"" -> ['--a', 'b', '--c=d e']
-function splitArgs(str) {
-  const out = [];
-  const re = /"([^"]*)"|(\S+)/g;
-  let m;
-  while ((m = re.exec(String(str || '')))) out.push(m[1] !== undefined ? m[1] : m[2]);
-  return out;
-}
-
-// Juegos que no son de Steam ni están en Steam: se eligen con una ventana de Windows
-async function addGameFromFile() {
-  const res = await dialog.showOpenDialog(win || undefined, {
-    title: 'Elige el juego o programa',
-    properties: ['openFile'],
-    filters: [
-      { name: 'Juegos y accesos directos', extensions: ['exe', 'lnk', 'url', 'bat', 'cmd'] },
-      { name: 'Todos los archivos', extensions: ['*'] },
-    ],
-  });
-  if (res.canceled || !res.filePaths.length) return;
-  const file = res.filePaths[0];
-  if (config.games.some((g) => g.target && path.normalize(g.target) === path.normalize(file))) {
-    send('toast', 'Ese juego ya estaba en la lista');
-    return;
-  }
-  const name = path.basename(file, path.extname(file));
-  const slug = name.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-  let id = `juego-${slug || Date.now()}`;
-  while (config.games.some((g) => g.id === id)) id += '-2';
-  config.games.push({ id, name, type: detectType(file), target: file, args: [], hidden: false, media: {}, custom: {}, mediaCheckedAt: 0 });
-  config.save();
-  ensureCustomFolders();
-  pushGamesSoon();
-  send('toast', `Se agregó ${name}`);
-}
-
-// Detecta solo los juegos que instalas (o agregas a Steam) mientras NostalHub está abierta
-let steamWatchers = [];
-let steamWatchTimer = null;
-async function watchSteamLibrary() {
-  steamWatchers.forEach((w) => w.close && w.close());
-  steamWatchers = [];
-  const user = steamUser || (await steam.getSteamUser());
-  const { apps, shortcuts } = await steam.watchPaths(user && user.accountId);
-  const later = () => {
-    clearTimeout(steamWatchTimer);
-    steamWatchTimer = setTimeout(async () => {
-      const added = await importSteamGames();
-      pushGamesSoon();
-      if (added.length) {
-        send('toast', added.length === 1 ? `Nuevo juego: ${added[0]}` : `Se agregaron ${added.length} juegos`);
-        refreshMedia();
-      }
-    }, 4000);
-  };
-  for (const dir of apps) {
-    try {
-      steamWatchers.push(fs.watch(dir, (_ev, file) => file && /^appmanifest_\d+\.acf$/i.test(file) && later()));
-    } catch (e) {
-      anotar('steam', `no se puede vigilar ${dir} (los juegos nuevos no aparecerán solos): ${e.message}`);
-    }
-  }
-  if (shortcuts) {
-    fs.watchFile(shortcuts, { interval: 4000 }, later);
-    steamWatchers.push({ close: () => fs.unwatchFile(shortcuts) });
-  }
-}
-
-let mediaRunning = false;
-async function refreshMedia({ force = false } = {}) {
-  if (mediaRunning) return;
-  mediaRunning = true;
-  try {
-    for (const g of config.games) {
-      const emu = g.type === 'emulator' && emulators.EMULATORS[g.emulator];
-      if ((g.type !== 'steam' && !emu) || g.uninstalled) continue;
-      const before = JSON.stringify(g);
-      const changed = emu ? await media.ensureEmulatorMedia(g, emu.artRepo, MEDIA_DIR, { force }) : await media.ensureSteamMedia(g, MEDIA_DIR, { force });
-      if (JSON.stringify(g) !== before) config.save(); // solo si cambió algo (antes se guardaba una vez por juego)
-      if (changed) pushGamesSoon();
-    }
-  } finally {
-    mediaRunning = false;
-    pushGamesSoon();
-  }
-}
+// ---------- Tu biblioteca: Steam, juegos agregados a mano y su arte (src/biblioteca.js) ----------
+const biblioteca = require('./src/biblioteca');
+biblioteca.registrar({ config, steamUser: () => steamUser, mediaDir: MEDIA_DIR, ventana: () => win, ensureCustomFolders, pushGamesSoon, send });
+const { importSteamGames, addGameFromFile, watchSteamLibrary, refreshMedia } = biblioteca;
 
 // ---------- Pantallas y ventana ----------
 
