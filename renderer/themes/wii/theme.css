@@ -694,10 +694,12 @@ body.playing .theme-wii .ch-media .hero { animation-play-state: paused; }
   flex: 1;
   min-height: 0;
   margin-top: 22px;
-  padding: 10px 6px;
+  padding: 20px 16px; /* el marco del logro marcado sobresale: así no se corta */
   display: grid;
   grid-template-columns: repeat(12, 84px);
-  grid-auto-rows: 84px;
+  grid-auto-rows: auto;
+  align-content: start;
+  scroll-padding: 70px 0 22px; /* al moverse: se ve el marco entero y el título del set */
   gap: 18px 22px;
   justify-content: center;
   overflow-y: auto;
@@ -720,6 +722,9 @@ body.playing .theme-wii .ch-media .hero { animation-play-state: paused; }
   z-index: 1;
 }
 .wa-cell.sel.locked { filter: grayscale(1); }
+.wa-set { grid-column: 1 / -1; display: flex; justify-content: space-between; align-items: baseline; padding: 4px 6px 6px; border-bottom: 3px solid #cfeefa; font-size: 28px; font-weight: 800; color: #5e9f99; }
+.wa-set:not(:first-child) { margin-top: 10px; }
+.wa-set b { font-size: 26px; color: #3aa9d3; }
 .wa-msg {
   position: absolute;
   inset: 170px 60px 60px;

@@ -461,8 +461,9 @@
       if (token !== gToken || view !== 'game' || gameCur !== g || gTabs[gSel].id !== 'ach') return;
       if (res.status !== 'ok') return (main.innerHTML = `<div class="sw-msg">${U.achievementMessage(res)}</div>`);
       main.innerHTML = `<div class="sw-g-h">Logros · ${res.done} de ${res.total}</div><div class="sw-bar"><i style="width:${res.total ? (res.done / res.total) * 100 : 0}%"></i></div>
-        <div class="sw-g-achview"><div class="sw-ach-list">${U.sortAchievements(res.list)
+        <div class="sw-g-achview"><div class="sw-ach-list">${U.withSetHeads(U.sortAchievements(res.list))
           .map((a, j) => {
+            if (a.sep) return `<div class="sw-ach-row sep" data-i="${j}"><span class="sw-ach-tx"><b>${esc(a.name)}</b></span><span class="sw-ach-when">${a.done} / ${a.total}</span></div>`;
             const t = U.achievementTexts(a);
             return `<div class="sw-ach-row${a.done ? '' : ' locked'}" data-i="${j}"><span class="sw-ach-ic" style="background-image:url('${a.done ? a.icon : a.iconGray || a.icon}')"></span>
               <span class="sw-ach-tx"><b>${esc(t.name)}</b><small>${esc(t.description)}</small></span><span class="sw-ach-when">${a.done ? esc(t.date) : 'Bloqueado'}</span></div>`;
@@ -472,6 +473,7 @@
     }
     function paintGameRows() {
       const rows = $$('.sw-g-main .sw-ach-row');
+      if (rows.length) gRow = U.skipSetHead(rows, gRow, 1); // un título de set no se puede marcar
       rows.forEach((r) => r.classList.toggle('sel', gFocus === 'list' && Number(r.dataset.i) === gRow));
       const list = $('.sw-g-main .sw-ach-list');
       if (list) list.style.transform = `translateY(${-Math.max(0, gRow - 3) * 112}px)`;
@@ -480,9 +482,9 @@
     function gameKey(k) {
       const tab = gTabs[gSel] && gTabs[gSel].id;
       if (gFocus === 'list') {
-        const n = $$('.sw-g-main .sw-ach-row').length;
-        if (k === 'ArrowDown') gRow = Math.min(n - 1, gRow + 1);
-        else if (k === 'ArrowUp') gRow = Math.max(0, gRow - 1);
+        const rowEls = $$('.sw-g-main .sw-ach-row');
+        if (k === 'ArrowDown') gRow = U.skipSetHead(rowEls, gRow + 1, 1);
+        else if (k === 'ArrowUp') gRow = U.skipSetHead(rowEls, gRow - 1, -1);
         else if (k === 'ArrowLeft' || k === 'Escape' || k === 'Backspace') gFocus = 'side';
         return paintGameRows();
       }
@@ -548,8 +550,9 @@
       const res = (await call('getAchievements', g.appId)) || { status: 'error' };
       if (token !== achToken || view !== 'trophies') return;
       if (res.status !== 'ok') return (box.innerHTML = `<div class="sw-msg">${U.achievementMessage(res)}</div>`);
-      box.innerHTML = U.sortAchievements(res.list)
+      box.innerHTML = U.withSetHeads(U.sortAchievements(res.list))
         .map((a, j) => {
+          if (a.sep) return `<div class="sw-ach-row sep" data-i="${j}"><span class="sw-ach-tx"><b>${esc(a.name)}</b></span><span class="sw-ach-when">${a.done} / ${a.total}</span></div>`;
           const t = U.achievementTexts(a);
           return `<div class="sw-ach-row${a.done ? '' : ' locked'}" data-i="${j}"><span class="sw-ach-ic" style="background-image:url('${a.done ? a.icon : a.iconGray || a.icon}')"></span>
             <span class="sw-ach-tx"><b>${esc(t.name)}</b><small>${esc(t.description)}</small></span><span class="sw-ach-when">${a.done ? esc(t.date) : 'Bloqueado'}</span></div>`;
@@ -561,6 +564,7 @@
       $$('.sw-ach .sw-li').forEach((b) => b.classList.toggle('sel', Number(b.dataset.i) === achSel));
       $$('.sw-ach .sw-li').forEach((b) => b.classList.toggle('dim', achFocus !== 'side'));
       const rows = $$('.sw-ach-row');
+      if (rows.length) achRowSel = U.skipSetHead(rows, achRowSel, 1);
       rows.forEach((r) => r.classList.toggle('sel', achFocus === 'list' && Number(r.dataset.i) === achRowSel));
       const first = Math.max(0, achRowSel - 4);
       $('.sw-ach-list').style.transform = `translateY(${-first * 112}px)`;
@@ -577,8 +581,8 @@
         else if (k === 'ArrowUp') setAchGame(achSel - 1);
         else if ((k === 'ArrowRight' || k === 'Enter') && rows) (achFocus = 'list'), paintAchFocus();
       } else {
-        if (k === 'ArrowDown') achRowSel = Math.min(rows - 1, achRowSel + 1);
-        else if (k === 'ArrowUp') achRowSel = Math.max(0, achRowSel - 1);
+        if (k === 'ArrowDown') achRowSel = U.skipSetHead($$('.sw-ach-row'), achRowSel + 1, 1);
+        else if (k === 'ArrowUp') achRowSel = U.skipSetHead($$('.sw-ach-row'), achRowSel - 1, -1);
         else if (k === 'ArrowLeft') achFocus = 'side';
         paintAchFocus();
       }

@@ -154,6 +154,23 @@ class AchievementWatcher {
     return true;
   }
 
+  // Sets de logros de Steam (juego base y DLC), del mismo archivo de Steam: Map(nombre interno → nombre del set).
+  // Vacío si el juego no los tiene. Los del juego base no traen grupo.
+  setsOf(appId) {
+    const out = new Map();
+    if (!this.dir) return out;
+    const kv = readKV(path.join(this.dir, `UserGameStatsSchema_${appId}.bin`));
+    const root = kv && (kv[appId] || Object.values(kv)[0]);
+    if (!root || !root.groups || typeof root.groups !== 'object') return out;
+    for (const st of Object.values(root.stats || {})) {
+      for (const b of Object.values((st && st.bits) || {})) {
+        const g = b && b.groupid != null && root.groups[b.groupid];
+        if (g) out.set(b.name, pickLang(g.name) || `Set ${b.groupid}`);
+      }
+    }
+    return out;
+  }
+
   stop() {
     if (this.watcher) this.watcher.close();
     this.watcher = null;

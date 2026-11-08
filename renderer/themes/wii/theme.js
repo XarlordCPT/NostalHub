@@ -972,7 +972,6 @@
       if (games.length) renderGrid();
     }
 
-    const ACH_COLS = 12;
     let achList = [];
     let achSel = 0;
     let achToken = 0;
@@ -1006,6 +1005,8 @@
       $('.wa-bar i').style.width = `${res.total ? (res.done / res.total) * 100 : 0}%`;
       const grid = $('.wa-grid');
       achList.forEach((a, i) => {
+        const head = U.achievementSetHead(achList, i);
+        if (head) grid.insertAdjacentHTML('beforeend', U.setHeadHtml('wa-set', head));
         const cell = document.createElement('button');
         cell.className = `wa-cell${a.done ? '' : ' locked'}`;
         cell.dataset.i = i;
@@ -1389,8 +1390,8 @@
         if (e.key === 'Escape' || e.key === 'Backspace' || e.key === 'Enter') closeAch();
         else if (e.key === 'ArrowLeft') setAch(achSel - 1);
         else if (e.key === 'ArrowRight') setAch(achSel + 1);
-        else if (e.key === 'ArrowUp') setAch(achSel - ACH_COLS);
-        else if (e.key === 'ArrowDown') setAch(achSel + ACH_COLS);
+        else if (e.key === 'ArrowUp') setAch(U.gridMove([...wa.querySelectorAll('.wa-cell')], achSel, -1));
+        else if (e.key === 'ArrowDown') setAch(U.gridMove([...wa.querySelectorAll('.wa-cell')], achSel, 1));
         return;
       }
       if (view === 'channel') {

@@ -122,7 +122,9 @@ renderer/themes/<id>/   theme.js + theme.css de cada consola
     música a la izquierda, Grupo a la derecha), `SHUFFLE_LABEL`, `REPEAT_LABEL`.
   - Amigos: `friendsFeed(api)` → `{ data, list, online, watch(on), onChange, profile(f), chat(f), dispose }`,
     `friendsGrouped`, `friendClass`, `friendStatus`, `friendsMessage`.
-  - Logros: `achievementMessage`, `sortAchievements`, `achievementTexts`. Juego al 100 %: `isComplete(per)`,
+  - Logros: `achievementMessage`, `sortAchievements` (agrupa por `a.set`), `achievementTexts`. Sets (juego base, DLC,
+    subsets): `achievementSetHead(lista, i)` + `setHeadHtml` (títulos dentro de una cuadrícula; ↑ ↓ con `gridMove`), o
+    `withSetHeads` + `skipSetHead` (títulos como filas del mismo alto que se saltan al moverse). Juego al 100 %: `isComplete(per)`,
     `completeBadge(tipo, 'on-icon')` (platinum, medal, ps2star, seal, crown, star) y `completeKey(summary)` para
     redibujar los íconos solo cuando cambia qué juegos están completos.
   - Hora y fecha en "Jugando a…": `clockHtml(clase)` (`04:35 PM` + `Domingo 18-Oct-2026`); un solo reloj en
@@ -187,6 +189,10 @@ descripción), `cache\` (arte descargado, `spotify.log`, `discord.log`) y las cl
   PC suspendido: corta la sesión.
 - Los juegos de Epic pasan por varios programas (Fortnite: Bootstrapper → Launcher → Client): por eso se vigilan todos los de
   la carpeta, con 15 s de margen (`HANDOFF_MS`) antes de dar el juego por cerrado.
+- Sets de logros: Steam los guarda en `UserGameStatsSchema_<juego>.bin` (`groups` + `groupid` en cada logro; los del juego base
+  no traen grupo) → `achWatcher.setsOf`. En RetroAchievements los subsets son otros juegos ("<juego> [Subset - Nombre]", a veces
+  "A | B [Subset - …]") y se buscan por nombre en la lista de la consola (`retro.subsets`; `parentOf` lleva un subset a su
+  juego). Decisión de Cristóbal: el 100 % / platino es de **todo** el juego (todos los sets); los sets solo ordenan la lista.
 - Battle.net no tiene API pública de amigos: no se puede. YouTube Music tampoco tiene API oficial: se queda con SMTC.
 - Para probar la app con otra carpeta de datos **no sirve** cambiar `APPDATA`: Electron pide la carpeta a Windows
   directo y usa el `config.json` real de Cristóbal (solo `src/minecraft.js` sí lee `APPDATA`).

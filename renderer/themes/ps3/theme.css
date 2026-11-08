@@ -110,6 +110,9 @@
 .p3-row { height: 92px; display: flex; align-items: center; gap: 24px; padding: 0 28px; cursor: pointer; text-shadow: 0 1px 8px rgba(0, 0, 0, 0.45); }
 .p3-sub.big .p3-row { height: 124px; }
 .p3-row.dim { opacity: 0.55; }
+.p3-row.sep { cursor: default; padding-top: 34px; align-items: flex-end; border-bottom: 1px solid rgba(255, 255, 255, 0.25); }
+.p3-row.sep .p3-r-t b { font-size: 24px; letter-spacing: 1px; opacity: 0.85; }
+.p3-row.sep .p3-r-v { font-size: 22px; opacity: 0.75; }
 .p3-row.dim.sel { opacity: 0.8; }
 .p3-r-ic { width: 64px; height: 64px; flex: none; display: grid; place-items: center; }
 .p3-sub.big .p3-r-ic { width: 96px; height: 96px; }

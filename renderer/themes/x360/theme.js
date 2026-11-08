@@ -797,9 +797,11 @@
         return;
       }
       msg.hidden = true;
-      // Desbloqueados primero (más recientes arriba), después los bloqueados
-      achList = [...res.list].sort((a, b) => Number(b.done) - Number(a.done) || (b.unlockTime || 0) - (a.unlockTime || 0));
+      // Por set; en cada uno, desbloqueados primero (más recientes arriba) y después los bloqueados
+      achList = window.NostalHubUtil.sortAchievements(res.list);
       achList.forEach((a, i) => {
+        const head = window.NostalHubUtil.achievementSetHead(achList, i);
+        if (head) grid.insertAdjacentHTML('beforeend', window.NostalHubUtil.setHeadHtml('xb-ach-set', head));
         const cell = document.createElement('button');
         cell.className = `xb-ach-cell${a.done ? '' : ' locked'}`;
         cell.dataset.i = i;
@@ -1253,8 +1255,8 @@
       } else if (view === 'ach') {
         if (dir === 'left') setAch(achSel - 1);
         else if (dir === 'right') setAch(achSel + 1);
-        else if (dir === 'up') setAch(achSel - ACH_COLS);
-        else if (dir === 'down') setAch(achSel + ACH_COLS);
+        else if (dir === 'up') setAch(window.NostalHubUtil.gridMove($$('.xb-ach-cell'), achSel, -1));
+        else if (dir === 'down') setAch(window.NostalHubUtil.gridMove($$('.xb-ach-cell'), achSel, 1));
         else if (k === 'Escape' || k === 'Backspace') back();
       }
     }

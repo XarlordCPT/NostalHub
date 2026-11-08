@@ -540,6 +540,11 @@ de logros: **trofeo de platino** (PS3, PS4 y PS Vita), **medalla dorada** (Xbox 
 (PS2 y 3DS), **sello dorado** (Wii) y **corona dorada** (Switch). Los juegos de emulador con RetroAchievements tienen su
 lista en los mismos lugares.
 
+**Sets de logros:** si un juego tiene más de un grupo de logros, la lista los separa con un título y su propio contador
+(por ejemplo *Juego base*, y después cada DLC). Salen los **sets de Steam** (para los juegos que ya los usan) y los
+**subsets de RetroAchievements**, como *Professor Oak Challenge* en Pokémon Rojo Fuego. El total del juego y su sello del
+100 % (el platino) son de **todo** el juego: cuentan los logros de todos sus sets.
+
 | Consola | Dónde |
 | --- | --- |
 | Wii | Botón redondo **Logros** en la pantalla del canal (o ↓) |

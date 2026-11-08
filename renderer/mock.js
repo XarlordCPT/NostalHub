@@ -98,6 +98,22 @@
     unlockTime: i < 13 ? Date.now() - i * 5 * DAY : null,
     percent: 60 - i * 3.1,
   }));
+  // Logros con sets: el juego base y dos más (como el DLC de Steam o los subsets de RetroAchievements)
+  const fakeAchSets = [
+    ...fakeAch,
+    ...Array.from({ length: 13 }, (_, i) => ({
+      id: 's' + i,
+      name: i < 6 ? ['El andén', 'Último tren', 'Boleto dorado', 'Pasajero frecuente', 'Maquinista', 'Fin de la línea'][i] : `Desafío ${i - 5}`,
+      description: i < 6 ? 'Logro de la expansión.' : 'Termina el desafío con 2 compañeros o menos.',
+      hidden: false,
+      icon: achIcon(i + 3, false),
+      iconGray: achIcon(i + 3, true),
+      done: i < 6 || i === 7,
+      unlockTime: i < 6 || i === 7 ? Date.now() - (i + 1) * DAY : null,
+      percent: 12 + i,
+      set: i < 6 ? 'La estación del atardecer' : 'Desafío del Profesor',
+    })),
+  ];
   // Spotify de prueba, como si estuviera conectado con su API (cola, avance, aleatorio…)
   const mockQueue = [
     ['Luces de Neón', 'Los Pixeles', ['#06d6a0', '#118ab2']],
@@ -254,7 +270,12 @@
       ].map((f, i) => ({ id: String(76561198000000000 + i), avatar: null, game: null, lastSeen: null, url: null, ...f }));
       return { status: 'ok', list };
     },
-    getAchievements: async (appId) => (appId === '1003' ? { status: 'none', list: [] } : { status: 'ok', list: fakeAch, done: 13, total: 18 }),
+    // Con sets (juego base + DLC + desafío), menos el juego 1001 (un solo set, como la mayoría)
+    getAchievements: async (appId) => {
+      if (appId === '1003') return { status: 'none', list: [] };
+      const list = appId === '1001' ? fakeAch : fakeAchSets; // el total es de todos los sets
+      return { status: 'ok', list, done: list.filter((a) => a.done).length, total: list.length };
+    },
     getAchievementSummary: async () => ({ done: 213, total: 488, hasKey: true, perGame: { 1000: { done: 13, total: 18 }, 1001: { done: 40, total: 52 }, 1002: { done: 3, total: 30 }, 1005: { done: 22, total: 22 }, 1007: { done: 9, total: 41 } } }),
     onSteamSummary: noop,
     onSteamChanged: noop,

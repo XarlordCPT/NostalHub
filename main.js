@@ -218,7 +218,7 @@ function startRetroLog(game) {
   }
   let raGame = game.raId;
   let list = [];
-  const load = () => retro.achievements(retro.key(raGame)).then((r) => (list = r.list));
+  const load = () => retro.achievements(retro.key(raGame)).then((r) => (list = r.list)); // con los subsets
   if (raGame) load();
   const stop = emulators.tailFile(file, (line) => {
     const known = line.match(emu.liveLog.game);
@@ -1897,7 +1897,11 @@ ipcMain.handle('steam:profile', async () => {
 
 ipcMain.handle('steam:friends', () => steamWeb.friends(steamUser && steamUser.steamId));
 ipcMain.handle('steam:achievements', async (_e, appId) => {
-  const r = /^ra-/.test(String(appId)) ? await retro.achievements(String(appId)) : await steamWeb.achievements(String(appId), steamUser && steamUser.steamId);
+  const ra = /^ra-/.test(String(appId));
+  let r = ra ? await retro.achievements(String(appId)) : await steamWeb.achievements(String(appId), steamUser && steamUser.steamId);
+  // Sets de Steam (juego base y DLC): cada logro lleva el nombre de su set
+  const sets = !ra && r && r.status === 'ok' ? achWatcher.setsOf(String(appId)) : null;
+  if (sets && sets.size) r = { ...r, list: r.list.map((a) => (sets.has(a.id) ? { ...a, set: sets.get(a.id) } : a)) };
   if (r && r.status === 'ok') sendSummary(); // al mirar la lista, el contador de la ficha también se pone al día
   return r;
 });

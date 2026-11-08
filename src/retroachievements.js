@@ -30,13 +30,18 @@ class RetroAchievements {
   constructor({ dataDir, log, fetchFn }) {
     this.file = path.join(dataDir, 'retroachievements.json');
     this.cacheDir = path.join(dataDir, 'cache', 'retroachievements');
-    this.totalsFile = path.join(this.cacheDir, 'totales.json');
+    // Totales por juego, sumando sus subsets. (El archivo anterior, totales.json, solo tenía el juego base: se recalcula.)
+    this.totalsFile = path.join(this.cacheDir, 'totales-con-sets.json');
+    try {
+      fs.rmSync(path.join(this.cacheDir, 'totales.json'), { force: true });
+    } catch {}
     this.log = log || (() => {});
     this.fetch = fetchFn || ((...a) => fetch(...a));
     this.cfg = this.read(this.file) || {};
     this.totals = this.read(this.totalsFile) || {};
     this.seen = null; // logros ya vistos, para avisar solo los nuevos
     this.live = new Set(); // logros ya avisados por el registro del emulador
+    this.parentOf = {}; // número de un subset → clave del juego (sus logros suman al 100 % de ese juego)
   }
 
   read(file) {
@@ -154,35 +159,68 @@ class RetroAchievements {
     return { done, total, perGame: this.totals };
   }
 
-  // La misma forma que los logros de Steam (src/steamweb.js), para que las pantallas sirvan igual
+  // Los logros de un juego (o de un subset) con tu progreso
+  async progress(gameId) {
+    const d = await this.api('GetGameInfoAndUserProgress', { g: String(gameId), u: this.cfg.user });
+    const items = Object.values((d && d.Achievements) || {}).sort((a, b) => (a.DisplayOrder || 0) - (b.DisplayOrder || 0));
+    return { d: d || {}, items, players: Number(d && d.NumDistinctPlayers) || 0 };
+  }
+  // La misma forma que los logros de Steam (src/steamweb.js), para que las pantallas sirvan igual.
+  // Los de un subset llevan su nombre (set) y su número de juego (setGame).
+  item(a, players, set, setGame) {
+    const when = a.DateEarnedHardcore || a.DateEarned;
+    return {
+      id: String(a.ID),
+      name: a.Title,
+      description: a.Description || '',
+      hidden: false,
+      icon: `${MEDIA}/Badge/${a.BadgeName}.png`,
+      iconGray: `${MEDIA}/Badge/${a.BadgeName}_lock.png`,
+      points: Number(a.Points) || 0,
+      done: !!when,
+      unlockTime: when ? Date.parse(`${String(when).replace(' ', 'T')}Z`) : null,
+      percent: players ? (Number(a.NumAwarded) / players) * 100 : null,
+      ...(set ? { set, setGame } : {}),
+    };
+  }
+
+  // Los logros del juego y de sus subsets (ej. "Professor Oak Challenge"), cada subset como un set aparte.
+  // done/total (y el 100 % del juego, su platino) son de todo: el juego base más sus subsets.
   async achievements(key) {
     if (!this.connected) return { status: 'no-key', list: [] };
     try {
-      const d = await this.api('GetGameInfoAndUserProgress', { g: String(key).replace(/^ra-/, ''), u: this.cfg.user });
-      const items = Object.values((d && d.Achievements) || {}).sort((a, b) => (a.DisplayOrder || 0) - (b.DisplayOrder || 0));
+      const { d, items, players } = await this.progress(String(key).replace(/^ra-/, ''));
       if (!items.length) return { status: 'none', list: [] };
-      const players = Number(d.NumDistinctPlayers) || 0;
-      const list = items.map((a) => {
-        const when = a.DateEarnedHardcore || a.DateEarned;
-        return {
-          id: String(a.ID),
-          name: a.Title,
-          description: a.Description || '',
-          hidden: false,
-          icon: `${MEDIA}/Badge/${a.BadgeName}.png`,
-          iconGray: `${MEDIA}/Badge/${a.BadgeName}_lock.png`,
-          points: Number(a.Points) || 0,
-          done: !!when,
-          unlockTime: when ? Date.parse(`${String(when).replace(' ', 'T')}Z`) : null,
-          percent: players ? (Number(a.NumAwarded) / players) * 100 : null,
-        };
-      });
+      const list = items.map((a) => this.item(a, players));
+      for (const sub of await this.subsets(d.Title, d.ConsoleID)) {
+        this.parentOf[sub.id] = key;
+        try {
+          const s = await this.progress(sub.id);
+          list.push(...s.items.map((a) => this.item(a, s.players, sub.name, sub.id)));
+        } catch (e) {
+          this.log(`no se pudo leer el subset ${sub.id}: ${e.message}`);
+        }
+      }
       const done = list.filter((a) => a.done).length;
-      this.setTotal(key, done, list.length);
-      return { status: 'ok', list, done, total: list.length };
+      const total = list.length;
+      this.setTotal(key, done, total);
+      return { status: 'ok', list, done, total };
     } catch (e) {
       return { status: 'error', message: e.message, list: [] };
     }
+  }
+
+  // Los subsets de un juego, por su nombre en la lista de la consola:
+  // "Pokémon FireRed Version [Subset - Professor Oak Challenge]" (o "A | B [Subset - …]" si sirve para dos juegos)
+  async subsets(title, consoleId) {
+    if (!title || !consoleId) return [];
+    const want = normalize(title);
+    const out = [];
+    for (const g of await this.gameList(consoleId)) {
+      const m = /^(.*?)\s*\[Subset - (.+)\]\s*$/i.exec(String(g.title));
+      if (m && m[1].split('|').some((t) => normalize(t) === want)) out.push({ id: g.id, name: m[2].trim() });
+    }
+    return out;
   }
 
   // Revisa los juegos en segundo plano (sin repetir los recientes)
@@ -213,7 +251,14 @@ class RetroAchievements {
     if (first) return [];
     return fresh
       .filter((a) => !this.live.has(Number(a.AchievementID)))
-      .map((a) => this.notice(this.key(a.GameID), { name: a.Title, points: Number(a.Points) || 0, icon: `${MEDIA}/Badge/${a.BadgeName}.png`, gameName: a.GameTitle }));
+      .map((a) =>
+        this.notice(this.parentOf[a.GameID] || this.key(a.GameID), {
+          name: a.Title,
+          points: Number(a.Points) || 0,
+          icon: `${MEDIA}/Badge/${a.BadgeName}.png`,
+          gameName: String(a.GameTitle || '').replace(/\s*\[Subset - .+\]\s*$/i, ''), // el del juego, no el del subset
+        })
+      );
   }
 
   // Un logro que el emulador acaba de escribir en su registro: se avisa al tiro y el repaso periódico ya no lo repite.
@@ -223,7 +268,7 @@ class RetroAchievements {
     if (this.live.has(n) || (this.seen && this.seen.has(n))) return null;
     this.live.add(n);
     const a = (list || []).find((x) => x.id === String(n));
-    return this.notice(key, { name: a ? a.name : title, points: a ? a.points : 0, icon: a ? a.icon : null, gameName });
+    return this.notice(key, { name: a ? a.name : title, points: a ? a.points : 0, icon: a ? a.icon : null, gameName }); // los de un subset también suman al juego
   }
 
   // Suma el logro al total del juego y arma el aviso

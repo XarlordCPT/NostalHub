@@ -852,9 +852,14 @@
         return;
       }
       msg.hidden = true;
-      tRows = U.sortAchievements(res.list);
+      tRows = U.withSetHeads(U.sortAchievements(res.list)); // con los títulos de los sets (juego base, DLC…)
       $('.p4t-head').textContent = `${g.name} · ${res.done} / ${res.total}`;
       tRows.forEach((a, i) => {
+        if (a.sep) {
+          list.insertAdjacentHTML('beforeend', `<div class="p4t-row sep" data-i="${i}"><div class="p4t-info"><div class="p4t-gname"></div></div><div class="p4t-when"><div>${a.done} / ${a.total}</div></div></div>`);
+          list.lastElementChild.querySelector('.p4t-gname').textContent = a.name;
+          return;
+        }
         const t = U.achievementTexts(a);
         const r = document.createElement('div');
         r.className = `p4t-row ach${a.done ? '' : ' locked'}`;
@@ -873,7 +878,7 @@
     }
     function setTrophy(i, scroll = true) {
       if (!tRows.length) return;
-      tSel = Math.max(0, Math.min(tRows.length - 1, i));
+      tSel = U.skipSetHead(tRows, i, i < tSel ? -1 : 1); // los títulos de los sets se saltan
       $$('.p4t-row').forEach((r) => r.classList.toggle('sel', Number(r.dataset.i) === tSel));
       if (scroll) {
         const per = Math.floor(T_VIEW_H / T_ROW_H);

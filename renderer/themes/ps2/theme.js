@@ -836,7 +836,6 @@
           ];
     }
 
-    const ACH_COLS = 12;
     let achList = [];
     let achSel = 0;
     let achToken = 0;
@@ -870,6 +869,8 @@
       achList = U.sortAchievements(res.list);
       const gridEl = $('.pa-grid');
       achList.forEach((a, i) => {
+        const head = U.achievementSetHead(achList, i);
+        if (head) gridEl.insertAdjacentHTML('beforeend', U.setHeadHtml('pa-set', head));
         const cell = document.createElement('button');
         cell.className = `pa-cell${a.done ? '' : ' locked'}`;
         cell.dataset.i = i;
@@ -1195,8 +1196,8 @@
         if (e.key === 'Escape' || e.key === 'Backspace' || e.key === 'Enter') closeAch();
         else if (e.key === 'ArrowLeft') setAch(achSel - 1);
         else if (e.key === 'ArrowRight') setAch(achSel + 1);
-        else if (e.key === 'ArrowUp') setAch(achSel - ACH_COLS);
-        else if (e.key === 'ArrowDown') setAch(achSel + ACH_COLS);
+        else if (e.key === 'ArrowUp') setAch(U.gridMove([...pa.querySelectorAll('.pa-cell')], achSel, -1));
+        else if (e.key === 'ArrowDown') setAch(U.gridMove([...pa.querySelectorAll('.pa-cell')], achSel, 1));
         return;
       }
       if (view === 'grid') {

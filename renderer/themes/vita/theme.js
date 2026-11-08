@@ -1217,8 +1217,10 @@
       const list = $('.v-tr-list', main);
       const msg = $('.v-tr-msg', main);
       const head = $('.v-tr-head', main);
-      card.onFocus = (el, i) => {
+      card.onFocus = (el, j) => {
         const per = Math.floor(T_VIEW / T_ROW);
+        const k = el && el.parentElement === list ? [...list.children].indexOf(el) : -1;
+        const i = k >= 0 ? k : j; // con los títulos de los sets, la fila en pantalla no es la misma que el índice
         let f = card.tFirst || 0;
         if (i < f) f = i;
         else if (i >= f + per) f = i - per + 1;
@@ -1242,7 +1244,17 @@
         }
         msg.hidden = true;
         head.textContent = `${g.name} · ${res.done} / ${res.total}`;
-        U.sortAchievements(res.list).forEach((a) => {
+        U.withSetHeads(U.sortAchievements(res.list)).forEach((a) => {
+          if (a.sep) {
+            // Título del set (juego base, DLC…): una fila sin data-f, así no se puede marcar
+            const s = document.createElement('div');
+            s.className = 'v-tr-row sep';
+            s.innerHTML = '<div class="v-tr-info"><div class="v-tr-gn"></div></div><div class="v-tr-when"><div></div></div>';
+            s.querySelector('.v-tr-gn').textContent = a.name;
+            s.querySelector('.v-tr-when div').textContent = `${a.done} / ${a.total}`;
+            list.appendChild(s);
+            return;
+          }
           const t = U.achievementTexts(a);
           const r = document.createElement('div');
           r.className = `v-tr-row ach${a.done ? '' : ' locked'}`;

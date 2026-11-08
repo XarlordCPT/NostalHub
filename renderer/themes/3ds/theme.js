@@ -561,7 +561,7 @@
           ? list
               .map(
                 (r, i) =>
-                  `<button class="ba-row${r.dim ? ' dim' : ''}${r.on ? ' on' : ''}" data-i="${i}">${r.svg ? `<span class="ba-ic np">${r.svg}</span>` : r.img !== undefined ? `<span class="ba-img${r.dot ? ` fr ${r.dot}` : ''}"${r.img ? ` style="background-image:url('${esc(r.img)}')"` : ''}>${r.dot ? '<i></i>' : ''}${r.ini && !r.img ? `<b>${esc(r.ini)}</b>` : ''}</span>` : r.icon ? `<span class="ba-ic">${ic(r.icon)}</span>` : ''}<span class="ba-l">${esc(r.label)}</span>${r.value != null ? `<span class="ba-v${r.badge ? ' nh-done-text' : ''}">${r.badge || ''}${esc(r.value)}</span>` : ''}</button>`
+                  `${r.head ? `<div class="ba-set">${esc(r.head)}</div>` : ''}<button class="ba-row${r.dim ? ' dim' : ''}${r.on ? ' on' : ''}" data-i="${i}">${r.svg ? `<span class="ba-ic np">${r.svg}</span>` : r.img !== undefined ? `<span class="ba-img${r.dot ? ` fr ${r.dot}` : ''}"${r.img ? ` style="background-image:url('${esc(r.img)}')"` : ''}>${r.dot ? '<i></i>' : ''}${r.ini && !r.img ? `<b>${esc(r.ini)}</b>` : ''}</span>` : r.icon ? `<span class="ba-ic">${ic(r.icon)}</span>` : ''}<span class="ba-l">${esc(r.label)}</span>${r.value != null ? `<span class="ba-v${r.badge ? ' nh-done-text' : ''}">${r.badge || ''}${esc(r.value)}</span>` : ''}</button>`
               )
               .join('')
           : `<div class="ba-empty">${app.empty || 'No hay nada aquí.'}</div>`
@@ -741,9 +741,10 @@
         },
         list() {
           if (st.game)
-            return (st.list || []).map((a) => {
+            return (st.list || []).map((a, i) => {
               const t = U.achievementTexts(a);
-              return { img: a.done ? a.icon : a.iconGray || a.icon, label: t.name, desc: t.description, value: a.done ? t.date : 'Bloqueado', dim: !a.done };
+              const h = U.achievementSetHead(st.list, i);
+              return { img: a.done ? a.icon : a.iconGray || a.icon, label: t.name, desc: t.description, value: a.done ? t.date : 'Bloqueado', dim: !a.done, head: h && `${h.name}  ·  ${h.done}/${h.total}` };
             });
           return gamesWith().map((g) => {
             const tp = trophiesOf(g);

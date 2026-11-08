@@ -61,9 +61,65 @@
     return texts[res && res.status] || texts.error;
   }
 
-  // Ordena: desbloqueados primero (más recientes arriba), después los bloqueados
+  // Ordena por set (juego base primero, después cada DLC o subset) y, dentro de cada uno, los desbloqueados primero
+  // (más recientes arriba) y después los bloqueados
+  const setOf = (a) => (a && a.set) || '';
   function sortAchievements(list) {
-    return [...(list || [])].sort((a, b) => Number(b.done) - Number(a.done) || (b.unlockTime || 0) - (a.unlockTime || 0));
+    const order = new Map([['', 0]]);
+    (list || []).forEach((a) => order.has(setOf(a)) || order.set(setOf(a), order.size));
+    return [...(list || [])].sort((a, b) => order.get(setOf(a)) - order.get(setOf(b)) || Number(b.done) - Number(a.done) || (b.unlockTime || 0) - (a.unlockTime || 0));
+  }
+
+  // ---------- Sets de logros (Steam: juego base y DLC; RetroAchievements: subsets) ----------
+  // En una lista ya ordenada, el encabezado que va antes del logro i: { name, done, total }, o null.
+  // Si el juego tiene un solo set no hay encabezados (se ve igual que antes).
+  function achievementSetHead(list, i) {
+    const a = list[i];
+    if (!a || (i > 0 && setOf(list[i - 1]) === setOf(a))) return null;
+    if (!list.some((x) => setOf(x) !== setOf(a))) return null;
+    const mine = list.filter((x) => setOf(x) === setOf(a));
+    return { name: a.set || 'Juego base', done: mine.filter((x) => x.done).length, total: mine.length };
+  }
+  function setHeadHtml(cls, h) {
+    return `<div class="${cls}"><span>${escapeHtml(h.name)}</span><b>${h.done} / ${h.total}</b></div>`;
+  }
+  // Para listas de filas del mismo alto: el encabezado va como una fila más ({ sep: true, name, done, total })
+  function withSetHeads(list) {
+    const out = [];
+    list.forEach((a, i) => {
+      const h = achievementSetHead(list, i);
+      if (h) out.push({ sep: true, ...h });
+      out.push(a);
+    });
+    return out;
+  }
+  // La fila más cercana en esa dirección que no es encabezado (filas de datos o elementos con la clase "sep")
+  function skipSetHead(rows, i, dir = 1) {
+    if (!rows.length) return i;
+    const sep = (r) => !!r && (r.sep === true || !!(r.classList && r.classList.contains('sep')));
+    const at = Math.max(0, Math.min(rows.length - 1, i));
+    for (let j = at; j >= 0 && j < rows.length; j += dir) if (!sep(rows[j])) return j;
+    for (let j = at; j >= 0 && j < rows.length; j -= dir) if (!sep(rows[j])) return j;
+    return at;
+  }
+  // Cuadrícula de logros con encabezados en medio: ↑ ↓ van a la fila de arriba o de abajo, a la celda más cercana
+  function gridMove(cells, i, dir) {
+    const from = cells[i];
+    if (!from) return i;
+    const a = from.getBoundingClientRect();
+    const ay = a.top + a.height / 2;
+    const ax = a.left + a.width / 2;
+    let best = i;
+    let bestDy = Infinity;
+    let bestDx = Infinity;
+    cells.forEach((c, j) => {
+      const b = c.getBoundingClientRect();
+      const dy = (b.top + b.height / 2 - ay) * dir;
+      if (dy < a.height / 2) return;
+      const dx = Math.abs(b.left + b.width / 2 - ax);
+      if (dy < bestDy - 2 || (Math.abs(dy - bestDy) <= 2 && dx < bestDx)) (best = j), (bestDy = dy), (bestDx = dx);
+    });
+    return best;
   }
 
   function achievementTexts(a) {
@@ -832,6 +888,11 @@
     escapeHtml,
     achievementMessage,
     sortAchievements,
+    achievementSetHead,
+    setHeadHtml,
+    withSetHeads,
+    skipSetHead,
+    gridMove,
     achievementTexts,
     isComplete,
     completeBadge,

@@ -817,7 +817,7 @@ void main(){
       list.innerHTML = lv.rows.length
         ? lv.rows
             .map(
-              (r, i) => `<div class="p3-row${r.dim ? ' dim' : ''}${r.on ? ' on' : ''}" data-i="${i}"${r.gameId ? ` data-game-id="${esc(r.gameId)}"` : ''}>
+              (r, i) => `<div class="p3-row${r.sep ? ' sep' : ''}${r.dim ? ' dim' : ''}${r.on ? ' on' : ''}" data-i="${i}"${r.gameId ? ` data-game-id="${esc(r.gameId)}"` : ''}>
             ${r.img !== undefined || r.icon ? `<span class="p3-r-ic${r.wide ? ' wide' : ''}">${r.img ? `<img src="${esc(r.img)}" alt="" draggable="false" />` : r.icon ? ic(r.icon) : ''}</span>` : ''}
             <span class="p3-r-t"><b>${esc(r.title)}</b>${r.desc ? `<small>${esc(r.desc)}</small>` : ''}${r.bar != null ? `<i class="p3-bar"><i style="width:${Math.round(r.bar * 100)}%"></i></i>` : ''}</span>
             ${r.badge ? `<span class="p3-r-badge">${r.badge}</span>` : ''}
@@ -829,7 +829,7 @@ void main(){
       $$('.p3-row', list).forEach((el) => {
         const i = Number(el.dataset.i);
         el.addEventListener('click', (e) => {
-          if (mode !== 'sub') return;
+          if (mode !== 'sub' || (curLevel().rows[i] && curLevel().rows[i].sep)) return;
           const adj = e.target.closest('[data-d]');
           if (adj && curLevel().rows[i] && curLevel().rows[i].adjust) return setRow(i), curLevel().rows[i].adjust(Number(adj.dataset.d));
           if (i === curLevel().sel) pickRow();
@@ -846,7 +846,7 @@ void main(){
     function setRow(i, sound = false) {
       const lv = curLevel();
       if (!lv || !lv.rows.length) return;
-      lv.sel = Math.max(0, Math.min(lv.rows.length - 1, i));
+      lv.sel = U.skipSetHead(lv.rows, i, i < lv.sel ? -1 : 1); // los títulos de los sets de logros se saltan
       const h = lv.big ? ROW_H.big : ROW_H.normal;
       const visible = Math.floor(660 / h);
       $('.p3-sub-view').style.height = `${visible * h}px`; // filas completas, sin una cortada abajo
@@ -1179,7 +1179,8 @@ void main(){
             self.empty = U.achievementMessage(res);
             return paintSub();
           }
-          self.rows = U.sortAchievements(res.list).map((a) => {
+          self.rows = U.withSetHeads(U.sortAchievements(res.list)).map((a) => {
+            if (a.sep) return { sep: true, title: a.name, value: `${a.done} / ${a.total}` };
             const t = U.achievementTexts(a);
             return { img: a.done ? a.icon : a.iconGray || a.icon, title: t.name, desc: t.description, value: a.done ? t.date : 'Bloqueado', dim: !a.done };
           });

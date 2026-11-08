@@ -477,7 +477,9 @@ body.playing .theme-ps2 .ps-big * { animation-play-state: running !important; }
   padding: 18px 10px;
   display: grid;
   grid-template-columns: repeat(12, 92px);
-  grid-auto-rows: 92px;
+  grid-auto-rows: auto;
+  align-content: start;
+  scroll-padding: 70px 0 24px; /* al moverse: se ve el marco entero y el título del set */
   gap: 22px 26px;
   justify-content: center;
   overflow-y: auto;
@@ -495,6 +497,9 @@ body.playing .theme-ps2 .ps-big * { animation-play-state: running !important; }
   transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
 }
 .pa-cell.locked span { filter: grayscale(1) brightness(0.75); }
+.pa-set { grid-column: 1 / -1; display: flex; justify-content: space-between; align-items: baseline; padding: 0 4px 8px; border-bottom: 2px solid rgba(160, 190, 255, 0.35); font-size: 28px; color: #dfe8ff; letter-spacing: 1px; }
+.pa-set:not(:first-child) { margin-top: 12px; }
+.pa-set b { font-weight: 400; color: #9fb6ec; }
 .pa-cell.sel span {
   transform: scale(1.22);
   box-shadow: 0 0 0 4px #fff, 0 0 22px 8px rgba(255, 255, 255, 0.85), 0 0 6px 2px rgba(120, 170, 255, 0.9);

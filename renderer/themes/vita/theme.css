@@ -357,6 +357,8 @@
 .v-tr-view { height: 694px; margin: -34px -40px 0; padding: 34px 40px 0; overflow: hidden; -webkit-mask-image: linear-gradient(to bottom, #000 90%, transparent); }
 .v-tr-view.scrolled { -webkit-mask-image: linear-gradient(to bottom, transparent 0, transparent 22px, #000 34px, #000 90%, transparent); }
 .v-tr-list { transition: transform 0.3s var(--v-ease); }
+.v-tr-row.sep { background: transparent !important; border-color: transparent !important; align-items: flex-end !important; padding-bottom: 12px !important; }
+.v-tr-row.sep .v-tr-gn { font-weight: 700; opacity: 0.85; }
 .v-tr-row {
   width: 100%;
   height: 118px;
