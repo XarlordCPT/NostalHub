@@ -889,17 +889,19 @@
     }
     return firstFrames.get(src);
   }
+  // Sirve para fondos (background-image) y para <img> (src)
+  const putPic = (el, url) => (el.tagName === 'IMG' ? (el.src = url || '') : (el.style.backgroundImage = url ? `url("${url}")` : ''));
   function stillBackground(el, url) {
     if (!el) return;
     el.classList.remove('nh-live');
     el.dataset.live = isAnimatedUrl(url) ? url : '';
     if (!el.dataset.live) {
-      el.style.backgroundImage = url ? `url("${url}")` : '';
+      putPic(el, url);
       return;
     }
-    el.style.backgroundImage = '';
+    if (el.tagName !== 'IMG') putPic(el, ''); // (un <img> sin src mostraría el ícono de imagen rota)
     firstFrameUrl(url).then((still) => {
-      if (el.dataset.live === url && !el.classList.contains('nh-live')) el.style.backgroundImage = `url("${still || url}")`;
+      if (el.dataset.live === url && !el.classList.contains('nh-live')) putPic(el, still || url);
     });
   }
   // La animación arranca solo si el elemento sigue marcado después de `espera` ms (pasar rápido con las flechas no carga
@@ -924,7 +926,7 @@
           .then(() => {
             if (liveEls.get(group) !== el || el.dataset.live !== url) return;
             el.classList.add('nh-live');
-            el.style.backgroundImage = `url("${url}")`;
+            putPic(el, url);
           })
           .catch(() => {});
       }, espera)

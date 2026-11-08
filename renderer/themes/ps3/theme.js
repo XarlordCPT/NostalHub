@@ -484,10 +484,12 @@ void main(){
     function icon0(g) {
       return g.icon0 || g.header || (g.tileIsVideo ? null : g.tile) || null;
     }
+    // Las imágenes van en data-pic: renderItems las pone con U.stillBackground (si son animadas, su primer cuadro; solo el
+    // juego marcado se anima). Un ícono animado fuera de la vista seguía "avanzando" y al aparecer trababa segundos.
     function gameIconHtml(g) {
-      const img = (u) => `<img class="p3-chk" src="${esc(u)}" alt="" draggable="false" />`;
+      const img = (u) => `<img class="p3-chk" data-pic="${esc(u)}" alt="" draggable="false" />`;
       if (g.icon0 || g.header) return img(g.icon0 || g.header);
-      if (g.hero && g.heroIsReal && g.logo) return `<span class="p3-comp" style="background-image:url('${esc(g.hero)}')"><img src="${esc(g.logo)}" alt="" draggable="false" /></span>`;
+      if (g.hero && g.heroIsReal && g.logo) return `<span class="p3-comp" data-pic="${esc(g.hero)}"><img src="${esc(g.logo)}" alt="" draggable="false" /></span>`;
       return g.tile && !g.tileIsVideo ? img(g.tile) : '';
     }
     // Imágenes que fallan se quitan (queda el ícono o el nombre); las verticales se muestran enteras
@@ -632,6 +634,7 @@ void main(){
             <div class="p3-tx"><b>${esc(it.title)}</b>${it.sub ? `<small>${esc(it.sub)}</small>` : ''}${it.extra || ''}</div></div>`;
         })
         .join('');
+      $$('[data-pic]', box).forEach((el) => U.stillBackground(el, el.dataset.pic));
       watchImages(box);
       $$('.p3-it', box).forEach((el) => {
         const i = Number(el.dataset.i);
@@ -683,6 +686,7 @@ void main(){
         icEl.style.transform = `translate(${CAT_X - (z.w * s) / 2}px, ${top}px) scale(${s})`;
         el.lastElementChild.style.transform = `translate(${textX}px, ${top + (z.h * s) / 2}px) translateY(-50%)`;
       });
+      U.liveBackground(box.querySelector('.p3-it.sel [data-pic]'), 'ps3-icono'); // solo el marcado se anima (si te quedas)
     }
     function setCat(i) {
       const next = Math.max(0, Math.min(CATS.length - 1, i));
