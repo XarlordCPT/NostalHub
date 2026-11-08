@@ -136,7 +136,7 @@ tests/                  `npm test`: logica/*.test.js (node --test) y pantallas.j
     summary), save(lista) }` (Jugado recientemente, Nombre, Horas jugadas, % de logros y, con `manual`, A mano).
     Uno por consola, guardado en `localStorage` (`nostalhub.<id>.gameSort` / `gameOrder`).
   - Fondo propio (PS3, PS4, 3DS): `wallpaper(api, id)` → `{ value, set, load(), choices(games), url(games), label,
-    openFolder() }`. Lee `consolas\<id>ondos\` (`api.getConsoleBackgrounds`) o usa el `hero` de un juego.
+    openFolder() }`. Lee `consolas\<id>\fondos\` (`api.getConsoleBackgrounds`) o usa el `hero` de un juego.
   - Otros: `partyView`, `hours`, `ago`, `playLine`, `escapeHtml` (también `'`; el 0 se muestra), `npIcon`, `fmtTime`,
     `wait(ms)`, `pad2(n)`, `fadeAudio(audio, volumen, ms, alTerminar)`.
 - Datos en vivo: `api.onGamesUpdated`, `api.onGameEnded`, `api.onSteamSummary`, `api.onSteamChanged`,
