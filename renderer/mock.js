@@ -203,6 +203,7 @@
       { file: 'Bosque.png', name: 'Bosque', url: art(1920, 1080, ['#0f9b8e', '#0b3d2e'], '', 0) },
     ],
     selectConsole: async () => {},
+    setModelTilt: async () => {}, // girar el modelo 3D del selector (clic derecho)
     onShowSelector: noop,
     onConsolesUpdated: noop,
     quitApp: async () => console.log('[mock] salir'),
@@ -214,6 +215,9 @@
     getSetup: async () => ({ steam: { hasKey: false, foundUser: true, name: null }, discord: { clientId: '', hasSecret: false, state: { status: 'no-config' } } }),
     saveRetro: async (user, key) => (user && key.trim().length >= 20 ? ((mockRetro = { connected: true, user }), { ok: true, user }) : { ok: false, message: 'Esa no parece la Web API Key.' }),
     disconnectRetro: async () => (mockRetro = { connected: false, user: null }),
+    connectSpotify: async (clientId) => (clientId && clientId.trim().length >= 20 ? { ok: true } : { ok: false, message: 'Ese no parece el Client ID de tu app de Spotify.' }),
+    disconnectSpotify: async () => ({ ok: true }),
+    pathForFile: (file) => (file && file.name) || '', // en el navegador no hay rutas: solo el nombre
     saveSteamKey: async (k) => (/^[0-9a-f]{32}$/i.test(k.trim()) ? { ok: true, name: 'Cristóbal', warning: null } : { ok: false, message: 'La clave tiene 32 letras y números (de la A a la F y del 0 al 9). Revisa que la copiaste completa.' }),
     saveDiscord: async ({ id }) => (/^\d{15,22}$/.test(String(id).trim()) ? { ok: true, state: { status: 'authorizing' } } : { ok: false, message: 'El Client ID son solo números (unos 18 o 19). Está en OAuth2 → Client ID.' }),
     getGameCustom: async (id) => {
@@ -303,6 +307,7 @@
       { id: 'tv', name: 'Living', type: 'Speaker', active: false, volume: 40 },
     ],
     onSpotify: (cb) => (spCbs.add(cb), () => spCbs.delete(cb)),
+    onSpotifyWeb: () => () => {}, // la conexión directa con Spotify no cambia en el mock
     discordWatch: async () => dcState,
     discordAuthorize: async () => dcState,
     onDiscord: (cb) => (dcCbs.add(cb), () => dcCbs.delete(cb)),
@@ -312,6 +317,8 @@
     getWindowState: async () => ({ ...winState }),
     windowControl: async (a) => (a === 'maximize' && (winState.maximized = !winState.maximized), { ...winState }),
     onWindowState: (cb) => (winCbs.add(cb), () => winCbs.delete(cb)),
+    windowDragStart: async () => {}, // mover la ventana arrastrando la barra (en el navegador no se mueve)
+    windowDragMove: () => {},
     __win: (mode) => ((winState.mode = mode), winCbs.forEach((cb) => cb({ ...winState }))),
     getFreeSpace: async () => ({ bytes: 237004800000, drive: 'C:\\' }),
     _end: () => endedCb && endedCb({ reason: 'exited' }),
