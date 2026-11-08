@@ -21,13 +21,13 @@ Rama: `limpieza`. `main` no se toca hasta que Cristóbal la junte. Un commit por
 
 ## Etapa 2: limpieza de bajo riesgo
 
-- [ ] Registro de errores único (`cache\nostalhub.log`) en vez de los `catch {}` vacíos que esconden fallas reales.
-- [ ] Ayudantes repetidos a `common.js`: `esc` (9 copias), `wait` (12), `$$` (6), `pad` (4); la Xbox usa los de `common.js`
+- [x] Registro de errores único (`cache\nostalhub.log`) en vez de los `catch {}` vacíos que esconden fallas reales.
+- [x] Ayudantes repetidos a `common.js`: `esc` (9 copias), `wait` (12), `$$` (6), `pad` (4); la Xbox usa los de `common.js`
       (`escapeHtml`, `ago`, `hours`, `achievementMessage`).
-- [ ] Código muerto (ej. el `return null` que nunca se ejecuta en `retroarchOption`).
-- [ ] `mock.js`: las 7 funciones que le faltan del puente.
-- [ ] Animaciones con nombres genéricos (`fade-in`, `pulse`…) → con el prefijo de su consola.
-- [ ] Documentación al día (`CLAUDE.md`: `mount` devuelve `{ unmount }`; `CONSOLA-NUEVA.md`: sets, música del canal, recorte).
+- [x] Código muerto (ej. el `return null` que nunca se ejecuta en `retroarchOption`).
+- [x] `mock.js`: las 7 funciones que le faltan del puente.
+- [x] Animaciones con nombres genéricos (`fade-in`, `pulse`…) → con el prefijo de su consola.
+- [x] Documentación al día (`CLAUDE.md`: `mount` devuelve `{ unmount }`; `CONSOLA-NUEVA.md`: sets, música del canal, recorte).
 
 ## Etapa 3: separar `main.js`
 
@@ -57,3 +57,6 @@ Rama: `limpieza`. `main` no se toca hasta que Cristóbal la junte. Un commit por
 
 - **Etapa 1 lista.** `npm test`: 34 pruebas de lógica + 44 pantallas. Dos corridas seguidas sin cambios dan 0 diferencias, y un
   error puesto a propósito en la Wii se detectó (pantalla que no abre + error en la consola + 88 535 píxeles distintos).
+- **Etapa 2 lista** (6 commits): código muerto, ayudantes a `common.js`, mock completo (+ prueba), animaciones con prefijo
+  (+ prueba de CSS), registro de errores (+ pruebas) y documentación. `npm test`: 41 de lógica + 44 pantallas, todo bien.
+  Falta probarla con la app real (cambió `main.js`).

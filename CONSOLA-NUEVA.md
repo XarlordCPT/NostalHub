@@ -18,7 +18,8 @@ más completas) cuando tengas dudas de cómo se hace algo.
       para los menús (`uiAccent` en `shell.js`): comprobar que el menú de **Ordenar** se lee bien.
 - [ ] `renderer/index.html`: `<script src="themes/<id>/theme.js">` y su `theme.css`.
 - [ ] `renderer/themes/<id>/theme.js` → `window.Themes['<id>'] = { mount(root, ctx), synth(kind, vol) }`.
-      `mount` devuelve una función para desmontar (quitar listeners, timers, `nowPlaying.dispose()`, WebGL…).
+      `mount` devuelve `{ unmount() }` para desmontar (quitar listeners, timers, `nowPlaying.dispose()`, WebGL…).
+- [ ] Las `@keyframes` con el prefijo de la consola (`<id>-…`): todo el CSS se carga junto.
 - [ ] Todo el CSS con prefijo `.theme-<id>`; si hay overlays con `display:grid/flex`, agregar
       `.theme-<id> [hidden] { display: none !important }`. Reset de botones con `:where(.theme-<id>) button`.
 - [ ] Escenario fijo de 1920×1080 (lo escala `shell.js`): nada fuera de esa caja.
@@ -36,6 +37,9 @@ más completas) cuando tengas dudas de cómo se hace algo.
       o de amigos, usar también `api.onSpotify` / `api.onDiscord` (ver PS3, PS4, 3DS).
 - [ ] **Pestaña / sección de Logros SIEMPRE** (lista de logros del juego): `api.getAchievements(appId)`,
       `api.getAchievementSummary`, `NostalHubUtil.achievementMessage / sortAchievements / achievementTexts`.
+      Con **sets** (juego base, DLC, subsets) cada uno lleva su título y contador: en cuadrículas
+      `U.achievementSetHead` + `U.setHeadHtml` y ↑ ↓ con `U.gridMove`; en listas de filas del mismo alto
+      `U.withSetHeads` + `U.skipSetHead` (el título no se puede marcar). Juegos de emulador: usar `g.hasAch`.
 - [ ] **Juego al 100 %**: sello propio de la consola (`U.completeBadge(tipo)`, agregar un dibujo en `BADGES` de
       `common.js` si ninguno calza) en el ícono del juego (`'on-icon'`), en su ficha y en la lista de logros; texto en
       dorado con `.nh-done-text`. Redibujar los íconos cuando cambia `U.completeKey(summary)`.
@@ -68,6 +72,7 @@ más completas) cuando tengas dudas de cómo se hace algo.
 - [ ] `renderer/game-editor.js`: agregar la consola en `CONSOLE_NAMES` y en `BY_CONSOLE` (qué imágenes usa:
       `hero`, `logo`, `square`, `icon0`, `music`…). Si necesita una imagen nueva: `SLOTS` + `EDITABLE` y
       `customInfo` en `main.js` + `CUSTOM_FILES` en `src/media.js` + vista previa `.shape-*` en `shell.css`.
+- [ ] Si la imagen nueva se puede recortar: su forma en `CROP_RATIOS` (game-editor) y el tipo en `CROPPABLE` (main.js).
 - [ ] Probar que la imagen elegida se ve bien (proporción correcta, sin cortes raros).
 
 ## 4. Sonidos
@@ -75,7 +80,8 @@ más completas) cuando tengas dudas de cómo se hace algo.
 - [ ] `synth(kind, vol)` en el tema: sonidos hechos con código para `move`, `select`, `back`, `page`, `start`
       (y los que use: `gameboot`, `option`, `error`, `border`, `b-*`) — suenan cuando no hay archivo en AppData.
 - [ ] Usar `ctx.sound(kind)` en el tema para cada acción.
-- [ ] Música del menú (`musica` en `consolas\<id>\`) y `ctx.duckMusic` si suena música por juego.
+- [ ] Música del menú (`musica` en `consolas\<id>\`) y `ctx.duckMusic` si suena música por juego (`g.music`, con
+      `U.fadeAudio`; ver la PS3 o el canal de la Wii).
 - [ ] Si Cristóbal pasa los sonidos originales: copiarlos a `consolas\<id>\` con los nombres de
       `CONSOLE_FILES` (`mover`, `elegir`, `volver`, `inicio`, `gameboot`, `logro`…).
 
@@ -101,5 +107,7 @@ más completas) cuando tengas dudas de cómo se hace algo.
 
 - [ ] `MANUAL.md`: sección "Cómo se usa la <consola>" (teclas, secciones, imágenes que usa, sonidos).
 - [ ] Probar en el navegador con el mock (`renderer/mock.js`; agregar lo que falte) y en Electron real.
+- [ ] Agregar sus pantallas a `PANTALLAS` en `tests/pantallas.js` (cómo llegar con el teclado y qué tiene que verse) y
+      guardar sus capturas con `npm run test:referencia -- <id>`. `npm test` tiene que pasar entero.
 - [ ] Capturas de cada pantalla antes de entregar.
 - [ ] Darle a Cristóbal los comandos de git (él hace el commit y el push).

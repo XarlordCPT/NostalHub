@@ -86,6 +86,8 @@ src/spotify-web.js      Spotify Web API: OAuth PKCE (http://127.0.0.1:8957/callb
 src/discord.js          Canal de voz de Discord por RPC local (Grupo)
 src/discord-presence.js Presencia en Discord (SET_ACTIVITY) con la app pública DISCORD_PRESENCE_ID de main.js
 src/playlog.js          Contador de horas: sesiones en estadisticas.db (node:sqlite) y resumen por período
+src/registro.js         Registro de errores (cache
+ostalhub.log): `anotar('dónde', error)` en vez de un catch vacío
 renderer/index.html     Carga todo (un <script> y un <link> por tema)
 renderer/shell.js/.css  Selector de consolas, escalado del escenario, sonidos, barra de ventana, F3
 renderer/consoles.js    Lista de consolas (id, empresa, nombre, año, colores)
@@ -102,11 +104,12 @@ renderer/console-model.js, models/   Modelos 3D (Three.js) del selector y de los
 renderer/overlay/       Avisos de logro de cada consola (STYLES, SYNTH, copa del trofeo)
 renderer/mock.js        Datos falsos para abrir index.html en un navegador normal (sin Electron)
 renderer/themes/<id>/   theme.js + theme.css de cada consola
+tests/                  `npm test`: logica/*.test.js (node --test) y pantallas.js (las 8 consolas, capturas comparadas)
 ```
 
 ## Cómo funciona un tema
 
-- `window.Themes['<id>'] = { mount(root, ctx), synth(kind, vol) }`. `mount` devuelve una función que **desmonta
+- `window.Themes['<id>'] = { mount(root, ctx), synth(kind, vol) }`. `mount` devuelve `{ unmount() }`, que **desmonta
   todo** (listeners, timers, `nowPlaying.dispose()`, `feed.dispose()`, WebGL…).
 - `ctx = { api, stage, stageRect, toast, openSelector, sound, duckMusic, soundSettings, hasAsset }`.
   `api` es `window.nostalhub` (o el mock).
@@ -134,7 +137,8 @@ renderer/themes/<id>/   theme.js + theme.css de cada consola
     Uno por consola, guardado en `localStorage` (`nostalhub.<id>.gameSort` / `gameOrder`).
   - Fondo propio (PS3, PS4, 3DS): `wallpaper(api, id)` → `{ value, set, load(), choices(games), url(games), label,
     openFolder() }`. Lee `consolas\<id>ondos\` (`api.getConsoleBackgrounds`) o usa el `hero` de un juego.
-  - Otros: `partyView`, `hours`, `ago`, `playLine`, `escapeHtml`, `npIcon`, `fmtTime`.
+  - Otros: `partyView`, `hours`, `ago`, `playLine`, `escapeHtml` (también `'`; el 0 se muestra), `npIcon`, `fmtTime`,
+    `wait(ms)`, `pad2(n)`, `fadeAudio(audio, volumen, ms, alTerminar)`.
 - Datos en vivo: `api.onGamesUpdated`, `api.onGameEnded`, `api.onSteamSummary`, `api.onSteamChanged`,
   `api.onSpotify`, `api.onSpotifyWeb`, `api.onDiscord`. Las fichas de juego tienen que **repintarse** cuando llega
   un resumen nuevo (horas y logros al día después de jugar).
@@ -172,7 +176,11 @@ descripción), `cache\` (arte descargado, `spotify.log`, `discord.log`) y las cl
   (`playtimes`) y se usa la mayor. Al terminar un juego se refrescan logros y horas a los 4 s y a los 30 s.
 - Spotify: `hasApi` depende de que la API esté **conectada** (`spotify.webOn()`), no de que haya algo sonando: con
   Spotify en pausa la API no da `playback` y antes salían los botones básicos. Se apaga con `config.spotifyApi`.
-- Las `@keyframes` de todos los temas comparten nombre global (todo el CSS se carga junto): usa nombres con prefijo.
+- Las `@keyframes` de todos los temas comparten nombre global (todo el CSS se carga junto): usa nombres con prefijo
+  (`wii-`, `ps2-`, `x360-`…). `tests/logica/css.test.js` avisa si una se repite o si se usa una que no existe.
+- Errores que no se ven en pantalla: `anotar('dónde', e)` de `src/registro.js` (queda en `cache
+ostalhub.log`). Un
+  `catch {}` vacío solo cuando fallar es normal (borrar algo que ya no está, cerrar una conexión).
 - Capturas con una ventana de Electron **oculta** (`show: false`): las animaciones CSS no avanzan y lo que entra con
   animación queda invisible. Usa una ventana visible fuera de la pantalla (`x: -5000`).
 - Spotify Web API (2026): la app del dueño necesita **Premium** y hay máximo 5 usuarios por app; "me gusta" usa
