@@ -18,6 +18,19 @@ Para abrirla: pega esa ruta en la barra del Explorador de Windows, o usa **Ajust
 
 ---
 
+## Novedades de la versión 1.2.0
+
+- **Música propia en el canal de la Wii**: cada juego puede tener su canción, que suena en su canal (sección 9).
+- **Logros separados por sets**: el juego base, los DLC de Steam y los subsets de RetroAchievements, cada uno con su título y
+  su contador. El 100 % (y el platino) cuenta todos (sección 8).
+- **Logros de RetroArch al instante**: el aviso sale apenas ganas el logro, sin esperar (sección 7).
+- **Accesos de Epic (`.url`)**: juegos como Fortnite vuelven solos al menú al cerrarlos y cuentan sus horas (sección 7).
+- **Arreglos**: los íconos de RetroAchievements (pixel art) se ven nítidos; la PS4 y la PS3 ya no se traban al pasar por juegos
+  con fondo animado; el marco del logro marcado ya no se corta en la Wii y la Xbox 360; "Volver al menú" ya no deja de contar
+  las horas del juego abierto.
+- **Por dentro**: NostalHub quedó más ordenado y con pruebas automáticas, y lo que falla sin verse queda anotado en
+  `cache\nostalhub.log` (sirve para encontrar problemas).
+
 ## Novedades de la versión 1.1.0
 
 - **Juegos de emulador**: PS2 con PCSX2 y GBA con RetroArch, en todas las consolas (sección 7).

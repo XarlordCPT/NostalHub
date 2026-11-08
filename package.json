@@ -1,7 +1,7 @@
 {
   "name": "nostalhub",
   "productName": "NostalHub",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "NostalHub: tus juegos con menús de consolas clásicas, para la segunda pantalla",
   "main": "main.js",
   "private": true,
