@@ -13,7 +13,9 @@
     "test": "node tests/correr.js",
     "test:logica": "node --disable-warning=ExperimentalWarning --test --test-reporter=spec \"tests/logica/*.test.js\"",
     "test:pantallas": "electron tests/pantallas.js",
-    "test:referencia": "electron tests/pantallas.js --referencia"
+    "test:referencia": "electron tests/pantallas.js --referencia",
+    "test:app-real": "node tests/app-real/humo.js",
+    "test:app-real:consolas": "node tests/app-real/consolas.js"
   },
   "dependencies": {
     "@fontsource/m-plus-rounded-1c": "^5.2.0",

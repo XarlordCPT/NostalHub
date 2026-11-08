@@ -28,6 +28,8 @@ Music), Grupo de Discord, ajustes y aviso de logros encima del juego.
   git push
   ```
   Si pide una versión nueva, sube `version` en `package.json` y agrega `git tag vX.Y.Z` + `git push --tags`.
+- **Excepción, la rama `limpieza`** (ver `PLAN-LIMPIEZA.md`): ahí Claude hace los commits y el `git push` (permiso de
+  Cristóbal), uno por paso y solo si `npm test` pasa entero. `main` lo sigue manejando él.
 - No borres archivos suyos. Si algo sobra, muévelo a `_to_delete/` (está en `.gitignore`) y díselo.
 
 ## Reglas que no se rompen
@@ -164,6 +166,10 @@ descripción), `cache\` (arte descargado, `spotify.log`, `discord.log`) y las cl
      píxel a píxel con `tests/capturas/referencia/` (fecha y azar fijos, animaciones congeladas, 3D y videos escondidos).
      Si un cambio de diseño es a propósito: revisa `tests/capturas/diferencias/` y guarda las nuevas con `npm run test:referencia`.
    - Solo algunas consolas: `npm test -- wii ps2` o `npm run test:pantallas -- wii`. Pantalla nueva → agrégala a `PANTALLAS`.
+0b. **Con la app real** (NostalHub cerrada; se abre en la pantalla de Cristóbal con sus datos, sin mostrar claves):
+   `npm run test:app-real` llama a 15 funciones de solo lectura del puente y compara la forma de lo que responden (para
+   cambios en `main.js` / `src/`; `-- --base` guarda la referencia). `npm run test:app-real:consolas` entra a las 8
+   consolas. **Dentro de una consola, Enter abre un juego de verdad**: solo se aprietan teclas en el selector.
 1. **Diseño rápido sin Electron**: abre `renderer/index.html` en un navegador (necesita `node_modules`); usa
    `renderer/mock.js` con juegos, amigos, Spotify y Discord falsos. Si agregas una función nueva, agrégala al mock.
    Sirve para capturas con Playwright a 1920×1080.
