@@ -44,6 +44,31 @@ Rama: `limpieza`. `main` no se toca hasta que Cristóbal la junte. Un commit por
 - [ ] Separar el `mount` de cada consola por pantallas (menú, ficha, logros, amigos, ajustes, música).
       Orden: PS2 → Switch → Xbox 360 → 3DS → PS3 → Wii → PS4 → Vita.
 
+### Cómo retomarla (notas para la próxima sesión)
+
+- **Estado**: `limpieza` (etapas 1 a 3) ya se juntó con `main` y salió como **v1.2.0**. Para seguir: `git switch limpieza` y
+  `git merge main` (main tiene arreglos posteriores). En `limpieza` Claude hace los commits y el push; `main` es de Cristóbal.
+- **Tamaño de cada `mount`** (líneas): PS2 726, Switch 995, Xbox 1031, 3DS 1046, PS3 1287, Wii 1305, PS4 1515, Vita 1651. Todo
+  vive en una sola función con variables compartidas: separar por pantallas = objetos o funciones por sección dentro del
+  mismo archivo (o archivos por sección), sin cambiar lo que se ve. Una consola por commit.
+- **Las 4 formas de moverse por listas hoy** (para el ayudante común):
+  1. Cuadrículas con títulos de sets (Wii `.wa-grid`, PS2 `.pa-grid`, Xbox `.xb-ach-grid`): `U.gridMove(celdas, i, dir)`.
+  2. Filas del mismo alto movidas con `translateY(-primera * alto)`: PS3 `setRow` (`ROW_H`), PS4 `setTrophy` (`T_ROW_H`),
+     Switch `paintGameRows` / `paintAchFocus` (112 px), Vita `card.onFocus` (`T_ROW`, usa el índice en la lista).
+  3. Listas con `scrollIntoView({ block: 'nearest' })`: 3DS `paintAppSel`.
+  4. Títulos que no se pueden marcar: `U.withSetHeads` + `U.skipSetHead`.
+- **Cómo probar cada paso**: `npm test -- <consola>` mientras se trabaja, `npm test` entero antes del commit, y al terminar la
+  consola `npm run test:app-real:consolas` (NostalHub cerrada; nunca Enter dentro de una consola). Si una pantalla cambia a
+  propósito: revisar `tests/capturas/diferencias/` y `npm run test:referencia -- <consola>`.
+- **Imágenes animadas** (`.webp`/`.gif` pesadas): `U.stillBackground(el, url)` (primer cuadro; sirve para fondos e `<img>`) y
+  `U.liveBackground(el, grupo, espera)` (solo el marcado se anima, después de `espera` ms y con `decode()`). Ya lo usan PS4
+  (fila, Biblioteca y fondo) y PS3 (íconos; el fondo grande usa `decode()`); la Wii tiene su propia versión (`tileImage`,
+  `setLiveTile`). Si otra consola se traba con fondos animados (Vita, Switch, 3DS, Xbox, PS2), aplicar lo mismo.
+- **Pendiente sin reproducir**: PS3 al bajar muy rápido, los íconos "se desarmaban" (montados unos sobre otros). Con datos de
+  prueba y con la app real (hasta 200 movimientos por segundo) siempre quedaron en su lugar; Cristóbal dice que ahora lo que
+  pasaba era el tirón del ícono animado de Minecraft (arreglado). Si vuelve: preguntar si se queda así y con qué (teclado,
+  control o rueda).
+
 ## Etapa 5: CSS y HTML
 
 - [ ] Menos `!important` (Vita 56, Switch 20, PS3 13): selectores más precisos.
