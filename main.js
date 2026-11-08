@@ -12,6 +12,7 @@ const media = require('./src/media');
 const { Launcher } = require('./src/launcher');
 const { PlayLog } = require('./src/playlog');
 const emulators = require('./src/emulators');
+const opciones = require('./src/opciones');
 const registro = require('./src/registro'); // cache\nostalhub.log: lo que falla sin verse
 const { RetroAchievements } = require('./src/retroachievements');
 const { DiscordPresence } = require('./src/discord-presence');
@@ -958,53 +959,17 @@ function menuSections() {
   ];
 }
 
-// Menú normal de Windows (bandeja), armado con las mismas opciones
+// Menú normal de Windows (bandeja) y el de cada consola, armados con las mismas opciones (src/opciones.js)
 function buildMenu() {
-  const template = [];
-  const sections = menuSections();
-  const quit = sections[0].items.find((it) => it.id === 'quit');
-  for (const sec of sections) {
-    if (template.length) template.push({ type: 'separator' });
-    for (const it of sec.items) {
-      if (it === quit) continue; // "Salir" va al final
-      if (it.type === 'action') template.push({ label: it.label, click: () => it.run() });
-      else if (it.type === 'toggle') template.push({ label: it.label, type: 'checkbox', checked: !!it.value, click: (m) => it.set(m.checked) });
-      else if (it.type === 'choice')
-        template.push({
-          label: it.label,
-          submenu: it.options.map((o) => ({ label: o.label, type: 'radio', checked: String(o.value) === String(it.value), click: () => it.set(o.value) })),
-        });
-    }
-  }
-  template.push({ type: 'separator' }, { label: 'Salir', click: () => app.quit() });
-  return Menu.buildFromTemplate(template);
+  return Menu.buildFromTemplate(opciones.plantillaBandeja(menuSections(), () => app.quit()));
 }
-
-// Versión para la interfaz: solo datos (sin funciones)
 function menuModel() {
-  return menuSections().map((sec) => ({
-    id: sec.id,
-    title: sec.title,
-    short: sec.short,
-    items: sec.items
-      .filter((it) => !it.trayOnly)
-      .map(({ run, set, trayOnly, ...it }) => it),
-  }));
+  return opciones.modelo(menuSections());
 }
-
 ipcMain.handle('menu:model', () => menuModel());
 ipcMain.handle('menu:run', async (_e, id, value) => {
-  const it = menuSections()
-    .flatMap((s) => s.items)
-    .find((x) => x.id === id);
-  if (!it) return menuModel();
   try {
-    if (it.type === 'action') await it.run();
-    else if (it.type === 'toggle') it.set(value === undefined ? !it.value : !!value);
-    else if (it.type === 'choice') {
-      const opt = it.options.find((o) => String(o.value) === String(value));
-      if (opt) it.set(opt.value);
-    }
+    await opciones.ejecutar(menuSections(), id, value);
   } catch (e) {
     send('toast', `No se pudo: ${e.message}`);
   }
