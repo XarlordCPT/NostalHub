@@ -743,13 +743,18 @@ void main(){
       shownGame = g;
       const pic = $('.p3-pic1');
       if (g.hero && g.heroIsReal) {
+        // decode(): la imagen (también una animada pesada) se prepara aparte antes de mostrarse; con onload se
+        // decodificaba al dibujarla y la pantalla se trababa
         const img = new Image();
-        img.onload = () => {
-          if (shownGame !== g) return;
-          pic.style.backgroundImage = `url("${g.hero}")`;
-          pic.classList.add('on');
-        };
         img.src = g.hero;
+        img
+          .decode()
+          .then(() => {
+            if (shownGame !== g) return;
+            pic.style.backgroundImage = `url("${g.hero}")`;
+            pic.classList.add('on');
+          })
+          .catch(() => {});
       }
       if (g.music && ss().music !== false) {
         const a = new Audio(g.music);

@@ -902,16 +902,33 @@
       if (el.dataset.live === url && !el.classList.contains('nh-live')) el.style.backgroundImage = `url("${still || url}")`;
     });
   }
+  // La animación arranca solo si el elemento sigue marcado después de `espera` ms (pasar rápido con las flechas no carga
+  // nada pesado), y se decodifica aparte (img.decode) antes de mostrarse: si no, la pantalla se trababa al pasar.
   const liveEls = new Map(); // grupo → elemento animado ahora
-  function liveBackground(el, group = 'general') {
+  const liveTimers = new Map(); // grupo → espera en curso
+  function liveBackground(el, group = 'general', espera = 450) {
     const prev = liveEls.get(group);
     if (prev === el) return;
+    clearTimeout(liveTimers.get(group));
     if (prev && prev.dataset.live) stillBackground(prev, prev.dataset.live);
     liveEls.set(group, el || null);
-    if (el && el.dataset.live) {
-      el.classList.add('nh-live');
-      el.style.backgroundImage = `url("${el.dataset.live}")`;
-    }
+    if (!el || !el.dataset.live) return;
+    const url = el.dataset.live;
+    liveTimers.set(
+      group,
+      setTimeout(() => {
+        const img = new Image();
+        img.src = url;
+        img
+          .decode()
+          .then(() => {
+            if (liveEls.get(group) !== el || el.dataset.live !== url) return;
+            el.classList.add('nh-live');
+            el.style.backgroundImage = `url("${url}")`;
+          })
+          .catch(() => {});
+      }, espera)
+    );
   }
 
   window.NostalHubUtil = {

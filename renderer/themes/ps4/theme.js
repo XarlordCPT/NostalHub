@@ -260,15 +260,13 @@
 
     // Si el arte es animado: primero su cuadro fijo, y se anima si te quedas un momento en ese juego (moverse rápido por
     // juegos con fondo animado trababa la pantalla, como pasaba en la Wii)
-    let artLiveTimer = 0;
     function setArt(url, strong = false) {
       root.classList.toggle('art-strong', !!url && strong);
       if (url === artUrl) return;
       artUrl = url;
       const next = artImgs[1 - artFront];
-      clearTimeout(artLiveTimer);
       U.stillBackground(next, url);
-      if (U.isAnimatedUrl(url)) artLiveTimer = setTimeout(() => artUrl === url && U.liveBackground(next, 'ps4-arte'), 700);
+      U.liveBackground(U.isAnimatedUrl(url) ? next : null, 'ps4-arte', 700); // se anima si te quedas 0,7 s en el juego
       next.classList.toggle('on', !!url);
       artImgs[artFront].classList.remove('on');
       artFront = 1 - artFront;
