@@ -2,3 +2,5 @@ node_modules/
 dist/
 *.log
 _to_delete/
+# Capturas de las pruebas de pantallas (se generan en cada PC)
+tests/capturas/

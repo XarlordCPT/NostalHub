@@ -9,7 +9,11 @@
     "start": "electron .",
     "dev": "electron . --dev",
     "dist": "electron-builder --win nsis --publish never",
-    "dist:portable": "electron-builder --win portable --publish never"
+    "dist:portable": "electron-builder --win portable --publish never",
+    "test": "node tests/correr.js",
+    "test:logica": "node --disable-warning=ExperimentalWarning --test --test-reporter=spec \"tests/logica/*.test.js\"",
+    "test:pantallas": "electron tests/pantallas.js",
+    "test:referencia": "electron tests/pantallas.js --referencia"
   },
   "dependencies": {
     "@fontsource/m-plus-rounded-1c": "^5.2.0",

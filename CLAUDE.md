@@ -148,6 +148,12 @@ descripción), `cache\` (arte descargado, `spotify.log`, `discord.log`) y las cl
 
 ## Cómo probar
 
+0. **`npm test` antes de cada commit** (unos 2 minutos, no abre nada en pantalla ni usa los datos reales):
+   - `tests/logica/*.test.js`: pruebas de `src/` y de `common.js` con `node --test` (archivos temporales, API falsas).
+   - `tests/pantallas.js`: entra a las 8 consolas con el mock, recorre sus pantallas con el teclado y compara cada captura
+     píxel a píxel con `tests/capturas/referencia/` (fecha y azar fijos, animaciones congeladas, 3D y videos escondidos).
+     Si un cambio de diseño es a propósito: revisa `tests/capturas/diferencias/` y guarda las nuevas con `npm run test:referencia`.
+   - Solo algunas consolas: `npm test -- wii ps2` o `npm run test:pantallas -- wii`. Pantalla nueva → agrégala a `PANTALLAS`.
 1. **Diseño rápido sin Electron**: abre `renderer/index.html` en un navegador (necesita `node_modules`); usa
    `renderer/mock.js` con juegos, amigos, Spotify y Discord falsos. Si agregas una función nueva, agrégala al mock.
    Sirve para capturas con Playwright a 1920×1080.

@@ -12,12 +12,12 @@ Rama: `limpieza`. `main` no se toca hasta que Cristóbal la junte. Un commit por
 
 ## Etapa 1: red de seguridad (sin cambiar el código de la app)
 
-- [ ] `tests/` con `npm test` (usa `node --test` y el Electron que ya está; nada que instalar).
-- [ ] Pruebas de lógica: `vdf`, `achievements` (parseKV, setsOf), `playlog` (sesiones y resumen), `emulators` (nombres, `retroarchOption`, `tailFile`),
+- [x] `tests/` con `npm test` (usa `node --test` y el Electron que ya está; nada que instalar).
+- [x] Pruebas de lógica (34): `vdf`, `achievements` (parseKV, setsOf), `playlog` (sesiones y resumen), `emulators` (nombres, `retroarchOption`, `tailFile`),
       `retroachievements` (subsets, avisos, totales), `launcher` (`.url` de Epic, Volver al menú), `config` y los ayudantes de `common.js`.
-- [ ] Prueba de pantallas: entra a las 8 consolas con el mock y recorre el menú, la ficha, los logros (con sets), los ajustes, los amigos y la música,
+- [x] Prueba de pantallas (44, unos 100 s): entra a las 8 consolas con el mock y recorre el menú, la ficha, los logros (con sets), los ajustes, los amigos y la música,
       con teclado. Falla si sale un error en la consola o si una pantalla no se abre.
-- [ ] Capturas de referencia: cada pantalla con la hora, el azar y las animaciones congelados. Cada cambio se compara píxel a píxel.
+- [x] Capturas de referencia: cada pantalla con la hora, el azar y las animaciones congelados. Cada cambio se compara píxel a píxel.
 
 ## Etapa 2: limpieza de bajo riesgo
 
@@ -54,3 +54,6 @@ Rama: `limpieza`. `main` no se toca hasta que Cristóbal la junte. Un commit por
 ## Avance
 
 (Se va anotando aquí qué se hizo en cada commit.)
+
+- **Etapa 1 lista.** `npm test`: 34 pruebas de lógica + 44 pantallas. Dos corridas seguidas sin cambios dan 0 diferencias, y un
+  error puesto a propósito en la Wii se detectó (pantalla que no abre + error en la consola + 88 535 píxeles distintos).
