@@ -12,6 +12,7 @@ const media = require('./src/media');
 const { Launcher } = require('./src/launcher');
 const { PlayLog } = require('./src/playlog');
 const emulators = require('./src/emulators');
+const registro = require('./src/registro'); // cache\nostalhub.log: lo que falla sin verse
 const { RetroAchievements } = require('./src/retroachievements');
 const { DiscordPresence } = require('./src/discord-presence');
 const { SteamWeb } = require('./src/steamweb');
@@ -41,7 +42,9 @@ function fixSavedPaths(file, oldDir, newDir) {
     };
     const data = walk(JSON.parse(fs.readFileSync(file, 'utf8')));
     fs.writeFileSync(file, JSON.stringify(data, null, 2), 'utf8');
-  } catch {}
+  } catch (e) {
+    registro.anotar('carpeta vieja', e); // corre antes de saber la carpeta de datos: sale por la consola
+  }
 }
 
 // Si existe la carpeta de datos con el nombre viejo y aún no la nueva, la traspasa
@@ -78,6 +81,8 @@ if (!app.requestSingleInstanceLock()) {
 }
 
 const DATA_DIR = app.getPath('userData');
+registro.iniciar(DATA_DIR);
+const { anotar } = registro;
 const MEDIA_DIR = path.join(DATA_DIR, 'media');
 const CUSTOM_DIR = path.join(DATA_DIR, 'personalizar');
 const CONSOLES_DIR = path.join(DATA_DIR, 'consolas');
@@ -140,9 +145,9 @@ const discord = new DiscordVoice({
 const DISCORD_PRESENCE_ID = '1556550846261493780'; // ID (público) de la aplicación "NostalHub" del portal de Discord
 const CONSOLE_NAMES = { wii: 'Wii', ps2: 'PS2', x360: 'Xbox 360', ps3: 'PS3', ps4: 'PS4', vita: 'PS Vita', switch: 'Switch', '3ds': '3DS' };
 const TRACK_EVERY_MS = 15000;
-const playLog = new PlayLog(path.join(DATA_DIR, 'estadisticas.db'), (m) => console.warn(m));
-const retro = new RetroAchievements({ dataDir: DATA_DIR, log: (m) => console.warn('[retro]', m) });
-const presence = new DiscordPresence({ clientId: DISCORD_PRESENCE_ID, log: (m) => console.warn(m) });
+const playLog = new PlayLog(path.join(DATA_DIR, 'estadisticas.db'), (m) => anotar('horas', m));
+const retro = new RetroAchievements({ dataDir: DATA_DIR, log: (m) => anotar('retro', m) });
+const presence = new DiscordPresence({ clientId: DISCORD_PRESENCE_ID, log: (m) => anotar('presencia', m) });
 let trackTimer = null;
 let tracking = false;
 
@@ -191,7 +196,7 @@ async function trackTick() {
     retroTick(game);
     presence.set(config.data.discordPresence && DISCORD_PRESENCE_ID ? presenceActivity(game) : null);
   } catch (e) {
-    console.warn('[horas]', e.message);
+    anotar('horas', e);
   }
   tracking = false;
 }
@@ -213,7 +218,7 @@ function startRetroLog(game) {
     fs.mkdirSync(path.dirname(file), { recursive: true });
     fs.rmSync(file, { force: true });
   } catch (e) {
-    console.warn('[retro]', e.message);
+    anotar('retro', e);
     return [];
   }
   let raGame = game.raId;
@@ -303,7 +308,7 @@ async function retroTick(game) {
           if (raId) await retro.achievements(retro.key(raId));
           sendSummary();
         } catch (e) {
-          console.warn('[retro]', e.message);
+          anotar('retro', e);
         }
       }, 20000);
     }
@@ -320,7 +325,7 @@ async function retroTick(game) {
       await retroCheckLink(game, emu, retroSession.before);
     }
   } catch (e) {
-    console.warn('[retro]', e.message);
+    anotar('retro', e);
   }
   retroBusy = false;
 }
@@ -348,7 +353,7 @@ async function refreshSteamUser(force = false) {
     localStats = steamUser ? await steam.getLocalAppStats(steamUser.accountId) : {};
     if (steamUser && steamWeb.key) webPlay = await steamWeb.playtimes(steamUser.steamId, force ? 0 : 10 * 60 * 1000);
   } catch (e) {
-    console.warn('No se pudo leer el usuario de Steam:', e.message);
+    anotar('steam', `no se pudo leer el usuario: ${e.message}`);
   }
   pushGamesSoon();
 }
@@ -386,17 +391,17 @@ const achWatcher = new AchievementWatcher({
     send('steam:achievement', a);
     if (steamWeb.bumpTotal(String(a.appId))) sendSummary(); // "20 de 42" al tiro, sin esperar
   },
-  log: (...m) => console.warn(...m),
+  log: (...m) => anotar('logros', m.join(' ')),
 });
 // Minecraft Java: los progresos salen en su log (src/minecraft.js). Solo se vigila si lo agregaste.
 // El ícono de cada progreso sale del .jar del juego (src/minecraft-icons.js); si no se encuentra, va la copa.
-const mcIcons = new MinecraftIcons({ gameDir: minecraft.GAME_DIR, cacheDir: path.join(DATA_DIR, 'cache', 'minecraft'), log: (...m) => console.warn(...m) });
+const mcIcons = new MinecraftIcons({ gameDir: minecraft.GAME_DIR, cacheDir: path.join(DATA_DIR, 'cache', 'minecraft'), log: (...m) => anotar('minecraft', m.join(' ')) });
 const mcWatcher = new minecraft.MinecraftWatcher({
   onUnlock: async (a) => {
     const icon = await mcIcons.iconFor(a.name, a.version).catch(() => null);
     showAchievement({ ...a, icon: icon ? fileUrl(icon) : null });
   },
-  log: (...m) => console.warn(...m),
+  log: (...m) => anotar('minecraft', m.join(' ')),
 });
 function syncMinecraftWatcher() {
   if (config.games.some((g) => g.type === 'minecraft' && !g.hidden)) {
@@ -763,7 +768,7 @@ async function importSteamGames() {
       }
     }
   } catch (e) {
-    console.warn('No se pudieron leer los accesos directos de Steam:', e.message);
+    anotar('steam', `no se pudieron leer los accesos directos: ${e.message}`);
   }
 
   if (addedNames.length || changed || installChanged) config.save();
@@ -897,7 +902,9 @@ async function watchSteamLibrary() {
   for (const dir of apps) {
     try {
       steamWatchers.push(fs.watch(dir, (_ev, file) => file && /^appmanifest_\d+\.acf$/i.test(file) && later()));
-    } catch {}
+    } catch (e) {
+      anotar('steam', `no se puede vigilar ${dir} (los juegos nuevos no aparecerán solos): ${e.message}`);
+    }
   }
   if (shortcuts) {
     fs.watchFile(shortcuts, { interval: 4000 }, later);
@@ -2004,7 +2011,9 @@ app.whenReady().then(async () => {
   // Atajo escondido para probar los logros sobre el juego
   try {
     globalShortcut.register('CommandOrControl+Alt+Shift+L', testAchievement);
-  } catch {}
+  } catch (e) {
+    anotar('atajo', e);
+  }
   config.load();
   fs.mkdirSync(MEDIA_DIR, { recursive: true });
   ensureCustomFolders();
@@ -2037,7 +2046,9 @@ app.whenReady().then(async () => {
   // Si cambias algo en la carpeta de personalización, se actualiza solo.
   try {
     fs.watch(CUSTOM_DIR, { recursive: true }, pushGamesSoon);
-  } catch {}
+  } catch (e) {
+    anotar('personalizar', `no se puede vigilar la carpeta (los cambios no se verán solos): ${e.message}`);
+  }
 
   // Íconos y fondos de consolas
   fs.mkdirSync(CONSOLES_DIR, { recursive: true });
@@ -2047,7 +2058,9 @@ app.whenReady().then(async () => {
       clearTimeout(consolesTimer);
       consolesTimer = setTimeout(() => send('consoles:updated'), 400);
     });
-  } catch {}
+  } catch (e) {
+    anotar('consolas', `no se puede vigilar la carpeta (los cambios no se verán solos): ${e.message}`);
+  }
 
   // Si editas config.json a mano con la app abierta, se recarga al guardar.
   fs.watchFile(config.file, { interval: 1500 }, (cur) => {

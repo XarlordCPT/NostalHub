@@ -445,7 +445,9 @@ class Spotify {
     } else {
       try {
         this.ensureKeyProc().stdin.write(`${VK[cmd]}\n`);
-      } catch {}
+      } catch (e) {
+        this.log(`no se pudo mandar ${cmd} a la música: ${e.message}`);
+      }
     }
     // Refresca rápido para que la interfaz responda al tiro
     setTimeout(() => this.poll(), 400);

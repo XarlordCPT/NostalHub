@@ -138,7 +138,9 @@ class AchievementWatcher {
         const got = m && unlockedOf(path.join(this.dir, f));
         if (got) this.snap.set(m[2], new Set(got.keys()));
       }
-    } catch {}
+    } catch (e) {
+      this.log('logros: no se pudo leer lo que ya tenías (podrían avisarse logros viejos)', e.message);
+    }
     try {
       this.watcher = fs.watch(this.dir, (_ev, file) => {
         const m = file && /^UserGameStats_(\d+)_(\d+)\.bin$/i.exec(String(file));
