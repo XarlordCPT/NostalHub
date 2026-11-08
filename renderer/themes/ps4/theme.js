@@ -258,12 +258,17 @@
       return [{ id: 'themes', title: 'Temas', items }, ...(model || []).filter((s) => s.id !== 'themes')];
     }
 
+    // Si el arte es animado: primero su cuadro fijo, y se anima si te quedas un momento en ese juego (moverse rápido por
+    // juegos con fondo animado trababa la pantalla, como pasaba en la Wii)
+    let artLiveTimer = 0;
     function setArt(url, strong = false) {
       root.classList.toggle('art-strong', !!url && strong);
       if (url === artUrl) return;
       artUrl = url;
       const next = artImgs[1 - artFront];
-      next.style.backgroundImage = url ? `url("${url}")` : '';
+      clearTimeout(artLiveTimer);
+      U.stillBackground(next, url);
+      if (U.isAnimatedUrl(url)) artLiveTimer = setTimeout(() => artUrl === url && U.liveBackground(next, 'ps4-arte'), 700);
       next.classList.toggle('on', !!url);
       artImgs[artFront].classList.remove('on');
       artFront = 1 - artFront;
@@ -333,7 +338,7 @@
       const el = document.createElement('div');
       el.className = 'p4-tart';
       const bg = g.tileIsCustom ? g.tile : g.hero || g.tile || g.cover;
-      if (bg) el.style.backgroundImage = `url("${bg}")`;
+      if (bg) U.stillBackground(el, bg); // si es animada, su primer cuadro: solo se anima el juego marcado
       if (!g.tileIsCustom) {
         if (g.logo) {
           const img = document.createElement('img');
@@ -404,6 +409,7 @@
         t.classList.toggle('sel', sel);
         t.classList.toggle('gone', x < -S);
       });
+      U.liveBackground($('.p4-tile.sel .p4-tart'), 'ps4-fila'); // solo el marcado se anima
       const it = rowItems[rowSel];
       const label = $('.p4-row-label');
       label.style.left = `${selX + L + 34}px`;
@@ -681,6 +687,7 @@
     function setLib(i, scroll = true) {
       libSel = Math.max(0, Math.min(libList.length - 1, i));
       $$('.p4l-cell').forEach((c) => c.classList.toggle('sel', libFocus === 'grid' && Number(c.dataset.i) === libSel));
+      U.liveBackground(libFocus === 'grid' ? $(`.p4l-cell[data-i="${libSel}"] .p4-tart`) : null, 'ps4-biblioteca'); // solo el marcado se anima
       $$('.p4l-it').forEach((b) => b.classList.toggle('sel', libFocus === 'side' && Number(b.dataset.s) === libSideSel));
       if (scroll) {
         const row = Math.floor(libSel / LIB_COLS);

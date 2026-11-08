@@ -862,7 +862,62 @@
     step();
   }
 
+  // ---------- Imágenes animadas (.webp, .gif) ----------
+  // Varias animaciones pesadas a la vez traban la pantalla (y mientras están ocultas siguen "avanzando": al mostrarlas
+  // hay que decodificar cientos de cuadros). Por eso, como en la Wii: el primer cuadro fijo en todos lados y la animación
+  // solo en lo marcado. stillBackground(el, url) pone la imagen de fondo (fija si es animada); liveBackground(el, grupo)
+  // anima ese elemento y deja fijo el que estaba animado antes en el mismo grupo (null: ninguno animado).
+  const isAnimatedUrl = (url) => /\.(webp|gif)(\?|#|$)/i.test(String(url || ''));
+  const firstFrames = new Map(); // url → Promise<url del primer cuadro | null>
+  function firstFrameUrl(src) {
+    if (!firstFrames.has(src)) {
+      firstFrames.set(
+        src,
+        (async () => {
+          const img = new Image();
+          img.src = src;
+          await img.decode();
+          const c = document.createElement('canvas');
+          c.width = Math.min(640, img.naturalWidth);
+          c.height = Math.round((c.width * img.naturalHeight) / img.naturalWidth);
+          c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+          img.src = '';
+          const blob = await new Promise((r) => c.toBlob(r, 'image/png'));
+          return blob ? URL.createObjectURL(blob) : null;
+        })().catch(() => null)
+      );
+    }
+    return firstFrames.get(src);
+  }
+  function stillBackground(el, url) {
+    if (!el) return;
+    el.classList.remove('nh-live');
+    el.dataset.live = isAnimatedUrl(url) ? url : '';
+    if (!el.dataset.live) {
+      el.style.backgroundImage = url ? `url("${url}")` : '';
+      return;
+    }
+    el.style.backgroundImage = '';
+    firstFrameUrl(url).then((still) => {
+      if (el.dataset.live === url && !el.classList.contains('nh-live')) el.style.backgroundImage = `url("${still || url}")`;
+    });
+  }
+  const liveEls = new Map(); // grupo → elemento animado ahora
+  function liveBackground(el, group = 'general') {
+    const prev = liveEls.get(group);
+    if (prev === el) return;
+    if (prev && prev.dataset.live) stillBackground(prev, prev.dataset.live);
+    liveEls.set(group, el || null);
+    if (el && el.dataset.live) {
+      el.classList.add('nh-live');
+      el.style.backgroundImage = `url("${el.dataset.live}")`;
+    }
+  }
+
   window.NostalHubUtil = {
+    isAnimatedUrl,
+    stillBackground,
+    liveBackground,
     wait,
     pad2,
     fadeAudio,
