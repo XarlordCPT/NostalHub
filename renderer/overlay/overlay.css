@@ -127,3 +127,6 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: transparent;
 .n3n .t2 { font-size: 28px; font-weight: 700; color: #4a4a4a; margin-top: 2px; }
 .n3n.in { opacity: 1; transform: translate(-50%, 0); }
 .n3n.out { transform: translate(-50%, -30px); }
+
+/* Logros de RetroAchievements (pixel art de 64×64): agrandados sin suavizar */
+img[src*="media.retroachievements.org"] { image-rendering: pixelated; }

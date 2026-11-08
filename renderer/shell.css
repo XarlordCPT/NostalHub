@@ -697,3 +697,8 @@ body[data-console='3ds'] .wb-close:hover { background: #fde8e8; color: #e2402a; 
 /* El platino es claro: en la esquina de un ícono lleva un círculo oscuro detrás para que se vea sobre cualquier imagen */
 .nh-done-platinum.on-icon svg { width: 76%; height: 76%; margin: 12%; } /* (el % del margen es del círculo; el de padding sería del juego) */
 .nh-done-platinum.on-icon { border-radius: 50%; background: radial-gradient(circle at 50% 40%, rgba(40, 52, 74, 0.92), rgba(12, 18, 30, 0.92)); box-shadow: 0 0 0 2px rgba(220, 232, 248, 0.85), 0 3px 8px rgba(0, 0, 0, 0.45); }
+
+/* Logros de RetroAchievements: sus íconos son pixel art de 64×64. Al agrandarlos sin suavizar se ven nítidos en vez de
+   borrosos (en todas las consolas, sean <img> o un fondo puesto con style="background-image: url(…)") */
+img[src*="media.retroachievements.org"],
+[style*="media.retroachievements.org"] { image-rendering: pixelated; }
