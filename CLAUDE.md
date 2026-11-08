@@ -111,7 +111,7 @@ renderer/themes/<id>/   theme.js + theme.css de cada consola
 - `ctx = { api, stage, stageRect, toast, openSelector, sound, duckMusic, soundSettings, hasAsset }`.
   `api` es `window.nostalhub` (o el mock).
 - Escenario fijo de **1920×1080** (lo escala `shell.js`). La 3DS dibuja sus pantallas nativas de 400×240 y
-  320×240 escaladas con `K = 1.75`.
+  320×240 escaladas 1,75 veces (700×420 y 560×420) en su CSS.
 - Todo el CSS con prefijo `.theme-<id>`. Si un overlay usa `display:grid/flex`, agrega
   `.theme-<id> [hidden] { display:none !important }`. Reset de botones con `:where(.theme-<id>) button`.
 - Las opciones de Ajustes se escriben **una sola vez** en `menuSections()` de `main.js`; cada tema las pinta con

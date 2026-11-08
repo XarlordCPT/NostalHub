@@ -240,7 +240,6 @@
 `;
 
   const PANEL_SHIFT = 1474;
-  const ACH_COLS = 10;
   const wait = (ms) => new Promise((r) => setTimeout(r, ms));
   const pad2 = (n) => String(n).padStart(2, '0');
   const rtf = new Intl.RelativeTimeFormat('es', { numeric: 'auto' });

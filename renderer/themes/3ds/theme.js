@@ -7,7 +7,7 @@
    - Los botones de la carcasa funcionan: cruceta, A / B, HOME y el botón de encendido.
    Las pantallas se diseñan en su tamaño real y se agrandan (K). Se registra en window.Themes['3ds']. */
 (() => {
-  const K = 1.75; // 400×240 → 700×420 y 320×240 → 560×420
+  // Pantallas nativas de 400×240 y 320×240, dibujadas 1,75 veces más grandes (700×420 y 560×420) en el CSS
   const wait = (ms) => new Promise((r) => setTimeout(r, ms));
   const pad2 = (n) => String(n).padStart(2, '0');
   const store = {

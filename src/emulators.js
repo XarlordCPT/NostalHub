@@ -33,7 +33,6 @@ function retroarchOption(exe, name) {
     if (!m || !m[1] || m[1] === 'default') return null;
     if (m[1].startsWith(':')) return path.join(path.dirname(exe), m[1].slice(1));
     return m[1].startsWith('~') ? path.join(os.homedir(), m[1].slice(1)) : m[1]; // RetroArch guarda tu carpeta personal como ~
-    return null;
   }
   return null;
 }

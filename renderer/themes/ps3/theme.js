@@ -71,7 +71,6 @@
   const SMALL = 0.66; // tamaño de los que no están elegidos
   const GAME = { w: 320, h: 176 }; // ICON0
   const NORMAL = { w: 112, h: 112 };
-  const SUB_X = 560; // listas anidadas (Ajustes, Trofeos…)
   const pad2 = (n) => String(n).padStart(2, '0');
   const wait = (ms) => new Promise((r) => setTimeout(r, ms));
   const store = {
