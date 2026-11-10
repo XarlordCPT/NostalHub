@@ -744,6 +744,7 @@ void main(){
       detailTimer = setTimeout(() => showDetail(g), 900);
     }
     function showDetail(g) {
+      if (closed) return;
       shownGame = g;
       const pic = $('.p3-pic1');
       if (g.hero && g.heroIsReal) {
@@ -760,25 +761,39 @@ void main(){
           })
           .catch(() => {});
       }
-      if (g.music && ss().music !== false) {
+      if (g.music && ss().music !== false && !closed) {
+        stopSnd(true);
         const a = new Audio(g.music);
         a.loop = true;
         a.volume = 0;
         snd = a;
-        a.play().catch(() => {});
+        allSnd.add(a);
+        // si mientras cargaba ya te fuiste (o de la consola), se apaga apenas empieza a sonar
+        a.play()
+          .then(() => (closed || snd !== a) && a.pause())
+          .catch(() => {});
         ctx.duckMusic && ctx.duckMusic(true);
         fadeAudio(a, Math.min(1, (ss().musicVolume || 0.35) * 1.6), 1200);
       }
     }
+    // Apaga la música del juego (de a poco, o al tiro). allSnd guarda también las que se están apagando: al salir de la
+    // consola se cortan todas, así ninguna queda sonando en el selector
+    const allSnd = new Set();
+    let closed = false;
+    function stopSnd(now) {
+      const a = snd;
+      snd = null;
+      if (!a) return;
+      const off = () => (a.pause(), allSnd.delete(a));
+      if (now) off();
+      else fadeAudio(a, 0, 450, off);
+      ctx.duckMusic && ctx.duckMusic(false);
+    }
     function hideDetail() {
       shownGame = null;
-      $('.p3-pic1').classList.remove('on');
-      if (snd) {
-        const a = snd;
-        snd = null;
-        fadeAudio(a, 0, 450, () => a.pause());
-        ctx.duckMusic && ctx.duckMusic(false);
-      }
+      const pic = $('.p3-pic1');
+      if (pic) pic.classList.remove('on');
+      stopSnd(false);
     }
 
     // =====================================================================
@@ -1631,8 +1646,10 @@ void main(){
         clearInterval(playTimer);
         clearTimeout(detailTimer);
         clearTimeout(bootTimer);
-        if (snd) snd.pause();
+        closed = true;
         snd = null;
+        allSnd.forEach((a) => a.pause());
+        allSnd.clear();
         ctx.duckMusic && ctx.duckMusic(false);
         nowPlaying.dispose();
         window.removeEventListener('keydown', onKey);

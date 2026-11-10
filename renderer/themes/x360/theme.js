@@ -938,6 +938,8 @@
     function setGuideSel(i) {
       gSel = Math.max(0, i);
       $$('.xg-item').forEach((r) => r.classList.toggle('sel', Number(r.dataset.i) === gSel));
+      const selRow = $('.xg-item.sel');
+      if (selRow) selRow.scrollIntoView({ block: 'nearest' }); // si la sección no cabe, la lista se desplaza
       const it = gModel[gTab] && gModel[gTab].items[gSel];
       $('.xg-desc').textContent = (it && it.desc) || '';
     }

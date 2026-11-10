@@ -96,6 +96,12 @@ src/juegos-emulador.js  Juegos de emulador (sync/addEmulatorGames) y RetroAchiev
                         retroTick, linkRetroGames)
 src/biblioteca.js       Importar Steam, agregar juego a mano, vigilar la biblioteca de Steam y descargar el arte
 src/opciones.js         Convierte las opciones de menuSections(): menú de la bandeja, modelo para las consolas y ejecutar
+src/riot.js             Juegos de Riot (PRODUCTS: valorant, league_of_legends, teamfighttactics): Riot Client y juegos
+                        instalados (C:\ProgramData\Riot Games). Tipo 'riot' en el launcher: abre `RiotClientServices.exe
+                        --launch-product=<id> --launch-patchline=live` y vigila `open` (sigue jugando) y `playing` (cuentan
+                        las horas: en LoL solo `League of Legends.exe`, la partida). Se agregan con addRiotGames (biblioteca).
+                        "Jugar" directo: launchProduct (POST /product-launcher/v1/products/<id>/patchlines/live por la
+                        conexión local del Riot Client; puerto y contraseña del lockfile, nunca se anota)
 renderer/index.html     Carga todo (un <script> y un <link> por tema)
 renderer/shell.js/.css  Selector de consolas, escalado del escenario, sonidos, barra de ventana, F3
 renderer/consoles.js    Lista de consolas (id, empresa, nombre, año, colores)
@@ -222,6 +228,11 @@ descripción), `cache\` (arte descargado, `spotify.log`, `discord.log`) y las cl
   no traen grupo) → `achWatcher.setsOf`. En RetroAchievements los subsets son otros juegos ("<juego> [Subset - Nombre]", a veces
   "A | B [Subset - …]") y se buscan por nombre en la lista de la consola (`retro.subsets`; `parentOf` lleva un subset a su
   juego). Decisión de Cristóbal: el 100 % / platino es de **todo** el juego (todos los sets); los sets solo ordenan la lista.
+- Riot: sus accesos directos (`--launch-product=…`) solo abren el Riot Client en la página del juego; hay que apretar Jugar.
+  La ruta del botón Jugar no está en su lista pública (`/swagger/v3/openapi.json`) pero existe: un GET responde 405 y un POST
+  abre el juego (probado con TFT). **En las pruebas, siempre `t.mock.method(riot, 'launchProduct', …)`**: con el Riot Client
+  abierto (casi siempre lo está), una prueba sin eso abriría el juego de verdad. En Git Bash, rutas que empiezan con `/` como
+  argumento se convierten en rutas de Windows: `MSYS_NO_PATHCONV=1`.
 - Battle.net no tiene API pública de amigos: no se puede. YouTube Music tampoco tiene API oficial: se queda con SMTC.
 - Para probar la app con otra carpeta de datos **no sirve** cambiar `APPDATA`: Electron pide la carpeta a Windows
   directo y usa el `config.json` real de Cristóbal (solo `src/minecraft.js` sí lee `APPDATA`).

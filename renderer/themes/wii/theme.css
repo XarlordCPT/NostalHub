@@ -1084,3 +1084,59 @@ body.playing .theme-wii .ch-media .hero { animation-play-state: paused; }
 .theme-wii #menu.moving .tile.game:not(.wmv) { opacity: 0.75; }
 .theme-wii .tile.game.wmv { opacity: 1; z-index: 3; transform: scale(1.1) rotate(-1.5deg); border-color: var(--cyan); box-shadow: 0 0 0 6px var(--cyan), 0 22px 40px rgba(0, 0, 0, 0.3); animation: wo-wiggle 0.9s ease-in-out infinite alternate; }
 @keyframes wo-wiggle { from { transform: scale(1.1) rotate(-1.5deg); } to { transform: scale(1.1) rotate(1.5deg); } }
+
+/* ============ Buscar un juego y Música (botones chicos de la barra) ============ */
+.theme-wii #btn-search { left: 452px; right: auto; }
+.theme-wii #btn-music { right: 452px; }
+.theme-wii #btn-search svg { stroke: #a3a3a3; }
+.theme-wii #btn-search:hover svg,
+.theme-wii #btn-search.wkf svg { stroke: #6fb9d6; }
+.theme-wii .wm-dot { position: absolute; right: 2px; top: 2px; width: 26px; height: 26px; border-radius: 50%; background: var(--cyan); box-shadow: 0 0 0 4px #fff; animation: wii-mu-pulse 1.6s ease-in-out infinite alternate; }
+.theme-wii .wm-dot[hidden] { display: none; }
+@keyframes wii-mu-pulse { from { transform: scale(0.8); } to { transform: scale(1.05); } }
+.theme-wii #wii-bus,
+.theme-wii #wii-mu { position: absolute; inset: 0; z-index: 30; }
+.theme-wii #wii-bus[hidden],
+.theme-wii #wii-mu[hidden] { display: none; }
+.theme-wii #wii-bus.leave .wa-box,
+.theme-wii #wii-mu.leave .wa-box { opacity: 0; transition: opacity 0.2s ease; }
+/* Buscar */
+.theme-wii .wb-field { margin-top: 22px; height: 92px; flex: none; display: flex; align-items: center; gap: 18px; padding: 0 34px; border-radius: 46px; border: 4px solid #5cc6ec; background: #fff; box-shadow: 0 0 0 7px rgba(92, 198, 236, 0.22), inset 0 3px 6px rgba(0, 0, 0, 0.06); color: #8fb9c9; cursor: text; }
+.theme-wii .wb-field svg { width: 46px; height: 46px; flex: none; }
+.theme-wii .wb-input { flex: 1; min-width: 0; border: 0; outline: 0; background: none; font: inherit; font-size: 38px; font-weight: 700; color: #4b4b4b; }
+.theme-wii .wb-input::placeholder { color: #b5b5b5; font-weight: 600; }
+.theme-wii .wb-list { margin-top: 20px; }
+.theme-wii .wb-row { height: 108px; }
+.theme-wii .wb-pic { flex: none; width: 150px; height: 84px; border-radius: 16px; display: grid; place-items: center; background: #cfeefb center / cover no-repeat; color: #3aa9d3; box-shadow: 0 0 0 3px #fff, 0 2px 6px rgba(0, 0, 0, 0.15); }
+.theme-wii .wb-pic b { font-size: 40px; font-weight: 800; }
+.theme-wii .wb-pic.art b { display: none; }
+.theme-wii .wb-msg { inset: 230px 60px 60px; }
+/* Música */
+.theme-wii .wm-body { flex: 1; min-height: 0; display: flex; align-items: center; gap: 56px; padding: 0 20px; }
+.theme-wii .wm-cover { flex: none; width: 430px; height: 430px; border-radius: 40px; display: grid; place-items: center; background: #cfeefb center / cover no-repeat; color: #3aa9d3; box-shadow: 0 0 0 6px #fff, 0 0 0 10px #5cc6ec, 0 12px 26px rgba(0, 0, 0, 0.16); }
+.theme-wii .wm-cover .np-ic { width: 180px; height: 180px; }
+.theme-wii .wm-info { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.theme-wii .wm-st { font-size: 28px; font-weight: 700; color: #9a9a9a; }
+.theme-wii .wm-st.on { color: #3aa9d3; }
+.theme-wii .wm-t { margin-top: 2px; font-size: 54px; font-weight: 800; color: #4b4b4b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.theme-wii .wm-a { font-size: 34px; font-weight: 700; color: #8a8a8a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-height: 1.2em; }
+.theme-wii .wm-prog { margin-top: 16px; font-size: 26px; font-weight: 700; color: #3aa9d3; }
+.theme-wii .wm-prog .mp-bar { height: 12px; border-radius: 6px; background: #dfe7eb; }
+.theme-wii .wm-row { margin-top: 22px; display: flex; align-items: center; gap: 22px; flex-wrap: wrap; }
+.theme-wii .wm-row + .wm-row { margin-top: 16px; }
+.theme-wii .wm-btn { width: 104px; height: 104px; border-radius: 50%; display: grid; place-items: center; border: 4px solid #d2d2d2; background: radial-gradient(circle at 50% 35%, #ffffff 0%, #f1f1f1 60%, #dedede 100%); color: #8f8f8f; transition: transform 0.15s var(--ease), border-color 0.15s, box-shadow 0.15s; }
+.theme-wii .wm-btn .np-ic { width: 46px; height: 46px; }
+.theme-wii .wm-btn.big { width: 128px; height: 128px; color: #3aa9d3; }
+.theme-wii .wm-btn.big .np-ic { width: 58px; height: 58px; }
+.theme-wii .wm-btn.sm { width: 80px; height: 80px; }
+.theme-wii .wm-btn.sm .np-ic { width: 36px; height: 36px; }
+.theme-wii .wm-btn.on { color: #fff; border-color: #1d9fd6; background: linear-gradient(to bottom, #7fd6f6 0%, #45bdea 45%, #22a6dc 46%, #1b90c8 100%); }
+.theme-wii .wm-pill { height: 84px; padding: 0 38px; border-radius: 42px; border: 4px solid #5cc6ec; background: linear-gradient(to bottom, #ffffff 0%, #ffffff 30%, #eef1f3 31%, #e2e7ea 100%); font: inherit; font-size: 30px; font-weight: 700; color: #4b4b4b; transition: transform 0.15s var(--ease), box-shadow 0.15s; }
+.theme-wii .wm-btn.kfocus,
+.theme-wii .wm-btn:hover,
+.theme-wii .wm-pill.kfocus,
+.theme-wii .wm-pill:hover { transform: scale(1.07); border-color: var(--cyan); box-shadow: 0 0 0 7px var(--cyan-soft), 0 8px 18px rgba(0, 0, 0, 0.12); }
+.theme-wii .wm-hint { margin-top: 10px; min-height: 34px; font-size: 26px; font-weight: 700; color: #8a8a8a; }
+.theme-wii .wm-next { margin-top: 4px; display: flex; gap: 14px; align-items: baseline; font-size: 28px; font-weight: 700; color: #6b6b6b; white-space: nowrap; overflow: hidden; }
+.theme-wii .wm-next small { font-size: 22px; color: #3aa9d3; text-transform: uppercase; letter-spacing: 1px; }
+.theme-wii .wm-next span { overflow: hidden; text-overflow: ellipsis; }

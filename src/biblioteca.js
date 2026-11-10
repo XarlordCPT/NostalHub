@@ -14,6 +14,7 @@ const media = require('./media');
 const emulators = require('./emulators');
 const { detectType } = require('./config');
 const { anotar } = require('./registro');
+const riot = require('./riot');
 
 let nh = null;
 
@@ -126,6 +127,31 @@ async function addGameFromFile() {
   nh.send('toast', `Se agregó ${name}`);
 }
 
+// Ajustes → Juegos → Agregar juegos de Riot: VALORANT, League of Legends y Teamfight Tactics que tengas instalados.
+// Se abren por el Riot Client (src/riot.js). Los que ya estaban no se repiten; si el Riot Client se movió, se actualiza.
+// riotDir: la carpeta de datos de Riot (para las pruebas; normalmente C:\ProgramData\Riot Games)
+function addRiotGames(riotDir) {
+  const client = riot.riotClient(riotDir);
+  if (!client) return nh.send('toast', 'No se encontró el Riot Client');
+  const found = riot.installedProducts(riotDir);
+  if (!found.length) return nh.send('toast', 'No hay juegos de Riot instalados');
+  let added = 0;
+  for (const p of found) {
+    const id = `riot-${p.id}`;
+    const g = nh.config.games.find((x) => x.id === id);
+    if (g) {
+      Object.assign(g, { target: client, uninstalled: undefined });
+      continue;
+    }
+    nh.config.games.push({ id, name: p.name, type: 'riot', product: p.id, patchline: 'live', target: client, args: [], hidden: false, media: {}, custom: {}, mediaCheckedAt: 0 });
+    added++;
+  }
+  nh.config.save();
+  nh.ensureCustomFolders();
+  nh.pushGamesSoon();
+  nh.send('toast', added ? `Se agregaron ${added} juego${added === 1 ? '' : 's'} de Riot` : 'Tus juegos de Riot ya estaban');
+}
+
 // Detecta solo los juegos que instalas (o agregas a Steam) mientras NostalHub está abierta
 let steamWatchers = [];
 let steamWatchTimer = null;
@@ -182,4 +208,4 @@ function registrar(contexto) {
   nh = contexto;
 }
 
-module.exports = { registrar, importSteamGames, splitArgs, addGameFromFile, watchSteamLibrary, refreshMedia };
+module.exports = { registrar, importSteamGames, splitArgs, addGameFromFile, addRiotGames, watchSteamLibrary, refreshMedia };

@@ -5,6 +5,7 @@ const path = require('path');
 const { spawn, execFile } = require('child_process');
 const { shell } = require('electron');
 const steam = require('./steam');
+const riot = require('./riot');
 
 const STEAM_START_TIMEOUT_MS = 3 * 60 * 1000; // si en 3 min no arranca, se asume que se canceló
 const LAUNCHER_START_TIMEOUT_MS = 10 * 60 * 1000; // en Minecraft eliges versión o mods; Epic puede estar actualizando
@@ -18,16 +19,16 @@ const STORE_APPS = /^(epicgameslauncher|steam|galaxyclient|battle\.net|eadesktop
 // (si llegaba en medio, la pantalla "Jugando" quedaba pegada)
 const MIN_PLAY_MS = 4000;
 
-// ¿Hay algún proceso abierto con uno de esos nombres (ej. "Minecraft.exe")?
-function isRunning(exeNames) {
+// Los programas abiertos ahora (en minúscula), o null si no se pudo saber
+function runningPrograms() {
   return new Promise((resolve) => {
     execFile('tasklist', ['/fo', 'csv', '/nh'], { windowsHide: true, maxBuffer: 8 * 1024 * 1024 }, (err, out) => {
-      if (err) return resolve(null); // no se pudo saber
-      const text = String(out).toLowerCase();
-      resolve(exeNames.some((name) => text.includes(`"${name.toLowerCase()}"`)));
+      if (err) return resolve(null);
+      resolve(new Set([...String(out).toLowerCase().matchAll(/^"([^"]+)"/gm)].map((m) => m[1])));
     });
   });
 }
+const anyOf = (abiertos, nombres) => nombres.some((n) => abiertos.has(n.toLowerCase()));
 
 class Launcher {
   constructor(onEnded) {
@@ -72,6 +73,23 @@ class Launcher {
         else if (fs.existsSync(t)) spawn(t, [], { cwd: path.dirname(t), detached: true, stdio: 'ignore' }).unref();
         else return { ok: false, error: 'No se encontró el launcher de Minecraft' };
         this.watchProcess(game, ['javaw.exe'], LAUNCHER_START_TIMEOUT_MS);
+        return { ok: true, tracking: true };
+      }
+
+      // Juegos de Riot: se abren por el Riot Client (src/riot.js) y se vigila el programa del juego
+      case 'riot': {
+        const p = riot.PRODUCTS[game.product];
+        if (!p) return { ok: false, error: 'Juego de Riot desconocido' };
+        if (!game.target || !fs.existsSync(game.target)) return { ok: false, error: 'No se encontró el Riot Client' };
+        const patchline = game.patchline || 'live';
+        this.watchProcess(game, p.open, LAUNCHER_START_TIMEOUT_MS, HANDOFF_MS, p.playing);
+        const session = this.session;
+        // Con el Riot Client abierto: "Jugar" directo. Si no: se abre en la página del juego y, apenas está listo, "Jugar"
+        // (si no se puede, por ejemplo porque hay que iniciar sesión, queda en esa página para que lo hagas tú)
+        if (!(await riot.launchProduct(game.product, patchline))) {
+          spawn(game.target, [`--launch-product=${game.product}`, `--launch-patchline=${patchline}`], { cwd: path.dirname(game.target), detached: true, stdio: 'ignore' }).unref();
+          riot.launchWhenReady(game.product, patchline, () => this.session === session && !session.open);
+        }
         return { ok: true, tracking: true };
       }
 
@@ -138,18 +156,22 @@ class Launcher {
 
   // Vigila programas por su nombre: cuando aparece uno y después no queda ninguno, el juego terminó.
   // Si no aparece en 3 minutos (o el tiempo que se pida) se deja de vigilar (queda el botón "Volver al menú").
-  watchProcess(game, exeNames, startTimeout = STEAM_START_TIMEOUT_MS, handoffMs = 0) {
+  // playNames: las horas cuentan solo mientras alguno de estos está abierto (League of Legends: la partida, no el
+  // cliente). Sin playNames, cuentan todo el rato que el juego está abierto.
+  watchProcess(game, exeNames, startTimeout = STEAM_START_TIMEOUT_MS, handoffMs = 0, playNames = null) {
     let seenRunning = false;
     let checking = false;
     let lastSeen = 0;
     const timer = setInterval(async () => {
       if (checking) return;
       checking = true;
-      const running = await isRunning(exeNames);
+      const abiertos = await runningPrograms();
       checking = false;
       if (!this.session || this.session.timer !== timer) return;
+      const running = abiertos ? anyOf(abiertos, exeNames) : null; // null: no se pudo saber
       if (running) {
-        seenRunning = this.session.seen = true;
+        seenRunning = this.session.open = true; // open: el juego ya se abrió (Riot deja de reintentar "Jugar")
+        this.session.seen = playNames ? anyOf(abiertos, playNames) : true;
         lastSeen = Date.now();
       } else if (running === false && seenRunning) {
         if (Date.now() - lastSeen >= handoffMs) this.end(game.id, 'exited');

@@ -8,7 +8,7 @@ function carpetaTemporal(t, antes) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'nostalhub-prueba-'));
   t.after(() => {
     if (antes) antes();
-    fs.rmSync(dir, { recursive: true, force: true });
+    fs.rmSync(dir, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 }); // Windows suelta los archivos un poco después
   });
   return dir;
 }

@@ -445,7 +445,7 @@ const { consoleAssets, consoleBackgroundsDir } = consolasArchivos;
 // ---------- Tu biblioteca: Steam, juegos agregados a mano y su arte (src/biblioteca.js) ----------
 const biblioteca = require('./src/biblioteca');
 biblioteca.registrar({ config, steamUser: () => steamUser, mediaDir: MEDIA_DIR, ventana: () => win, ensureCustomFolders, pushGamesSoon, send });
-const { importSteamGames, addGameFromFile, watchSteamLibrary, refreshMedia } = biblioteca;
+const { importSteamGames, addGameFromFile, addRiotGames, watchSteamLibrary, refreshMedia } = biblioteca;
 
 // ---------- Pantallas y ventana ----------
 
@@ -711,6 +711,13 @@ function menuSections() {
           label: 'Agregar juego o programa',
           desc: 'Elige el .exe o el acceso directo de un juego que no es de Steam.',
           run: () => addGameFromFile(),
+        },
+        {
+          id: 'add-riot',
+          type: 'action',
+          label: 'Agregar juegos de Riot',
+          desc: 'VALORANT, League of Legends y Teamfight Tactics. Se abren por el Riot Client y vuelven solos al menú.',
+          run: () => addRiotGames(),
         },
         {
           id: 'add-minecraft',

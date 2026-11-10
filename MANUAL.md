@@ -18,6 +18,14 @@ Para abrirla: pega esa ruta en la barra del Explorador de Windows, o usa **Ajust
 
 ---
 
+## Novedades desde la 1.2.0 (próxima versión)
+
+- **Juegos de Riot** (VALORANT, League of Legends y Teamfight Tactics): se agregan solos y entran directo, sin apretar
+  Jugar (sección 7).
+- **Wii: buscar un juego y ver la música** con los botones nuevos de la lupa y la nota (sección 9).
+- **Arreglos**: la descripción de la Guía de la Xbox 360 ya no queda tapada, y la música de un juego en la PS3 se apaga
+  siempre al salir de la consola.
+
 ## Novedades de la versión 1.2.0
 
 - **Música propia en el canal de la Wii**: cada juego puede tener su canción, que suena en su canal (sección 9).
@@ -295,7 +303,8 @@ la ventana para conectarlo.
 
 | Consola | Dónde está la música |
 | --- | --- |
-| Wii y PS2 | En el panel de la izquierda mientras juegas |
+| Wii | Botón de la **nota** (abajo a la derecha), y en el panel de la izquierda mientras juegas |
+| PS2 | En el panel de la izquierda mientras juegas |
 | Xbox 360 | Pestaña *home*: el disco, la barra y "Siguiente"; los botones extra a la derecha |
 | PS3 | Categoría **Música**: la canción, la siguiente y **Opciones de música** (una pantalla como la de Ajustes; el volumen se cambia con ← →) |
 | PS4 | Menú rápido (**P**) → Música |
@@ -361,6 +370,13 @@ instalas de nuevo y terminan de descargarse.
    vuelve solo al menú unos 15 segundos después de cerrarlo y cuenta sus horas.
 
 Para ponerle arte propio a cualquiera de ellos, usa clic derecho → Cambiar imágenes (sección 2).
+
+**Juegos de Riot** (VALORANT, League of Legends y Teamfight Tactics): Ajustes → Juegos → **Agregar juegos de Riot**. Agrega
+los que tengas instalados. Al elegir uno, NostalHub le pide al Riot Client que lo inicie directo, como si apretaras
+**Jugar**. Si el Riot Client está cerrado, lo abre y lo inicia apenas esté listo; si te pide iniciar sesión, hazlo y aprieta
+Jugar tú. Al cerrar el juego vuelves solo al menú. En **League of Legends** las horas cuentan solo **dentro de una partida**, no en el cliente
+(lobby); NostalHub te deja en "Jugando" mientras el cliente esté abierto, así puedes jugar varias partidas seguidas. No
+traen arte automático: pónselo con clic derecho → Cambiar imágenes.
 
 **Minecraft (Java Edition)**, con sus progresos como logros:
 
@@ -606,8 +622,13 @@ terminan: usa **Volver al menú**.
 
 - **Menú de canales**: 12 canales por página (4 × 3). Las flechas eligen un canal (↓ desde la última fila baja a los
   botones de abajo); **RePág / AvPág** (L1 / R1 en el control) o la rueda pasan de página. Abajo, el reloj y los
-  botones redondos: **engranaje** (ajustes), **flechas** (ordenar los canales), **sobre** (amigos de Steam) y
-  **dado** (juego al azar).
+  botones redondos: **engranaje** (ajustes), **flechas** (ordenar los canales), **lupa** (buscar un juego),
+  **nota** (música), **sobre** (amigos de Steam) y **dado** (juego al azar).
+- **Buscar un juego** (la lupa): escribe parte del nombre (no importan las tildes) y elige con ↑ ↓; **Enter** abre su
+  canal. Sin escribir nada salen todos por nombre, así también se usa con el control. Esc vuelve.
+- **Música** (la nota): la canción que suena en Spotify o en la app que elegiste (Ajustes → Sonido), con anterior,
+  pausa y siguiente; con Spotify conectado, también la barra, la siguiente canción, aleatorio, repetir, me gusta,
+  volumen, dispositivo y la cola (↑ ↓ cambian de fila). La nota tiene un **puntito** mientras suena algo.
 - Si un canal tiene una imagen animada (`.webp` o `.gif`), en el menú muestra su primer cuadro y **se anima al marcarlo**.
 - **Pantalla del canal**: al elegir un juego se abre su canal con el fondo, el logo y la animación (`video.mp4` o el
   tráiler de Steam, si los activaste). Botones **Menú**, **Iniciar** y **Logros** (↓). ← → cambian de canal.

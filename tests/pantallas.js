@@ -42,6 +42,8 @@ const PANTALLAS = {
     jugando: { pasos: [clic('.tile.game[data-index="0"]'), espera(1300), clic('#btn-start')], ve: '#btn-stop' },
     ajustes: { pasos: [clic('#btn-settings')], ve: '#ws-back' },
     amigos: { pasos: [k('a')], ve: '#wf-back' },
+    buscar: { pasos: [clic('#btn-search'), ['js', `(() => { const i = document.querySelector('.wb-input'); i.value = 'ro'; i.dispatchEvent(new Event('input')); })()`]], ve: '.wb-row' },
+    musica: { pasos: [clic('#btn-music')], ve: '.wm-btn' },
   },
   ps2: {
     inicio: { pasos: [], ve: '.ps-cell, [data-game-id]' },
@@ -56,6 +58,7 @@ const PANTALLAS = {
     ficha: { pasos: [clic('[data-act="games"]'), espera(900), k('Enter')], ve: '[data-dact="play"]' },
     logros: { pasos: [clic('[data-act="games"]'), espera(900), k('Enter'), espera(900), texto('Logros')], ve: '.xb-ach-cell' },
     guia: { pasos: [k('g')], ve: '[class*="guide"], [class*="xg-"]' },
+    'guia-juegos': { pasos: [k('g'), espera(700), k('e'), espera(500), k('ArrowDown', 6)], ve: '.xg-item.sel' }, // la sección más larga: la lista no tapa la descripción
     social: { pasos: [k('e')], ve: '[data-act]' },
   },
   ps3: {

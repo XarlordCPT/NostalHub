@@ -115,6 +115,9 @@ function normalizeGame(g, i) {
     emulator: g.emulator || undefined,
     rom: g.rom || undefined,
     raId: g.raId || undefined, // su número en RetroAchievements
+    // Juego de Riot: cuál (valorant, league_of_legends, teamfighttactics) y su versión (live)
+    product: g.product || undefined,
+    patchline: g.patchline || undefined,
   };
 }
 

@@ -36,6 +36,13 @@
     <button class="round-btn left small" id="btn-sort" aria-label="Ordenar canales" title="Ordenar canales (tecla O)">
       <svg viewBox="0 0 48 48" aria-hidden="true" fill="none" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 9v30M8 32l7 7 7-7M33 39V9M26 16l7-7 7 7"/></svg>
     </button>
+    <button class="round-btn left small" id="btn-search" aria-label="Buscar un juego" title="Buscar un juego">
+      <svg viewBox="0 0 48 48" aria-hidden="true" fill="none" stroke-width="3.6" stroke-linecap="round"><circle cx="21" cy="21" r="11"/><path d="M29.5 29.5 39 39"/></svg>
+    </button>
+    <button class="round-btn right small" id="btn-music" aria-label="Música" title="Música">
+      <svg viewBox="0 0 48 48" aria-hidden="true" fill="none" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M19 35V11l19-4v24"/><circle cx="14" cy="35" r="5"/><circle cx="33" cy="31" r="5"/></svg>
+      <em class="wm-dot" hidden></em>
+    </button>
     <button class="round-btn right small" id="btn-friends" aria-label="Amigos" title="Amigos">
       <svg viewBox="0 0 48 48" aria-hidden="true" fill="none" stroke-width="3.2" stroke-linejoin="round"><rect x="7" y="12" width="34" height="24" rx="4"/><path d="M8 14l16 12 16-12"/></svg>
       <em class="wf-badge" hidden></em>
@@ -112,6 +119,40 @@
   </div>
   <div class="ch-bottom wa-bottom">
     <button class="pill" id="wf-back">Volver</button>
+  </div>
+</section>
+
+<!-- ===== Buscar un juego ===== -->
+<section id="wii-bus" hidden>
+  <div class="wa-box wb-box">
+    <div class="wa-head">
+      <span class="wa-title">Buscar</span>
+      <span class="wa-game"></span>
+      <span class="wa-count wb-count"></span>
+    </div>
+    <label class="wb-field">
+      <svg viewBox="0 0 48 48" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="3.6" stroke-linecap="round"><circle cx="21" cy="21" r="11"/><path d="M29.5 29.5 39 39"/></svg>
+      <input class="wb-input" type="text" placeholder="Escribe el nombre del juego" spellcheck="false" autocomplete="off" />
+    </label>
+    <div class="wf-list wb-list"></div>
+    <div class="wa-msg wb-msg" hidden></div>
+  </div>
+  <div class="ch-bottom wa-bottom">
+    <button class="pill" id="wb-back">Volver</button>
+  </div>
+</section>
+
+<!-- ===== Música (Spotify o la app elegida) ===== -->
+<section id="wii-mu" hidden>
+  <div class="wa-box wm-box">
+    <div class="wa-head">
+      <span class="wa-title">Música</span>
+      <span class="wa-game wm-app"></span>
+    </div>
+    <div class="wm-body"></div>
+  </div>
+  <div class="ch-bottom wa-bottom">
+    <button class="pill" id="wm-back">Volver</button>
   </div>
 </section>
 
@@ -198,7 +239,8 @@
     let current = -1; // índice del juego abierto
     let hls = null;
     let playTimer = null;
-    const BAR = ['#btn-settings', '#btn-sort', '#btn-friends', '#btn-random']; // botones de abajo, de izquierda a derecha
+    const BAR = ['#btn-settings', '#btn-sort', '#btn-search', '#btn-music', '#btn-friends', '#btn-random']; // botones de abajo, de izquierda a derecha
+    const BAR_UNDER = [0, 2, 3, 5]; // el botón que queda más abajo de cada columna de canales
     const kf = { area: 'grid', index: 0, btn: 0, on: false }; // selección con teclado o control (ver paintKf)
 
     // ---------- Reloj ----------
@@ -445,7 +487,7 @@
         if (r < ROWS - 1 && kf.index + COLS <= last) kf.index += COLS;
         else {
           kf.area = 'bar';
-          kf.btn = c; // el botón que está más abajo de esa columna
+          kf.btn = BAR_UNDER[c] ?? BAR.length - 1; // el botón que está más abajo de esa columna
         }
       }
       paintKf();
@@ -1165,6 +1207,210 @@
     $('#btn-friends').addEventListener('click', openFriends);
     $('#wf-back').addEventListener('click', closeFriends);
 
+    // ---------- Buscar un juego (la lupa de abajo a la izquierda) ----------
+    // Sin escribir nada salen todos por nombre (con el control se elige de la lista). Enter abre su canal.
+    const wb = $('#wii-bus');
+    const wbInput = wb.querySelector('.wb-input');
+    let wbRows = [];
+    let wbSel = 0;
+    const plain = (t) => String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+    function openSearch() {
+      if (view !== 'menu' || mv) return;
+      view = 'search';
+      menu.classList.add('dimmed');
+      wb.hidden = false;
+      wb.classList.remove('leave');
+      wbInput.value = '';
+      paintSearch();
+      wbInput.focus();
+    }
+    async function closeSearch() {
+      if (view !== 'search') return;
+      wbInput.blur();
+      wb.classList.add('leave');
+      await wait(220);
+      wb.hidden = true;
+      wb.classList.remove('leave');
+      menu.classList.remove('dimmed');
+      view = 'menu';
+    }
+    function paintSearch() {
+      const q = plain(wbInput.value.trim());
+      // Primero los que empiezan con lo escrito, después los que lo tienen en otra parte; cada grupo por nombre
+      wbRows = games
+        .map((g, i) => ({ g, i, at: plain(g.name).indexOf(q) }))
+        .filter((r) => r.at >= 0)
+        .sort((a, b) => (q ? (a.at !== 0) - (b.at !== 0) : 0) || a.g.name.localeCompare(b.g.name, 'es', { sensitivity: 'base' }));
+      wb.querySelector('.wb-count').textContent = q ? `${wbRows.length} de ${games.length}` : `${games.length} ${games.length === 1 ? 'juego' : 'juegos'}`;
+      const msg = wb.querySelector('.wb-msg');
+      msg.hidden = wbRows.length > 0;
+      msg.innerHTML = games.length ? `<b>No hay juegos con "${U.escapeHtml(wbInput.value.trim())}"</b>` : '<b>Todavía no hay juegos</b>';
+      const list = wb.querySelector('.wb-list');
+      list.innerHTML = wbRows
+        .map(({ g }, n) => `<button class="wf-row wb-row" data-n="${n}" data-game-id="${U.escapeHtml(g.id)}"><span class="wb-pic"><b>${U.escapeHtml(g.name.trim().charAt(0).toUpperCase())}</b></span><span class="wf-tx"><span class="wf-n">${U.escapeHtml(g.name)}</span><span class="wf-s">${U.escapeHtml(statsLine(g) || 'Sin jugar')}</span></span></button>`)
+        .join('');
+      list.querySelectorAll('.wb-row').forEach((r) => {
+        const { g } = wbRows[Number(r.dataset.n)];
+        const art = g.header || (g.tileIsVideo ? '' : g.tile) || g.hero;
+        const pic = r.querySelector('.wb-pic');
+        if (art) {
+          pic.classList.add('art');
+          U.stillBackground(pic, art); // las animadas, quietas
+        }
+        r.addEventListener('mouseenter', () => setSearch(Number(r.dataset.n), false));
+        r.addEventListener('click', () => pickSearch(Number(r.dataset.n)));
+      });
+      list.scrollTop = 0;
+      setSearch(0, false);
+    }
+    function setSearch(n, scroll = true) {
+      if (!wbRows.length) return;
+      wbSel = Math.max(0, Math.min(wbRows.length - 1, n));
+      wb.querySelectorAll('.wb-row').forEach((r) => {
+        const on = Number(r.dataset.n) === wbSel;
+        r.classList.toggle('sel', on);
+        if (on && scroll) r.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      });
+    }
+    function pickSearch(n) {
+      const r = wbRows[n];
+      if (!r) return;
+      wbInput.blur();
+      wb.hidden = true;
+      view = 'menu';
+      setPage(Math.floor(r.i / PER_PAGE), false);
+      kf.area = 'grid';
+      kf.index = r.i;
+      openChannel(r.i);
+    }
+    function searchKey(e) {
+      const k = e.key;
+      if (k === 'ArrowDown' || k === 'ArrowUp') {
+        e.preventDefault();
+        return setSearch(wbSel + (k === 'ArrowDown' ? 1 : -1));
+      }
+      if (k === 'PageDown' || k === 'PageUp') return setSearch(wbSel + (k === 'PageDown' ? 6 : -6));
+      if (k === 'Enter') return pickSearch(wbSel);
+      if (k === 'Escape' || (k === 'Backspace' && !wbInput.value)) {
+        e.preventDefault();
+        return closeSearch();
+      }
+      // Escribir aunque el cuadro no esté marcado (por ejemplo, después de un clic en la lista)
+      if (document.activeElement !== wbInput && (k.length === 1 || k === 'Backspace') && !e.ctrlKey && !e.altKey) wbInput.focus();
+    }
+    wbInput.addEventListener('input', paintSearch);
+    $('#btn-search').addEventListener('click', openSearch);
+    $('#wb-back').addEventListener('click', closeSearch);
+
+    // ---------- Música (la nota de abajo a la derecha): la canción que suena en Spotify o la app elegida ----------
+    const wm = $('#wii-mu');
+    let spotify = null;
+    let wmSel = 0;
+    function musicDot() {
+      const v = U.spotifyView(spotify || {});
+      $('.wm-dot').hidden = !(v.on && v.playing);
+    }
+    const offSpotify = api.onSpotify
+      ? api.onSpotify((st) => {
+          spotify = st;
+          musicDot();
+          if (view === 'music') paintMusic();
+        })
+      : null;
+    function openMusic() {
+      if (view !== 'menu' || mv) return;
+      view = 'music';
+      menu.classList.add('dimmed');
+      wm.hidden = false;
+      wm.classList.remove('leave');
+      wmSel = -1;
+      paintMusic();
+    }
+    async function closeMusic() {
+      if (view !== 'music') return;
+      wm.classList.add('leave');
+      await wait(220);
+      wm.hidden = true;
+      wm.classList.remove('leave');
+      menu.classList.remove('dimmed');
+      view = 'menu';
+    }
+    function paintMusic() {
+      const v = U.spotifyView(spotify || {});
+      const esc = U.escapeHtml;
+      const acts = U.musicActions(v);
+      wm.querySelector('.wm-app').textContent = v.app;
+      const state = v.on ? `${v.playing ? 'Reproduciendo' : 'En pausa'}${v.device && v.deviceType !== 'Computer' ? ` · en ${v.device}` : ''}` : v.app;
+      const btn = (m, icon, cls, label) => `<button class="wm-btn ${cls}" data-m="${m}" data-label="${esc(label)}">${U.npIcon(icon)}</button>`;
+      const main = v.on ? btn('prev', 'prev', '', 'Anterior') + btn('toggle', v.playing ? 'pause' : 'play', 'big', v.playing ? 'Pausa' : 'Reproducir') + btn('next', 'next', '', 'Siguiente') : '';
+      const pills = (v.appId !== 'auto' ? `<button class="wm-pill" data-m="open">Abrir ${esc(v.app)}</button>` : '') + (v.appId === 'spotify' && !v.api ? '<button class="wm-pill" data-m="connect">Conectar Spotify</button>' : '');
+      wm.querySelector('.wm-body').innerHTML = `
+        <div class="wm-cover"${v.cover ? ` style="background-image:url('${esc(v.cover)}')"` : ''}>${v.cover ? '' : U.npIcon('music')}</div>
+        <div class="wm-info">
+          <div class="wm-st${v.on && v.playing ? ' on' : ''}">${esc(state)}</div>
+          <div class="wm-t">${esc(v.title)}</div>
+          <div class="wm-a">${esc(v.artist)}</div>
+          ${U.progressHtml(v, 'wm-prog')}
+          <div class="wm-row" data-row="0">${main}${pills}</div>
+          ${acts.length ? `<div class="wm-row" data-row="1">${acts.map((a) => btn(`x:${a.id}`, a.icon, `sm${a.on ? ' on' : ''}`, `${a.label}${a.value && a.id !== 'like' ? `: ${a.value}` : ''}`)).join('')}</div>` : ''}
+          <div class="wm-hint"></div>
+          ${v.next ? `<div class="wm-next"><small>Siguiente</small><span>${esc(U.nextText(v))}</span></div>` : ''}
+        </div>`;
+      const btns = [...wm.querySelectorAll('.wm-body [data-m]')];
+      if (wmSel < 0) wmSel = Math.max(0, btns.findIndex((b) => b.dataset.m === 'toggle')); // al abrir: Reproducir / Pausa
+      btns.forEach((b, i) => {
+        b.addEventListener('mouseenter', () => setMusicBtn(i));
+        b.addEventListener('click', () => runMusic(b.dataset.m, v));
+      });
+      setMusicBtn(wmSel);
+    }
+    function setMusicBtn(i) {
+      const btns = [...wm.querySelectorAll('.wm-body [data-m]')];
+      if (!btns.length) return;
+      wmSel = Math.max(0, Math.min(btns.length - 1, i));
+      btns.forEach((b, j) => b.classList.toggle('kfocus', j === wmSel));
+      wm.querySelector('.wm-hint').textContent = btns[wmSel].dataset.label || '';
+    }
+    // ↑ ↓: entre la fila de controles y la de aleatorio, repetir, me gusta… (queda en el botón más cercano)
+    function musicRow(dir) {
+      const btns = [...wm.querySelectorAll('.wm-body [data-m]')];
+      const cur = btns[wmSel];
+      if (!cur) return;
+      const row = Number(cur.closest('[data-row]').dataset.row) + dir;
+      const next = btns.filter((b) => b.closest(`[data-row="${row}"]`));
+      if (!next.length) return;
+      const mid = (b) => b.getBoundingClientRect().left + b.getBoundingClientRect().width / 2;
+      const x = mid(cur);
+      const best = next.reduce((a, b) => (Math.abs(mid(b) - x) < Math.abs(mid(a) - x) ? b : a));
+      setMusicBtn(btns.indexOf(best));
+    }
+    function runMusic(m, v) {
+      if (m.startsWith('x:')) return U.musicRun(api, m.slice(2), v, toast);
+      if (m === 'connect') return api.open && api.open('setup-spotify');
+      if (api.spotifyControl) api.spotifyControl(m);
+      if (m === 'toggle' && spotify && spotify.running) {
+        spotify = { ...spotify, playing: !spotify.playing }; // se ve al tiro; la app lo confirma después
+        musicDot();
+        paintMusic();
+      }
+    }
+    function musicKey(e) {
+      const k = e.key;
+      if (k === 'Escape' || k === 'Backspace') return closeMusic();
+      if (k === 'ArrowLeft') setMusicBtn(wmSel - 1);
+      else if (k === 'ArrowRight') setMusicBtn(wmSel + 1);
+      else if (k === 'ArrowUp') musicRow(-1);
+      else if (k === 'ArrowDown') musicRow(1);
+      else if (k === 'Enter') {
+        const b = wm.querySelectorAll('.wm-body [data-m]')[wmSel];
+        if (b) b.click();
+      }
+    }
+    $('#btn-music').addEventListener('click', openMusic);
+    $('#wm-back').addEventListener('click', closeMusic);
+    // Mientras estás en la Wii se sigue la canción (para el puntito de la nota y el panel)
+    if (api.spotifyWatch) api.spotifyWatch(true).then((st) => st && ((spotify = st), musicDot(), view === 'music' && paintMusic()));
+
     // ---------- Configuración (engranaje) ----------
     // Las opciones vienen de main.js (las mismas del menú de la bandeja); aquí solo se dibujan al estilo Wii.
     const ws = $('#wii-set');
@@ -1371,8 +1617,8 @@
 
     // ---------- Teclado ----------
     function onKey(e) {
-      // Enter/espacio no deben "apretar" además el último botón clickeado con el mouse
-      if (e.key === 'Enter' || e.key === ' ') e.preventDefault();
+      // Enter/espacio no deben "apretar" además el último botón clickeado con el mouse (al buscar, el espacio se escribe)
+      if (e.key === 'Enter' || (e.key === ' ' && view !== 'search')) e.preventDefault();
       if (wo) {
         if (e.key === 'ArrowDown') setWo(wo.sel + 1);
         else if (e.key === 'ArrowUp') setWo(wo.sel - 1);
@@ -1383,6 +1629,8 @@
       if (mv) return moveKey(e.key);
       if (view === 'settings') return settingsKey(e);
       if (view === 'friends') return friendsKey(e);
+      if (view === 'search') return searchKey(e);
+      if (view === 'music') return musicKey(e);
       if (view === 'ach') {
         if (e.key === 'Escape' || e.key === 'Backspace' || e.key === 'Enter') closeAch();
         else if (e.key === 'ArrowLeft') setAch(achSel - 1);
@@ -1470,6 +1718,8 @@
         if (offGames) offGames();
         if (offSummary) offSummary();
         if (offEnded) offEnded();
+        if (offSpotify) offSpotify();
+        if (api.spotifyWatch) api.spotifyWatch(false);
         document.body.classList.remove('playing');
         root.innerHTML = '';
       },

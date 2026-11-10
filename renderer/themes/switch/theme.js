@@ -383,7 +383,7 @@
     let gRow = 0;
     let gToken = 0;
     function typeLabel(g) {
-      return { steam: 'Steam', exe: 'Programa', shortcut: 'Acceso directo', url: 'Otro launcher', minecraft: 'Launcher de Minecraft', emulator: 'Emulador' }[g.type] || '';
+      return { steam: 'Steam', exe: 'Programa', shortcut: 'Acceso directo', url: 'Otro launcher', minecraft: 'Launcher de Minecraft', emulator: 'Emulador', riot: 'Riot Games' }[g.type] || '';
     }
     function openGame(g, from = 'library', tab = 'info') {
       if (!g) return;
