@@ -40,9 +40,9 @@ Rama: `limpieza`. `main` no se toca hasta que Cristóbal la junte. Un commit por
 
 ## Etapa 4: ordenar las consolas (una por commit, de la más chica a la más grande)
 
-- [ ] Un ayudante común para moverse por listas y cuadrículas (hoy hay 4 formas distintas).
+- [x] Un ayudante común para moverse por listas y cuadrículas (hoy hay 4 formas distintas): `U.rowWindow`.
 - [ ] Separar el `mount` de cada consola por pantallas (menú, ficha, logros, amigos, ajustes, música).
-      Orden: PS2 → Switch → Xbox 360 → 3DS → PS3 → Wii → PS4 → Vita.
+      Orden: PS2 → Switch → Xbox 360 → 3DS → PS3 → Wii → PS4 → Vita. **Lista: PS2.** Sigue: Switch.
 
 ### Cómo retomarla (notas para la próxima sesión)
 
@@ -51,7 +51,23 @@ Rama: `limpieza`. `main` no se toca hasta que Cristóbal la junte. Un commit por
 - **Tamaño de cada `mount`** (líneas): PS2 726, Switch 995, Xbox 1031, 3DS 1046, PS3 1287, Wii 1305, PS4 1515, Vita 1651. Todo
   vive en una sola función con variables compartidas: separar por pantallas = objetos o funciones por sección dentro del
   mismo archivo (o archivos por sección), sin cambiar lo que se ve. Una consola por commit.
-- **Las 4 formas de moverse por listas hoy** (para el ayudante común):
+- **Cómo quedó la PS2 (el molde para las demás)**: `mount` arma un objeto `s` con lo que es de todas las pantallas (`view`,
+  `games`, `current`, `summary`, `caption`, `$`, `api`, `ctx`, `setHints`, `refreshFree`) y crea cada pantalla con una función
+  aparte del mismo archivo (`encabezado`, `pantallaJuegos`, `pantallaDetalle`, `pantallaLogros`, `pantallaConfig`,
+  `pantallaAmigos`). Cada una guarda lo suyo adentro y devuelve solo lo que usan las otras (`open`, `key`, `dispose`…);
+  entre ellas se llaman por `s.juegos`, `s.detalle`… `onKey` queda en `mount` y reparte la tecla según `s.view`. Se
+  mantuvo el orden en que se piden los datos al abrir.
+- **Antes de separar una consola, agregar a `PANTALLAS` lo que su prueba no cubre** (mouse, iniciar un juego y volver), guardar
+  esa referencia con el código de antes (`git stash push <tema>` → `npm run test:referencia -- <consola>` → `git stash pop`)
+  y recién ahí comparar.
+- **Ojo con lo que la prueba deja guardado**: las ventanas de prueba comparten `localStorage` entre corridas (perfil
+  `%APPDATA%\Electron`, no los datos reales). Un paso que cambie el orden de los juegos cambia las capturas de las corridas
+  siguientes: no poner clics en Ordenar. No limpiar ese `localStorage` (se probó: cambia Wii y Xbox, y hubo que rehacer las
+  referencias con el código de antes).
+- **`U.rowWindow(first, row, per, total)`**: lo usan PS2 (grilla), PS4 (Biblioteca y trofeos), Vita (trofeos y Biblioteca) y
+  Switch (Biblioteca). Se dejaron como estaban, porque se mueven distinto a propósito: PS3 (la fila marcada va al medio),
+  Switch logros y Vita ajustes (la marcada queda fija en la 4ª / 7ª fila) y PS2 configuración (por píxeles, filas de alto distinto).
+- **Las 4 formas de moverse por listas** (como estaban antes del ayudante):
   1. Cuadrículas con títulos de sets (Wii `.wa-grid`, PS2 `.pa-grid`, Xbox `.xb-ach-grid`): `U.gridMove(celdas, i, dir)`.
   2. Filas del mismo alto movidas con `translateY(-primera * alto)`: PS3 `setRow` (`ROW_H`), PS4 `setTrophy` (`T_ROW_H`),
      Switch `paintGameRows` / `paintAchFocus` (112 px), Vita `card.onFocus` (`T_ROW`, usa el índice en la lista).
@@ -93,5 +109,8 @@ Rama: `limpieza`. `main` no se toca hasta que Cristóbal la junte. Un commit por
   funciones de solo lectura del puente: igual a la referencia) y con `npm test` (51 de lógica + 44 pantallas). Al final, la
   prueba completa con la app real: 8 consolas, menú desde la interfaz, 0 errores. Arreglos encontrados de paso: el LEEME de
   consolas perdía la barra de `fondos\`, y `splitArgs` cortaba `--c="d e"` en dos.
+- **Etapa 4, en marcha** (2 commits). `U.rowWindow` con prueba (la misma cuenta estaba escrita 6 veces) y la PS2 separada por
+  pantallas. `npm test`: 56 de lógica + 49 pantallas (2 nuevas de la PS2 con mouse), 0 diferencias; app real: 8 consolas, 0
+  errores. Las capturas de referencia se rehicieron con el código de antes del cambio (ver las notas de la etapa 4).
 - Ojo para las pruebas con la app real: dentro de una consola, Enter abre un juego de verdad. El script solo aprieta teclas
   con el selector a la vista y sin ninguna consola abierta (una vez se abrió Pokémon Fire Red por apretar Enter a ciegas).
