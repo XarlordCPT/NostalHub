@@ -1217,12 +1217,9 @@
       const msg = $('.v-tr-msg', main);
       const head = $('.v-tr-head', main);
       card.onFocus = (el, j) => {
-        const per = Math.floor(T_VIEW / T_ROW);
         const k = el && el.parentElement === list ? [...list.children].indexOf(el) : -1;
         const i = k >= 0 ? k : j; // con los títulos de los sets, la fila en pantalla no es la misma que el índice
-        let f = card.tFirst || 0;
-        if (i < f) f = i;
-        else if (i >= f + per) f = i - per + 1;
+        const f = U.rowWindow(card.tFirst, i, Math.floor(T_VIEW / T_ROW));
         card.tFirst = f;
         list.style.transform = `translateY(${-f * T_ROW}px)`;
         // con la lista bajada, la fila de más arriba se esconde (si no, tapa el título)
@@ -1362,11 +1359,7 @@
       });
       card.lFirst = 0;
       card.onFocus = (el, i) => {
-        const row = Math.floor(i / LIB_COLS);
-        const per = Math.floor(LIB_VIEW / LIB_ROW);
-        let f = card.lFirst || 0;
-        if (row < f) f = row;
-        else if (row >= f + per) f = row - per + 1;
+        const f = U.rowWindow(card.lFirst, Math.floor(i / LIB_COLS), Math.floor(LIB_VIEW / LIB_ROW));
         card.lFirst = f;
         grid.style.transform = `translateY(${-f * LIB_ROW}px)`;
       };

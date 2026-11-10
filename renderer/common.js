@@ -105,6 +105,16 @@
     for (let j = at; j >= 0 && j < rows.length; j -= dir) if (!sep(rows[j])) return j;
     return at;
   }
+  // Listas y cuadrículas que suben y bajan con translateY(-fila * alto): devuelve qué fila tiene que quedar arriba para
+  // que `row` (la fila marcada) se vea. `first` es la que está arriba ahora y `per` cuántas filas caben. Solo se mueve
+  // si la fila marcada se sale. Con `total` (cuántas filas hay) además no deja un hueco vacío al final.
+  function rowWindow(first, row, per, total) {
+    let f = first || 0;
+    if (row < f) f = row;
+    else if (row >= f + per) f = row - per + 1;
+    if (total != null) f = Math.min(f, total - per);
+    return Math.max(0, f);
+  }
   // Cuadrícula de logros con encabezados en medio: ↑ ↓ van a la fila de arriba o de abajo, a la celda más cercana
   function gridMove(cells, i, dir) {
     const from = cells[i];
@@ -972,6 +982,7 @@
     withSetHeads,
     skipSetHead,
     gridMove,
+    rowWindow,
     achievementTexts,
     isComplete,
     completeBadge,

@@ -619,9 +619,8 @@
       grid.querySelectorAll('.ps-cell').forEach((c) => c.classList.toggle('sel', Number(c.dataset.index) === sel));
       caption.textContent = games[sel] ? games[sel].name : '';
       if (scroll) {
-        const row = Math.floor(sel / COLS);
-        if (row < scrollRow) setScroll(row);
-        else if (row >= scrollRow + ROWS_VISIBLE) setScroll(row - ROWS_VISIBLE + 1);
+        const first = window.NostalHubUtil.rowWindow(scrollRow, Math.floor(sel / COLS), ROWS_VISIBLE);
+        if (first !== scrollRow) setScroll(first);
       }
     }
 

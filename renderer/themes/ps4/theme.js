@@ -688,10 +688,7 @@
       U.liveBackground(libFocus === 'grid' ? $(`.p4l-cell[data-i="${libSel}"] .p4-tart`) : null, 'ps4-biblioteca'); // solo el marcado se anima
       $$('.p4l-it').forEach((b) => b.classList.toggle('sel', libFocus === 'side' && Number(b.dataset.s) === libSideSel));
       if (scroll) {
-        const row = Math.floor(libSel / LIB_COLS);
-        const per = Math.floor(LIB_VIEW_H / LIB_ROW_H);
-        if (row < libScroll) libScroll = row;
-        else if (row >= libScroll + per) libScroll = row - per + 1;
+        libScroll = U.rowWindow(libScroll, Math.floor(libSel / LIB_COLS), Math.floor(LIB_VIEW_H / LIB_ROW_H));
         $('.p4l-grid').style.transform = `translateY(${-libScroll * LIB_ROW_H}px)`;
       }
     }
@@ -885,11 +882,7 @@
       tSel = U.skipSetHead(tRows, i, i < tSel ? -1 : 1); // los títulos de los sets se saltan
       $$('.p4t-row').forEach((r) => r.classList.toggle('sel', Number(r.dataset.i) === tSel));
       if (scroll) {
-        const per = Math.floor(T_VIEW_H / T_ROW_H);
-        let f = Number($('.p4t-list').dataset.first || 0);
-        if (tSel < f) f = tSel;
-        else if (tSel >= f + per) f = tSel - per + 1;
-        f = Math.max(0, Math.min(f, Math.max(0, tRows.length - per)));
+        const f = U.rowWindow(Number($('.p4t-list').dataset.first || 0), tSel, Math.floor(T_VIEW_H / T_ROW_H), tRows.length);
         $('.p4t-list').dataset.first = String(f);
         $('.p4t-list').style.transform = `translateY(${-f * T_ROW_H}px)`;
       }

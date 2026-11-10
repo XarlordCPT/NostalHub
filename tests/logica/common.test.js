@@ -64,6 +64,15 @@ test('moverse por una lista con títulos: nunca queda marcado un título', () =>
   assert.equal(U.skipSetHead([], 3, 1), 3);
 });
 
+test('listas que suben y bajan: la fila marcada siempre queda a la vista', () => {
+  assert.equal(U.rowWindow(0, 2, 4), 0, 'si ya se ve, la lista no se mueve');
+  assert.equal(U.rowWindow(0, 4, 4), 1, 'se sale por abajo: baja lo justo');
+  assert.equal(U.rowWindow(3, 1, 4), 1, 'se sale por arriba: queda como primera');
+  assert.equal(U.rowWindow(undefined, 6, 4), 3, 'sin fila de arriba todavía parte de 0');
+  assert.equal(U.rowWindow(5, 5, 4, 7), 3, 'con el total no deja un hueco al final');
+  assert.equal(U.rowWindow(2, 1, 4, 3), 0, 'lista más corta que la pantalla: siempre arriba');
+});
+
 test('orden de juegos por consola: modos y guardado', () => {
   const o = U.gameOrder('prueba', { manual: true, def: 'recent' });
   assert.equal(o.mode, 'recent');

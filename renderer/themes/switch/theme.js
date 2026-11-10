@@ -348,9 +348,7 @@
       libSel = Math.max(0, Math.min(libList.length - 1, i));
       $$('.sw-cell').forEach((c) => c.classList.toggle('sel', Number(c.dataset.i) === libSel));
       if (scroll) {
-        const row = Math.floor(libSel / LIB_COLS);
-        if (row < libFirst) libFirst = row;
-        else if (row > libFirst + 1) libFirst = row - 1;
+        libFirst = U.rowWindow(libFirst, Math.floor(libSel / LIB_COLS), 2); // caben 2 filas
         $('.sw-lib-grid').style.transform = `translateY(${-libFirst * LIB_ROW}px)`;
       }
     }
