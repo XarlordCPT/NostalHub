@@ -51,6 +51,12 @@ const PANTALLAS = {
     logros: { pasos: [k('Enter'), espera(1300), texto('Logros')], ve: '.pa-cell' },
     ajustes: { pasos: [k('c')], ve: '.ps-cfg, [class*="cfg"]' },
     amigos: { pasos: [k('a')], ve: '[class*="fr"]' },
+    // Con el mouse: abrir un juego, iniciarlo, volver al menú, Amigos y Configuración
+    jugando: { pasos: [clic('.ps-cell[data-index="1"]'), espera(1300), texto('Iniciar')], ve: '.is-playing .ps-btn' },
+    'vuelta-con-mouse': {
+      pasos: [clic('.ps-cell[data-index="1"]'), espera(1300), texto('Iniciar'), espera(600), texto('Volver al menú'), espera(1200), clic('.ps-fr-btn'), espera(600), k('Escape'), espera(700), clic('.ps-cfg-btn:not(.ps-fr-btn):not(.ps-sort-btn)')],
+      ve: '.pc-row.sel',
+    },
   },
   x360: {
     inicio: { pasos: [], ve: '[data-act="games"]' },

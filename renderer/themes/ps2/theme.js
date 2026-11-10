@@ -548,30 +548,88 @@
     return `${mb.toLocaleString('en-US')} MB Free`;
   }
 
-  const { wait, pad2: pad } = window.NostalHubUtil;
+  const U = window.NostalHubUtil;
+  const { wait, pad2: pad } = U;
 
   // root: contenedor del tema. ctx: { api, stage, stageRect, toast, openSelector }
+  // El tema va separado por pantallas (una función cada una, más abajo). Todas reciben `s`, que tiene lo que es de
+  // todas (en qué pantalla se está, los juegos, el juego abierto, el resumen de logros) y las otras pantallas
+  // (s.juegos, s.detalle, s.logros, s.config, s.amigos). Lo que es de una sola pantalla queda dentro de su función.
   function mount(root, ctx) {
     root.innerHTML = MARKUP;
     const api = ctx.api;
-    const $ = (sel) => root.querySelector(sel);
-    const gridView = $('.ps-grid-view');
-    const grid = $('.ps-grid');
-    const detail = $('.ps-detail');
-    const nowPlaying = window.NostalHubUtil.nowPlaying(detail, api, ctx.toast);
-    const big = $('.ps-big');
-    const caption = $('.ps-caption');
+    const s = {
+      root,
+      ctx,
+      api,
+      $: (sel) => root.querySelector(sel),
+      view: 'grid', // grid | detail | playing | busy | ach | config | friends
+      games: [],
+      current: -1, // juego abierto en el detalle
+      summary: { perGame: {} },
+      caption: root.querySelector('.ps-caption'),
+    };
+    s.detalle = pantallaDetalle(s);
+    s.encabezado = encabezado(s);
+
+    // Horas jugadas y logros: el resumen llega aparte y se repinta lo que lo usa
+    if (api.getAchievementSummary) api.getAchievementSummary().then((sum) => sum && ((s.summary = sum), s.juegos.redrawDone()));
+    const offSummary = api.onSteamSummary
+      ? api.onSteamSummary((sum) => {
+          s.summary = sum || s.summary;
+          s.juegos.summaryChanged(); // el orden por logros cambia con el resumen
+          s.detalle.refreshStats();
+          s.juegos.redrawDone();
+        })
+      : null;
+
+    s.logros = pantallaLogros(s);
+    s.config = pantallaConfig(s);
+    s.amigos = pantallaAmigos(s);
+    s.juegos = pantallaJuegos(s);
+
+    // ---------- Teclado ----------
+    function onKey(e) {
+      // Enter/espacio no deben "apretar" además el último botón clickeado con el mouse
+      if (e.key === 'Enter' || e.key === ' ') e.preventDefault();
+      if (s.view === 'config') return s.config.key(e);
+      if (s.view === 'friends') return s.amigos.key(e);
+      if (s.view === 'ach') return s.logros.key(e);
+      if (s.view === 'grid') s.juegos.key(e);
+      else if (s.view === 'detail' || s.view === 'playing') s.detalle.key(e);
+    }
+    window.addEventListener('keydown', onKey);
+
+    // ---------- Datos ----------
+    s.setHints([['Enter', 'Entrar'], ['Esc', 'Consolas']]);
+    const offGames = api.onGamesUpdated(s.juegos.setGames);
+    const offEnded = api.onGameEnded(({ reason }) => s.detalle.endPlaying(reason));
+    api.getState().then((st) => {
+      s.juegos.setGames(st.games);
+      s.juegos.intro();
+    });
+
+    return {
+      unmount() {
+        s.detalle.dispose();
+        s.amigos.dispose();
+        s.encabezado.dispose();
+        Models.disposeAll();
+        window.removeEventListener('keydown', onKey);
+        if (offGames) offGames();
+        if (offEnded) offEnded();
+        if (offSummary) offSummary();
+        document.body.classList.remove('playing');
+        root.classList.remove('is-playing');
+        root.innerHTML = '';
+      },
+    };
+  }
+
+  // ---------- Encabezado: espacio libre y las pistas de teclas de abajo ----------
+  function encabezado(s) {
+    const { $, api } = s;
     const hints = $('.ps-hints');
-
-    let games = [];
-    let sel = 0;
-    let scrollRow = 0;
-    let view = 'grid'; // grid | detail | playing | busy | ach | config
-    let current = -1;
-    let action = 0; // botón marcado en el detalle
-    let playTimer = null;
-
-    // ---------- Encabezado ----------
     async function refreshFree() {
       try {
         const r = api.getFreeSpace ? await api.getFreeSpace() : null;
@@ -586,40 +644,51 @@
     function setHints(list) {
       hints.innerHTML = list.map(([k, label]) => `<span class="ps-key">${k}</span><span class="ps-hint">${label}</span>`).join('');
     }
+    s.refreshFree = refreshFree;
+    s.setHints = setHints;
+    return { dispose: () => clearInterval(freeTimer) };
+  }
 
-    // ---------- Grilla ----------
+  // ---------- Juegos: la grilla de la Memory Card y su orden ----------
+  function pantallaJuegos(s) {
+    const { $, api, ctx } = s;
+    const gridView = $('.ps-grid-view');
+    const grid = $('.ps-grid');
+    let sel = 0;
+    let scrollRow = 0;
+
     function rowCount() {
-      return Math.max(1, Math.ceil(games.length / COLS));
+      return Math.max(1, Math.ceil(s.games.length / COLS));
     }
 
     function renderGrid() {
       grid.innerHTML = '';
-      games.forEach((g, i) => {
+      s.games.forEach((g, i) => {
         const cell = document.createElement('button');
         cell.className = 'ps-cell';
         cell.dataset.index = i;
         cell.dataset.gameId = g.id; // clic derecho → cambiar imágenes
         cell.style.setProperty('--d', `${(Math.floor(i / COLS) % ROWS_VISIBLE) * 90 + (i % COLS) * 45}ms`);
         cell.appendChild(buildIcon(g));
-        const per = g.appId && summary.perGame && summary.perGame[g.appId];
-        if (window.NostalHubUtil.isComplete(per)) cell.insertAdjacentHTML('beforeend', window.NostalHubUtil.completeBadge('ps2star', 'on-icon')); // 100 %
+        const per = g.appId && s.summary.perGame && s.summary.perGame[g.appId];
+        if (U.isComplete(per)) cell.insertAdjacentHTML('beforeend', U.completeBadge('ps2star', 'on-icon')); // 100 %
         cell.addEventListener('mouseenter', () => setSel(i, false));
-        cell.addEventListener('click', () => openDetail(i));
+        cell.addEventListener('click', () => s.detalle.open(i));
         grid.appendChild(cell);
       });
-      if (!games.length) {
+      if (!s.games.length) {
         grid.innerHTML = '<div class="ps-empty">No hay juegos todavía</div>';
       }
-      setSel(Math.min(sel, Math.max(0, games.length - 1)), false);
+      setSel(Math.min(sel, Math.max(0, s.games.length - 1)), false);
     }
 
     function setSel(i, scroll = true) {
-      if (!games.length) return;
-      sel = Math.max(0, Math.min(games.length - 1, i));
+      if (!s.games.length) return;
+      sel = Math.max(0, Math.min(s.games.length - 1, i));
       grid.querySelectorAll('.ps-cell').forEach((c) => c.classList.toggle('sel', Number(c.dataset.index) === sel));
-      caption.textContent = games[sel] ? games[sel].name : '';
+      s.caption.textContent = s.games[sel] ? s.games[sel].name : '';
       if (scroll) {
-        const first = window.NostalHubUtil.rowWindow(scrollRow, Math.floor(sel / COLS), ROWS_VISIBLE);
+        const first = U.rowWindow(scrollRow, Math.floor(sel / COLS), ROWS_VISIBLE);
         if (first !== scrollRow) setScroll(first);
       }
     }
@@ -633,15 +702,95 @@
 
     let wheelLock = 0;
     gridView.addEventListener('wheel', (e) => {
-      if (view !== 'grid' || Date.now() < wheelLock || Math.abs(e.deltaY) < 10) return;
+      if (s.view !== 'grid' || Date.now() < wheelLock || Math.abs(e.deltaY) < 10) return;
       setScroll(scrollRow + (e.deltaY > 0 ? 1 : -1));
       wheelLock = Date.now() + 220;
     });
 
-    // ---------- Detalle ----------
-    function px(r) {
-      return { left: `${r.left}px`, top: `${r.top}px`, width: `${r.width}px`, height: `${r.height}px` };
+    // Juegos al 100 %: si cambian, se vuelve a dibujar la Memory Card con sus estrellas
+    let doneKey = '';
+    function redrawDone() {
+      const k = U.completeKey(s.summary);
+      if (k === doneKey) return;
+      doneKey = k;
+      if (s.games.length) renderGrid();
     }
+
+    // Orden de los juegos (botón Ordenar o tecla O)
+    const order = U.gameOrder('ps2', { def: 'recent' });
+    let rawGames = [];
+    const paintSort = () => ($('.ps-sort-t small').textContent = order.label());
+    paintSort();
+    function nextSort() {
+      if (s.view !== 'grid') return;
+      const keep = s.games[sel] && s.games[sel].id;
+      order.next();
+      paintSort();
+      setGames(rawGames);
+      const j = s.games.findIndex((g) => g.id === keep);
+      if (j >= 0) setSel(j);
+      if (ctx.sound) ctx.sound('move');
+    }
+    $('.ps-sort-btn').addEventListener('click', () => nextSort());
+
+    function setGames(list) {
+      const openId = s.current >= 0 && s.games[s.current] ? s.games[s.current].id : null;
+      rawGames = list || [];
+      s.games = order.apply(rawGames, s.summary);
+      if (openId) {
+        const idx = s.games.findIndex((g) => g.id === openId);
+        if (idx >= 0) s.current = idx;
+      }
+      renderGrid();
+      setScroll(scrollRow);
+      s.detalle.refreshStats();
+    }
+
+    function key(e) {
+      if (e.key === 'ArrowRight') setSel(sel + 1);
+      else if (e.key === 'ArrowLeft') setSel(sel - 1);
+      else if (e.key === 'ArrowDown') setSel(sel + COLS);
+      else if (e.key === 'ArrowUp') setSel(sel - COLS);
+      else if (e.key === 'Enter') s.detalle.open(sel);
+      else if (e.key === 'c' || e.key === 'C') s.config.open();
+      else if (e.key === 'o' || e.key === 'O') nextSort();
+      else if (e.key === 'a' || e.key === 'A') s.amigos.open();
+      else if (e.key === 'Escape') ctx.openSelector();
+    }
+
+    return {
+      key,
+      setSel,
+      setGames,
+      redrawDone,
+      // El orden por logros cambia cuando llega un resumen nuevo
+      summaryChanged() {
+        if (order.mode === 'ach' && s.view === 'grid') setGames(rawGames);
+      },
+      // El ícono de un juego en la grilla (de ahí sale y ahí vuelve el ícono grande del detalle)
+      iconOf(i) {
+        const cell = grid.querySelector(`.ps-cell[data-index="${i}"]`);
+        return cell ? cell.querySelector('.ps-icon') : null;
+      },
+      // La grilla se va al fondo mientras se ve un juego
+      away(on) {
+        gridView.classList.toggle('away', on);
+      },
+      intro() {
+        gridView.classList.add('intro');
+        setTimeout(() => gridView.classList.remove('intro'), 1600);
+      },
+    };
+  }
+
+  // ---------- Detalle de un juego, iniciarlo y "Jugando a…" ----------
+  function pantallaDetalle(s) {
+    const { $, api, ctx, root } = s;
+    const detail = $('.ps-detail');
+    const nowPlaying = U.nowPlaying(detail, api, ctx.toast);
+    const big = $('.ps-big');
+    let action = 0; // botón marcado
+    let playTimer = null;
 
     function renderActions(list) {
       const box = $('.ps-actions');
@@ -668,15 +817,45 @@
       return { steam: 'Steam', exe: 'Programa', shortcut: 'Acceso directo', url: 'Launcher', minecraft: 'Launcher de Minecraft', emulator: 'Emulador', riot: 'Riot Games' }[g.type] || '';
     }
 
+    function fillStats(g) {
+      $('.ps-sub').textContent = [typeLabel(g), U.playLine(g)].filter(Boolean).join('  ·  ');
+      const per = s.summary.perGame && g.appId && s.summary.perGame[g.appId];
+      const line = $('.ps-achline');
+      line.hidden = !(per && per.total);
+      if (per && per.total) {
+        const done = U.isComplete(per); // 100 %: estrella dorada y barra dorada
+        line.classList.toggle('done', done);
+        line.querySelector('i').style.width = `${(per.done / per.total) * 100}%`;
+        line.querySelector('.ps-achnum').innerHTML = done ? `<span class="nh-done-text">${U.completeBadge('ps2star')} ${per.done} / ${per.total}</span>` : `${per.done} / ${per.total}`;
+      }
+    }
+    // Horas y logros al día (después de jugar o cuando llega un resumen nuevo)
+    function refreshStats() {
+      if ((s.view === 'detail' || s.view === 'playing') && s.current >= 0 && s.games[s.current]) fillStats(s.games[s.current]);
+    }
+
+    function detailActions(g) {
+      return g.hasAch
+        ? [
+            ['Iniciar', startGame],
+            ['Logros', () => s.logros.open()],
+            ['Volver', closeDetail],
+          ]
+        : [
+            ['Iniciar', startGame],
+            ['Volver', closeDetail],
+          ];
+    }
+
     async function openDetail(i) {
-      if (view !== 'grid' || !games[i]) return;
-      view = 'busy';
-      current = i;
-      setSel(i);
-      const g = games[i];
+      if (s.view !== 'grid' || !s.games[i]) return;
+      s.view = 'busy';
+      s.current = i;
+      s.juegos.setSel(i);
+      const g = s.games[i];
       detail.dataset.gameCurrent = g.id;
-      const cell = grid.querySelector(`.ps-cell[data-index="${i}"]`);
-      const from = cell ? ctx.stageRect(cell.querySelector('.ps-icon')) : null;
+      const icon = s.juegos.iconOf(i);
+      const from = icon ? ctx.stageRect(icon) : null;
 
       big.innerHTML = '';
       big.appendChild(buildIcon(g, true));
@@ -685,10 +864,10 @@
       fillStats(g);
       $('.ps-desc').textContent = g.description || '';
       renderActions(detailActions(g));
-      setHints([['Enter', 'Elegir'], ['Esc', 'Volver']]);
+      s.setHints([['Enter', 'Elegir'], ['Esc', 'Volver']]);
 
-      gridView.classList.add('away');
-      caption.classList.add('away');
+      s.juegos.away(true);
+      s.caption.classList.add('away');
       detail.hidden = false;
       detail.classList.remove('leave');
       detail.classList.add('enter');
@@ -706,19 +885,19 @@
           )
           .finished.catch(() => {});
       }
-      view = 'detail';
+      s.view = 'detail';
     }
 
     async function closeDetail() {
-      if (view !== 'detail') return;
-      view = 'busy';
-      const cell = grid.querySelector(`.ps-cell[data-index="${current}"]`);
+      if (s.view !== 'detail') return;
+      s.view = 'busy';
+      const icon = s.juegos.iconOf(s.current);
       detail.classList.remove('enter');
       detail.classList.add('leave');
-      gridView.classList.remove('away');
-      caption.classList.remove('away');
-      if (cell) {
-        const to = ctx.stageRect(cell.querySelector('.ps-icon'));
+      s.juegos.away(false);
+      s.caption.classList.remove('away');
+      if (icon) {
+        const to = ctx.stageRect(icon);
         const from = ctx.stageRect(big);
         await big
           .animate(
@@ -733,18 +912,18 @@
       detail.hidden = true;
       detail.classList.remove('leave');
       big.innerHTML = '';
-      setHints([['Enter', 'Entrar'], ['Esc', 'Consolas']]);
-      view = 'grid';
+      s.setHints([['Enter', 'Entrar'], ['Esc', 'Consolas']]);
+      s.view = 'grid';
     }
 
-    // ---------- Iniciar y "Jugando a…" ----------
+    // Iniciar y "Jugando a…"
     async function startGame() {
-      if (view !== 'detail') return;
-      const g = games[current];
-      view = 'busy';
+      if (s.view !== 'detail') return;
+      const g = s.games[s.current];
+      s.view = 'busy';
       const res = await api.launch(g.id);
       if (!res || !res.ok) {
-        view = 'detail';
+        s.view = 'detail';
         ctx.toast(`No se pudo abrir: ${(res && res.error) || 'error desconocido'}`);
         return;
       }
@@ -752,17 +931,17 @@
       $('.ps-label').textContent = 'Jugando a';
       $('.ps-sub').textContent = '0:00';
       renderActions([['Volver al menú', stopPlaying]]);
-      setHints([['Enter', 'Volver al menú']]);
+      s.setHints([['Enter', 'Volver al menú']]);
       document.body.classList.add('playing');
-      view = 'playing';
+      s.view = 'playing';
       nowPlaying.start(); // Spotify y Grupo a los lados
 
       const started = Date.now();
       const upd = () => {
-        const s = Math.floor((Date.now() - started) / 1000);
-        const h = Math.floor(s / 3600);
-        const m = Math.floor((s % 3600) / 60);
-        $('.ps-sub').textContent = h ? `${h}:${pad(m)}:${pad(s % 60)}` : `${m}:${pad(s % 60)}`;
+        const t = Math.floor((Date.now() - started) / 1000);
+        const h = Math.floor(t / 3600);
+        const m = Math.floor((t % 3600) / 60);
+        $('.ps-sub').textContent = h ? `${h}:${pad(m)}:${pad(t % 60)}` : `${m}:${pad(t % 60)}`;
       };
       upd();
       clearInterval(playTimer);
@@ -770,17 +949,17 @@
     }
 
     async function endPlaying(reason) {
-      if (view !== 'playing') return;
+      if (s.view !== 'playing') return;
       nowPlaying.stop();
       clearInterval(playTimer);
       document.body.classList.remove('playing');
       root.classList.remove('is-playing');
       // vuelve al detalle y de ahí a la grilla
-      view = 'detail';
+      s.view = 'detail';
       $('.ps-label').textContent = '';
       await closeDetail();
       if (reason === 'not-started') ctx.toast('No se detectó que el juego abriera');
-      refreshFree();
+      s.refreshFree();
     }
 
     function stopPlaying() {
@@ -788,82 +967,64 @@
       endPlaying('manual');
     }
 
-    // ---------- Horas jugadas y logros ----------
-    const U = window.NostalHubUtil;
-    let summary = { perGame: {} };
-    if (api.getAchievementSummary) api.getAchievementSummary().then((s) => s && ((summary = s), redrawDone()));
-    const offSummary = api.onSteamSummary
-      ? api.onSteamSummary((s) => {
-          summary = s || summary;
-          if (order.mode === 'ach' && view === 'grid') setGames(rawGames); // el orden por logros cambia con el resumen
-          if ((view === 'detail' || view === 'playing') && current >= 0 && games[current]) fillStats(games[current]);
-          redrawDone();
-        })
-      : null;
-    // Juegos al 100 %: si cambian, se vuelve a dibujar la Memory Card con sus estrellas
-    let doneKey = '';
-    function redrawDone() {
-      const k = U.completeKey(summary);
-      if (k === doneKey) return;
-      doneKey = k;
-      if (games.length) renderGrid();
+    function key(e) {
+      if (e.key === 'ArrowRight' || e.key === 'ArrowDown') setAction(action + 1);
+      else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') setAction(action - 1);
+      else if (e.key === 'Enter') {
+        const b = root.querySelectorAll('.ps-btn')[action];
+        if (b) b.click();
+      } else if (e.key === 'Escape' && s.view === 'detail') closeDetail();
     }
 
-    function fillStats(g) {
-      $('.ps-sub').textContent = [typeLabel(g), U.playLine(g)].filter(Boolean).join('  ·  ');
-      const per = summary.perGame && g.appId && summary.perGame[g.appId];
-      const line = $('.ps-achline');
-      line.hidden = !(per && per.total);
-      if (per && per.total) {
-        const done = U.isComplete(per); // 100 %: estrella dorada y barra dorada
-        line.classList.toggle('done', done);
-        line.querySelector('i').style.width = `${(per.done / per.total) * 100}%`;
-        line.querySelector('.ps-achnum').innerHTML = done ? `<span class="nh-done-text">${U.completeBadge('ps2star')} ${per.done} / ${per.total}</span>` : `${per.done} / ${per.total}`;
-      }
-    }
-    function detailActions(g) {
-      return g.hasAch
-        ? [
-            ['Iniciar', startGame],
-            ['Logros', openAch],
-            ['Volver', closeDetail],
-          ]
-        : [
-            ['Iniciar', startGame],
-            ['Volver', closeDetail],
-          ];
-    }
+    return {
+      key,
+      open: openDetail,
+      endPlaying,
+      refreshStats,
+      // Los logros se ven encima: el detalle se va al fondo mientras tanto
+      away(on) {
+        detail.classList.toggle('away', on);
+      },
+      dispose() {
+        nowPlaying.dispose();
+        clearInterval(playTimer);
+      },
+    };
+  }
 
+  // ---------- Logros del juego abierto ----------
+  function pantallaLogros(s) {
+    const { $, api } = s;
+    const pa = $('.ps-ach');
     let achList = [];
     let achSel = 0;
     let achToken = 0;
-    const pa = $('.ps-ach');
 
     async function openAch() {
-      if (view !== 'detail') return;
-      const g = games[current];
-      view = 'ach';
-      detail.classList.add('away');
+      if (s.view !== 'detail') return;
+      const g = s.games[s.current];
+      s.view = 'ach';
+      s.detalle.away(true);
       pa.hidden = false;
       pa.classList.remove('leave');
       $('.pa-grid').innerHTML = '';
       $('.pa-icon').style.visibility = 'hidden';
       $('.pa-info').style.visibility = 'hidden';
-      caption.textContent = g.name;
-      caption.classList.remove('away');
-      setHints([['Flechas', 'Mover'], ['Esc', 'Volver']]);
+      s.caption.textContent = g.name;
+      s.caption.classList.remove('away');
+      s.setHints([['Flechas', 'Mover'], ['Esc', 'Volver']]);
       const msg = $('.pa-msg');
       msg.hidden = false;
       msg.innerHTML = 'Cargando logros…';
       const token = ++achToken;
       const res = (api.getAchievements ? await api.getAchievements(g.appId) : null) || { status: 'error', list: [] };
-      if (token !== achToken || view !== 'ach') return;
+      if (token !== achToken || s.view !== 'ach') return;
       if (res.status !== 'ok') {
         msg.innerHTML = U.achievementMessage(res);
         return;
       }
       msg.hidden = true;
-      caption.textContent = `${g.name}  ·  ${res.done} / ${res.total} logros`;
+      s.caption.textContent = `${g.name}  ·  ${res.done} / ${res.total} logros`;
       achList = U.sortAchievements(res.list);
       const gridEl = $('.pa-grid');
       achList.forEach((a, i) => {
@@ -900,21 +1061,33 @@
       }
     }
     async function closeAch() {
-      if (view !== 'ach') return;
+      if (s.view !== 'ach') return;
       achToken++;
       pa.classList.add('leave');
       await wait(220);
       pa.hidden = true;
       pa.classList.remove('leave');
-      detail.classList.remove('away');
-      caption.classList.add('away');
-      setHints([['Enter', 'Elegir'], ['Esc', 'Volver']]);
-      view = 'detail';
+      s.detalle.away(false);
+      s.caption.classList.add('away');
+      s.setHints([['Enter', 'Elegir'], ['Esc', 'Volver']]);
+      s.view = 'detail';
     }
 
+    function key(e) {
+      if (e.key === 'Escape' || e.key === 'Backspace' || e.key === 'Enter') closeAch();
+      else if (e.key === 'ArrowLeft') setAch(achSel - 1);
+      else if (e.key === 'ArrowRight') setAch(achSel + 1);
+      else if (e.key === 'ArrowUp') setAch(U.gridMove([...pa.querySelectorAll('.pa-cell')], achSel, -1));
+      else if (e.key === 'ArrowDown') setAch(U.gridMove([...pa.querySelectorAll('.pa-cell')], achSel, 1));
+    }
 
-    // ---------- Configuración del sistema ----------
-    // Las opciones vienen de main.js (las mismas del menú de la bandeja); aquí se dibujan al estilo PS2.
+    return { key, open: openAch };
+  }
+
+  // ---------- Configuración del sistema ----------
+  // Las opciones vienen de main.js (las mismas del menú de la bandeja); aquí se dibujan al estilo PS2.
+  function pantallaConfig(s) {
+    const { $, api, ctx } = s;
     const cfg = $('.ps-cfg:not(.ps-fr)'); // (la de Amigos usa el mismo estilo)
     const cfgList = $('.pc-list');
     let cfgModel = [];
@@ -927,8 +1100,8 @@
     const PC_VIEW = 640;
 
     async function openConfig() {
-      if (view !== 'grid') return;
-      view = 'config';
+      if (s.view !== 'grid') return;
+      s.view = 'config';
       cfgModel = (api.getMenu ? await api.getMenu() : []) || [];
       cfgSel = 0;
       cfg.hidden = false;
@@ -937,12 +1110,12 @@
     }
 
     async function closeConfig() {
-      if (view !== 'config') return;
+      if (s.view !== 'config') return;
       cfg.classList.add('leave');
       await wait(300);
       cfg.hidden = true;
       cfg.classList.remove('leave');
-      view = 'grid';
+      s.view = 'grid';
     }
 
     function renderConfig() {
@@ -998,14 +1171,14 @@
       const it = r.it;
       if (it.id === 'consoles') {
         cfg.hidden = true;
-        view = 'grid';
+        s.view = 'grid';
         return ctx.openSelector();
       }
       if (it.confirm) return showConfirm(true);
       if (/^open-|^devtools$/.test(it.id)) ctx.toast('Se abrió en Windows');
       const value = it.type === 'action' ? undefined : U.optionNextValue(it, dir);
       const next = api.runMenu ? await api.runMenu(it.id, value) : null;
-      if (next && view === 'config') {
+      if (next && s.view === 'config') {
         cfgModel = next;
         renderConfig();
       }
@@ -1028,7 +1201,7 @@
       b.addEventListener('click', () => (b.dataset.c === 'yes' ? api.runMenu('quit') : showConfirm(false)));
     });
 
-    function configKey(e) {
+    function key(e) {
       if (cfgConfirm) {
         if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
           cfgConfirmYes = !cfgConfirmYes;
@@ -1049,11 +1222,16 @@
 
     $('.ps-cfg-btn:not(.ps-fr-btn):not(.ps-sort-btn)').addEventListener('click', () => openConfig());
     cfg.addEventListener('wheel', (e) => {
-      if (view !== 'config' || cfgConfirm || Math.abs(e.deltaY) < 10) return;
+      if (s.view !== 'config' || cfgConfirm || Math.abs(e.deltaY) < 10) return;
       setCfg(cfgSel + (e.deltaY > 0 ? 1 : -1));
     });
 
-    // ---------- Amigos (de Steam) ----------
+    return { key, open: openConfig };
+  }
+
+  // ---------- Amigos (de Steam) ----------
+  function pantallaAmigos(s) {
+    const { $, api, ctx } = s;
     const feed = U.friendsFeed(api);
     const pf = $('.ps-fr');
     let pfSel = 0;
@@ -1067,12 +1245,12 @@
     }
     feed.onChange(() => {
       pfBadge();
-      if (view === 'friends') paintPf();
+      if (s.view === 'friends') paintPf();
     });
     feed.load(); // para el número de conectados en el botón
     function openFriends() {
-      if (view !== 'grid') return;
-      view = 'friends';
+      if (s.view !== 'grid') return;
+      s.view = 'friends';
       pfSel = 0;
       pfId = null;
       pfAsk = null;
@@ -1084,13 +1262,13 @@
       feed.watch(true);
     }
     async function closeFriends() {
-      if (view !== 'friends') return;
+      if (s.view !== 'friends') return;
       feed.watch(false);
       pf.classList.add('leave');
       await wait(300);
       pf.hidden = true;
       pf.classList.remove('leave');
-      view = 'grid';
+      s.view = 'grid';
     }
     function paintPf() {
       const d = feed.data;
@@ -1164,7 +1342,7 @@
       b.addEventListener('click', () => runPfAsk(b.dataset.a));
     });
     $('.pf-ask').addEventListener('pointerdown', (e) => e.target === e.currentTarget && ((pfAsk = null), ($('.pf-ask').hidden = true)));
-    function friendsKey(e) {
+    function key(e) {
       const k = e.key;
       if (pfAsk) {
         if (k === 'ArrowLeft' || k === 'ArrowRight') (pfAsk.btn = pfAsk.btn ? 0 : 1), paintPfAsk();
@@ -1184,96 +1362,6 @@
     }
     $('.ps-fr-btn').addEventListener('click', () => openFriends());
 
-    // ---------- Teclado ----------
-    function onKey(e) {
-      // Enter/espacio no deben "apretar" además el último botón clickeado con el mouse
-      if (e.key === 'Enter' || e.key === ' ') e.preventDefault();
-      if (view === 'config') return configKey(e);
-      if (view === 'friends') return friendsKey(e);
-      if (view === 'ach') {
-        if (e.key === 'Escape' || e.key === 'Backspace' || e.key === 'Enter') closeAch();
-        else if (e.key === 'ArrowLeft') setAch(achSel - 1);
-        else if (e.key === 'ArrowRight') setAch(achSel + 1);
-        else if (e.key === 'ArrowUp') setAch(U.gridMove([...pa.querySelectorAll('.pa-cell')], achSel, -1));
-        else if (e.key === 'ArrowDown') setAch(U.gridMove([...pa.querySelectorAll('.pa-cell')], achSel, 1));
-        return;
-      }
-      if (view === 'grid') {
-        if (e.key === 'ArrowRight') setSel(sel + 1);
-        else if (e.key === 'ArrowLeft') setSel(sel - 1);
-        else if (e.key === 'ArrowDown') setSel(sel + COLS);
-        else if (e.key === 'ArrowUp') setSel(sel - COLS);
-        else if (e.key === 'Enter') openDetail(sel);
-        else if (e.key === 'c' || e.key === 'C') openConfig();
-        else if (e.key === 'o' || e.key === 'O') nextSort();
-        else if (e.key === 'a' || e.key === 'A') openFriends();
-        else if (e.key === 'Escape') ctx.openSelector();
-      } else if (view === 'detail' || view === 'playing') {
-        if (e.key === 'ArrowRight' || e.key === 'ArrowDown') setAction(action + 1);
-        else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') setAction(action - 1);
-        else if (e.key === 'Enter') {
-          const b = root.querySelectorAll('.ps-btn')[action];
-          if (b) b.click();
-        } else if (e.key === 'Escape' && view === 'detail') closeDetail();
-      }
-    }
-    window.addEventListener('keydown', onKey);
-
-    // ---------- Orden de los juegos (botón Ordenar o tecla O) ----------
-    const order = window.NostalHubUtil.gameOrder('ps2', { def: 'recent' });
-    let rawGames = [];
-    const paintSort = () => ($('.ps-sort-t small').textContent = order.label());
-    paintSort();
-    function nextSort() {
-      if (view !== 'grid') return;
-      const keep = games[sel] && games[sel].id;
-      order.next();
-      paintSort();
-      setGames(rawGames);
-      const j = games.findIndex((g) => g.id === keep);
-      if (j >= 0) setSel(j);
-      if (ctx.sound) ctx.sound('move');
-    }
-    $('.ps-sort-btn').addEventListener('click', () => nextSort());
-
-    // ---------- Datos ----------
-    function setGames(list) {
-      const openId = current >= 0 && games[current] ? games[current].id : null;
-      rawGames = list || [];
-      games = order.apply(rawGames, summary);
-      if (openId) {
-        const idx = games.findIndex((g) => g.id === openId);
-        if (idx >= 0) current = idx;
-      }
-      renderGrid();
-      setScroll(scrollRow);
-      if ((view === 'detail' || view === 'playing') && current >= 0 && games[current]) fillStats(games[current]);
-    }
-
-    setHints([['Enter', 'Entrar'], ['Esc', 'Consolas']]);
-    const offGames = api.onGamesUpdated(setGames);
-    const offEnded = api.onGameEnded(({ reason }) => endPlaying(reason));
-    api.getState().then((s) => {
-      setGames(s.games);
-      gridView.classList.add('intro');
-      setTimeout(() => gridView.classList.remove('intro'), 1600);
-    });
-
-    return {
-      unmount() {
-        nowPlaying.dispose();
-        feed.dispose();
-        clearInterval(freeTimer);
-        clearInterval(playTimer);
-        Models.disposeAll();
-        window.removeEventListener('keydown', onKey);
-        if (offGames) offGames();
-        if (offEnded) offEnded();
-        if (offSummary) offSummary();
-        document.body.classList.remove('playing');
-        root.classList.remove('is-playing');
-        root.innerHTML = '';
-      },
-    };
+    return { key, open: openFriends, dispose: () => feed.dispose() };
   }
 })();
