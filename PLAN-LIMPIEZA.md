@@ -108,8 +108,7 @@ Rama: `limpieza`. `main` no se toca hasta que Cristóbal la junte. Un commit por
 
 ## Etapa 6: cierre
 
-- [x] Prueba con la app real (`npm run test:app-real:consolas`): 8 consolas, 0 errores (hecha después de separar las 8 y
-      del cambio de CSS; falta repetirla después del último commit de `esc`).
+- [x] Prueba con la app real (`npm run test:app-real:consolas`): 8 consolas, 0 errores (repetida después del último commit).
 - [ ] **Lista de 5 minutos para Cristóbal** (lo que las pruebas automáticas no pueden ver). Con `npm start`, en `limpieza`:
       1. **Steam**: entra a 2 consolas distintas, abre un juego y sus logros; que salgan las horas y los logros de verdad.
       2. **Jugar y volver**: inicia un juego corto, vuelve con "Volver al menú" y revisa que las horas se actualicen.
