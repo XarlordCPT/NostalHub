@@ -44,6 +44,17 @@ const PANTALLAS = {
     amigos: { pasos: [k('a')], ve: '#wf-back' },
     buscar: { pasos: [clic('#btn-search'), ['js', `(() => { const i = document.querySelector('.wb-input'); i.value = 'ro'; i.dispatchEvent(new Event('input')); })()`]], ve: '.wb-row' },
     musica: { pasos: [clic('#btn-music')], ve: '.wm-btn' },
+    // Lo que faltaba: volver de jugar, pasar de canal, ordenar, mover (sin guardar), abrir desde Buscar y una opción de Ajustes
+    'vuelta-con-mouse': { pasos: [clic('.tile.game[data-index="0"]'), espera(1300), clic('#btn-start'), espera(900), clic('#btn-stop'), espera(900), k('ArrowRight', 2)], ve: '.tile.wkf' },
+    'canal-siguiente': { pasos: [clic('.tile.game[data-index="0"]'), espera(1300), k('ArrowRight'), espera(700)], ve: '#btn-start' },
+    'canal-volver': { pasos: [clic('.tile.game[data-index="0"]'), espera(1300), k('ArrowRight'), espera(700), k('Escape'), espera(1000), k('ArrowDown')], ve: '.tile.wkf' },
+    'ordenar-lista': { pasos: [k('ArrowRight'), k('o')], ve: '.wo-opt.kfocus' },
+    mover: { pasos: [k('ArrowRight'), k('o'), espera(200), k('ArrowDown'), k('Enter'), espera(200), k('ArrowRight'), k('ArrowDown')], ve: '.tile.wmv' },
+    'mover-cancelar': { pasos: [k('ArrowRight'), k('o'), espera(200), k('ArrowDown'), k('Enter'), espera(200), k('ArrowRight'), k('Escape'), espera(300)], ve: '.tile.wkf' },
+    'buscar-abrir': { pasos: [clic('#btn-search'), espera(400), k('ArrowDown', 2), k('Enter'), espera(1500)], ve: '#btn-start' },
+    'ajustes-opcion': { pasos: [clic('#btn-settings'), espera(600), k('ArrowRight', 2), espera(400), k('Enter'), espera(300), k('ArrowRight')], ve: '.ws-opt.kfocus' },
+    'amigos-carta': { pasos: [k('a'), espera(500), k('ArrowDown', 2), k('ArrowRight')], ve: '.wf-btn.kfocus' },
+    'musica-botones': { pasos: [clic('#btn-music'), espera(500), k('ArrowDown'), k('ArrowRight')], ve: '.wm-btn.kfocus' },
   },
   ps2: {
     inicio: { pasos: [], ve: '.ps-cell, [data-game-id]' },

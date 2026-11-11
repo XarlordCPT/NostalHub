@@ -210,41 +210,158 @@
   const TOP_H = 795; // alto de la parte de arriba en la pantalla de canal
   const PAGE_SLIDE_MS = 600; // lo que tarda en pasar de página (un poco más que la transición de #grid)
 
+  const U = window.NostalHubUtil;
+  const { wait, pad2: pad } = U;
+
   window.Themes = window.Themes || {};
   window.Themes.wii = { mount };
 
   // root: contenedor del tema. ctx: { api, stage, stageRect, toast, openSelector }
+  // El tema va separado por pantallas (una función cada una, más abajo). Todas reciben `wii`, que tiene lo que es de
+  // todas (en qué pantalla se está, los juegos ya ordenados, el canal abierto, el resumen de logros) y las otras
+  // pantallas (wii.canales, wii.canal, wii.jugando, wii.logros…). Lo de una sola pantalla queda en su función.
   function mount(root, ctx) {
     root.innerHTML = MARKUP;
     const api = ctx.api;
-    const stageRect = ctx.stageRect;
     const $ = (sel) => root.querySelector(sel);
-    const menu = $('#menu');
-    const grid = $('#grid');
-    const channel = $('#channel');
-    const chTop = channel.querySelector('.ch-top');
-    const chMedia = channel.querySelector('.ch-media');
-    const chTitle = channel.querySelector('.ch-title');
-    const playing = $('#playing');
-    const nowPlaying = window.NostalHubUtil.nowPlaying(playing, ctx.api, ctx.toast);
+    const wii = {
+      root,
+      ctx,
+      api,
+      $,
+      menuEl: $('#menu'),
+      view: 'menu', // menu | channel | ach | playing | settings | friends | search | music | busy
+      games: [], // ya ordenados
+      current: -1, // índice del juego abierto
+      summary: { perGame: {} },
+      wheelLock: 0, // la rueda no pasa dos páginas de una vez (menú y ajustes)
+    };
+    wii.jugando = pantallaJugando(wii);
+    wii.canales = menuDeCanales(wii);
+    wii.canal = pantallaCanal(wii);
 
-    let games = [];
+    // ---------- Horas jugadas y logros ----------
+    if (api.getAchievementSummary) api.getAchievementSummary().then((s) => s && ((wii.summary = s), redrawDone()));
+    const offSummary = api.onSteamSummary
+      ? api.onSteamSummary((s) => {
+          wii.summary = s || wii.summary;
+          if (wii.canales.sortsByAch()) setGames(wii.canales.raw()); // el orden por logros cambia con el resumen
+          if ((wii.view === 'channel' || wii.view === 'ach') && wii.current >= 0 && wii.games[wii.current]) wii.canal.paintStats(wii.games[wii.current]);
+          redrawDone();
+        })
+      : null;
+    // Juego al 100 %: sello dorado en su cuadro del menú (si cambia, se vuelve a dibujar)
+    let doneKey = '';
+    function redrawDone() {
+      const k = U.completeKey(wii.summary);
+      if (k === doneKey) return;
+      doneKey = k;
+      if (wii.games.length) wii.canales.renderGrid();
+    }
+
+    wii.logros = pantallaLogros(wii);
+    wii.amigos = pantallaAmigos(wii);
+    wii.buscar = pantallaBuscar(wii);
+    wii.musica = pantallaMusica(wii);
+    wii.ajustes = pantallaAjustes(wii);
+
+    // ---------- Teclado ----------
+    function onKey(e) {
+      // Enter/espacio no deben "apretar" además el último botón clickeado con el mouse (al buscar, el espacio se escribe)
+      if (e.key === 'Enter' || (e.key === ' ' && wii.view !== 'search')) e.preventDefault();
+      if (wii.canales.sorting()) return wii.canales.sortKey(e);
+      if (wii.canales.moving()) return wii.canales.moveKey(e.key);
+      if (wii.view === 'settings') return wii.ajustes.key(e);
+      if (wii.view === 'friends') return wii.amigos.key(e);
+      if (wii.view === 'search') return wii.buscar.key(e);
+      if (wii.view === 'music') return wii.musica.key(e);
+      if (wii.view === 'ach') return wii.logros.key(e);
+      if (wii.view === 'channel') wii.canal.key(e);
+      else if (wii.view === 'menu') wii.canales.key(e);
+    }
+    window.addEventListener('keydown', onKey);
+
+    // ---------- Datos ----------
+    function setGames(list) {
+      const openId = wii.current >= 0 && wii.games[wii.current] ? wii.games[wii.current].id : null;
+      wii.canales.setRaw(list);
+      if (openId) {
+        const idx = wii.games.findIndex((g) => g.id === openId);
+        if (idx >= 0) wii.current = idx;
+        else if (wii.view === 'channel') wii.canal.dropped();
+      }
+      wii.canales.renderGrid();
+      wii.canal.refresh();
+    }
+
+    const offGames = api.onGamesUpdated(setGames);
+    const offEnded = api.onGameEnded(({ reason }) => wii.jugando.end(reason));
+    api.getState().then((s) => {
+      setGames(s.games);
+      wii.canales.intro();
+    });
+
+    return {
+      unmount() {
+        wii.jugando.dispose();
+        wii.amigos.dispose();
+        wii.canal.dispose();
+        wii.canales.dispose();
+        window.removeEventListener('keydown', onKey);
+        if (offGames) offGames();
+        if (offSummary) offSummary();
+        if (offEnded) offEnded();
+        wii.musica.dispose();
+        document.body.classList.remove('playing');
+        root.innerHTML = '';
+      },
+    };
+  }
+
+  // Horas, "jugado hace…" y logros de un juego, en una línea
+  function statsLine(wii, g) {
+    const per = wii.summary.perGame && g.appId && wii.summary.perGame[g.appId];
+    return [U.hours(g.playtimeMin), g.lastPlayed ? `Jugado ${U.ago(g.lastPlayed)}` : '', per && per.total ? `${per.done} de ${per.total} logros` : '']
+      .filter(Boolean)
+      .join('   ·   ');
+  }
+
+  function px(r) {
+    return { left: `${r.left}px`, top: `${r.top}px`, width: `${r.width}px`, height: `${r.height}px` };
+  }
+
+  function titleText(name, variant) {
+    const wrap = document.createElement('div');
+    wrap.className = variant === 'tile' ? 'title-text small' : 'title-text';
+    let size;
+    if (variant === 'tile') {
+      // Hasta 2 líneas dentro del cuadrito
+      const longestWord = Math.max(...name.split(/\s+/).map((w) => w.length));
+      const perLine = Math.max(longestWord, Math.ceil(name.length / 2));
+      size = Math.max(24, Math.min(56, Math.floor(330 / (perLine * 0.62))));
+    } else {
+      size = Math.max(70, Math.min(170, Math.floor(1500 / (name.length * 0.6))));
+    }
+    wrap.style.fontSize = `${size}px`;
+    wrap.innerHTML = `<span class="stroke"></span><span class="fill"></span>`;
+    wrap.querySelectorAll('span').forEach((s) => (s.textContent = name));
+    return wrap;
+  }
+
+  // ---------- Menú: el reloj, los canales y sus páginas, la selección con teclado o control, ordenar y mover ----------
+  function menuDeCanales(wii) {
+    const { $, ctx, root } = wii;
+    const grid = $('#grid');
     let rawGames = []; // como llegan, antes de ordenarlos
-    const order = window.NostalHubUtil.gameOrder('wii', { manual: true, def: 'manual' }); // tu orden, como en la Wii
+    const order = U.gameOrder('wii', { manual: true, def: 'manual' }); // tu orden, como en la Wii
     let page = 0;
     let pageTimer = 0;
     const stills = new Map(); // primer cuadro de las imágenes animadas
     let liveTile = null;
-    let view = 'menu'; // menu | channel | playing | busy
-    let current = -1; // índice del juego abierto
-    let hls = null;
-    let playTimer = null;
     const BAR = ['#btn-settings', '#btn-sort', '#btn-search', '#btn-music', '#btn-friends', '#btn-random']; // botones de abajo, de izquierda a derecha
     const BAR_UNDER = [0, 2, 3, 5]; // el botón que queda más abajo de cada columna de canales
     const kf = { area: 'grid', index: 0, btn: 0, on: false }; // selección con teclado o control (ver paintKf)
-
     // ---------- Reloj ----------
-    const { wait, pad2: pad } = window.NostalHubUtil;
     function tick() {
       const now = new Date();
       $('#clock-h').textContent = pad(now.getHours());
@@ -258,7 +375,7 @@
 
     // ---------- Menú ----------
     function pageCount() {
-      return Math.max(1, Math.ceil(games.length / PER_PAGE));
+      return Math.max(1, Math.ceil(wii.games.length / PER_PAGE));
     }
 
     function renderGrid() {
@@ -272,7 +389,7 @@
         const col = Math.floor(within / ROWS);
         const row = within % ROWS;
         const gameIndex = p * PER_PAGE + row * COLS + col; // orden de izquierda a derecha, fila por fila
-        const g = i < pageCount() * PER_PAGE ? games[gameIndex] : null;
+        const g = i < pageCount() * PER_PAGE ? wii.games[gameIndex] : null;
         const el = g ? gameTile(g, gameIndex) : emptyTile();
         el.style.setProperty('--d', `${(p * COLS + col) * 55 + row * 35}ms`);
         el.dataset.p = p;
@@ -322,9 +439,9 @@
         inner.appendChild(nameLabel(g.name));
       }
       btn.appendChild(inner);
-      const per = g.appId && summary.perGame && summary.perGame[g.appId];
-      if (window.NostalHubUtil.isComplete(per)) btn.insertAdjacentHTML('beforeend', window.NostalHubUtil.completeBadge('seal', 'on-icon')); // 100 %
-      btn.addEventListener('click', () => (mv ? moveClick(index) : openChannel(index)));
+      const per = g.appId && wii.summary.perGame && wii.summary.perGame[g.appId];
+      if (U.isComplete(per)) btn.insertAdjacentHTML('beforeend', U.completeBadge('seal', 'on-icon')); // 100 %
+      btn.addEventListener('click', () => (mv ? moveClick(index) : wii.canal.open(index)));
       btn.addEventListener('mouseenter', () => setLiveTile(btn));
       btn.addEventListener('mouseleave', () => liveTile === btn && setLiveTile(null));
       if (mv && mv.index === index) btn.classList.add('wmv');
@@ -443,8 +560,8 @@
     // RePág / AvPág (L1 / R1 del control): cambiar de página. Se ve solo después de usar las flechas.
     function paintKf() {
       root.querySelectorAll('.wkf').forEach((el) => el.classList.remove('wkf'));
-      if (!kf.on || view !== 'menu') {
-        if (view === 'menu') setLiveTile(grid.querySelector('.tile.game:hover')); // volviste al mouse
+      if (!kf.on || wii.view !== 'menu') {
+        if (wii.view === 'menu') setLiveTile(grid.querySelector('.tile.game:hover')); // volviste al mouse
         return;
       }
       const el = kf.area === 'grid' ? tileFor(kf.index) : $(BAR[kf.btn]);
@@ -453,10 +570,10 @@
     }
     // Que la selección quede en la página que se ve (misma fila y columna, o el último canal de esa página)
     function kfToPage() {
-      if (kf.area !== 'grid' || !games.length) return;
+      if (kf.area !== 'grid' || !wii.games.length) return;
       const within = kf.index % PER_PAGE;
-      kf.index = Math.min(page * PER_PAGE + within, games.length - 1);
-      if (Math.floor(kf.index / PER_PAGE) !== page) kf.index = Math.min(page * PER_PAGE, games.length - 1);
+      kf.index = Math.min(page * PER_PAGE + within, wii.games.length - 1);
+      if (Math.floor(kf.index / PER_PAGE) !== page) kf.index = Math.min(page * PER_PAGE, wii.games.length - 1);
     }
     function menuKey(k) {
       if (!kf.on) {
@@ -468,10 +585,10 @@
       if (kf.area === 'bar') {
         if (k === 'ArrowLeft') kf.btn = Math.max(0, kf.btn - 1);
         else if (k === 'ArrowRight') kf.btn = Math.min(BAR.length - 1, kf.btn + 1);
-        else if (k === 'ArrowUp' && games.length) kf.area = 'grid';
+        else if (k === 'ArrowUp' && wii.games.length) kf.area = 'grid';
         return paintKf();
       }
-      if (!games.length) {
+      if (!wii.games.length) {
         kf.area = 'bar';
         return paintKf();
       }
@@ -479,7 +596,7 @@
       const within = kf.index - base;
       const r = Math.floor(within / COLS);
       const c = within % COLS;
-      const last = Math.min(games.length - 1, base + PER_PAGE - 1);
+      const last = Math.min(wii.games.length - 1, base + PER_PAGE - 1);
       if (k === 'ArrowLeft' && c > 0) kf.index--;
       else if (k === 'ArrowRight' && c < COLS - 1 && kf.index + 1 <= last) kf.index++;
       else if (k === 'ArrowUp' && r > 0) kf.index -= COLS;
@@ -495,7 +612,7 @@
     // Con el mouse se esconde (el mouse ya marca lo que tiene encima). Solo si el puntero se movió de verdad:
     // al cambiar de página, los canales pasan bajo el mouse quieto y el navegador también avisa "se movió".
     let lastPointer = '';
-    menu.addEventListener('mousemove', (e) => {
+    wii.menuEl.addEventListener('mousemove', (e) => {
       const at = `${e.clientX},${e.clientY}`;
       if (at === lastPointer) return;
       lastPointer = at;
@@ -504,37 +621,35 @@
       paintKf();
     });
 
-    let wheelLock = 0;
-    menu.addEventListener('wheel', (e) => {
-      if (view !== 'menu' || Date.now() < wheelLock) return;
+    wii.menuEl.addEventListener('wheel', (e) => {
+      if (wii.view !== 'menu' || Date.now() < wii.wheelLock) return;
       const d = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
       if (Math.abs(d) < 10) return;
       setPage(page + (d > 0 ? 1 : -1));
-      wheelLock = Date.now() + 450;
+      wii.wheelLock = Date.now() + 450;
     });
 
-    $('#btn-settings').addEventListener('click', () => openSettings());
+    $('#btn-settings').addEventListener('click', () => wii.ajustes.open());
     $('#btn-random').addEventListener('click', () => {
-      if (!games.length) return;
-      const i = Math.floor(Math.random() * games.length);
+      if (!wii.games.length) return;
+      const i = Math.floor(Math.random() * wii.games.length);
       setPage(Math.floor(i / PER_PAGE), false);
-      openChannel(i);
+      wii.canal.open(i);
     });
-
     // ---------- Ordenar canales (botón de las flechas o tecla O) ----------
     // Jugado recientemente, Nombre, Horas jugadas, % de logros o A mano. "Mover" lleva un canal a otro lugar.
     let wo = null; // { items, sel }
     let mv = null; // { index, before } al mover un canal (index null = falta elegir cuál)
     function openSort() {
-      if (view !== 'menu' || mv) return;
-      const g = kf.on && kf.area === 'grid' ? games[kf.index] : null;
+      if (wii.view !== 'menu' || mv) return;
+      const g = kf.on && kf.area === 'grid' ? wii.games[kf.index] : null;
       const items = [
         ...order.sorts.map((s) => ({ label: s.label, on: s.id === order.mode, run: () => (order.set(s.id), resort()) })),
         { label: g ? `Mover "${g.name}"` : 'Mover un canal', mv: true, run: () => startMove(g ? kf.index : null) },
       ];
       wo = { items, sel: Math.max(0, items.findIndex((x) => x.on)) };
       const list = $('.wo-list');
-      list.innerHTML = items.map((it, i) => `<button class="wo-opt${it.on ? ' on' : ''}${it.mv ? ' mv' : ''}" data-i="${i}">${window.NostalHubUtil.escapeHtml(it.label)}</button>`).join('');
+      list.innerHTML = items.map((it, i) => `<button class="wo-opt${it.on ? ' on' : ''}${it.mv ? ' mv' : ''}" data-i="${i}">${U.escapeHtml(it.label)}</button>`).join('');
       list.querySelectorAll('button').forEach((b) => {
         b.addEventListener('mouseenter', () => setWo(Number(b.dataset.i)));
         b.addEventListener('click', () => pickWo(Number(b.dataset.i)));
@@ -560,20 +675,20 @@
     $('.wo-pop').addEventListener('click', (e) => e.target === e.currentTarget && closeWo());
     $('#btn-sort').addEventListener('click', () => openSort());
     function resort() {
-      const keep = kf.on && kf.area === 'grid' && games[kf.index] ? games[kf.index].id : null;
-      games = order.apply(rawGames, summary);
-      if (keep) kf.index = Math.max(0, games.findIndex((g) => g.id === keep));
+      const keep = kf.on && kf.area === 'grid' && wii.games[kf.index] ? wii.games[kf.index].id : null;
+      wii.games = order.apply(rawGames, wii.summary);
+      if (keep) kf.index = Math.max(0, wii.games.findIndex((g) => g.id === keep));
       renderGrid();
       if (keep) {
         setPage(Math.floor(kf.index / PER_PAGE), false);
         paintKf();
       }
-      toast(`Orden: ${order.label()}`);
+      ctx.toast(`Orden: ${order.label()}`);
     }
 
     function startMove(index) {
-      mv = { index, before: games.map((g) => g.id) };
-      menu.classList.add('moving');
+      mv = { index, before: wii.games.map((g) => g.id) };
+      wii.menuEl.classList.add('moving');
       paintMove();
     }
     function paintMove() {
@@ -581,16 +696,16 @@
       hint.hidden = !mv;
       root.querySelectorAll('.tile.game').forEach((t) => t.classList.toggle('wmv', !!mv && mv.index != null && Number(t.dataset.index) === mv.index));
       if (!mv) return;
-      const g = mv.index != null && games[mv.index];
+      const g = mv.index != null && wii.games[mv.index];
       hint.innerHTML = g
-        ? `Moviendo <b>${window.NostalHubUtil.escapeHtml(g.name)}</b> · Flechas o clic en otro lugar para cambiarlo · Enter: dejarlo · Esc: cancelar`
+        ? `Moviendo <b>${U.escapeHtml(g.name)}</b> · Flechas o clic en otro lugar para cambiarlo · Enter: dejarlo · Esc: cancelar`
         : 'Elige el canal que quieres mover (clic, o flechas y Enter) · Esc: cancelar';
     }
     function moveTo(j) {
       const i = mv.index;
-      j = Math.max(0, Math.min(games.length - 1, j));
+      j = Math.max(0, Math.min(wii.games.length - 1, j));
       if (j === i) return;
-      games.splice(j, 0, games.splice(i, 1)[0]);
+      wii.games.splice(j, 0, wii.games.splice(i, 1)[0]);
       mv.index = j;
       kf.on = true;
       kf.area = 'grid';
@@ -638,20 +753,84 @@
       const before = mv.before;
       const moved = mv.index != null;
       mv = null;
-      menu.classList.remove('moving');
+      wii.menuEl.classList.remove('moving');
       paintMove();
       if (save && moved) {
-        order.save(games);
-        toast('Orden: A mano');
-      } else games.sort((a, b) => before.indexOf(a.id) - before.indexOf(b.id));
+        order.save(wii.games);
+        ctx.toast('Orden: A mano');
+      } else wii.games.sort((a, b) => before.indexOf(a.id) - before.indexOf(b.id));
       renderGrid();
     }
+    function key(e) {
+      if (e.key === 'PageUp' || e.key === 'PageDown') {
+        setPage(page + (e.key === 'PageUp' ? -1 : 1));
+        kfToPage();
+        paintKf();
+      } else if (e.key.startsWith('Arrow')) menuKey(e.key);
+      else if (e.key === 'Enter' && kf.on) {
+        if (kf.area === 'grid') wii.canal.open(kf.index);
+        else $(BAR[kf.btn]).click();
+      } else if (e.key === 'Escape') ctx.openSelector();
+      else if (e.key === 'a' || e.key === 'A') wii.amigos.open(); // el sobre: amigos
+      else if (e.key === 'o' || e.key === 'O') openSort();
+    }
+    // Con la ventanita de ordenar abierta
+    function sortKey(e) {
+      if (e.key === 'ArrowDown') setWo(wo.sel + 1);
+      else if (e.key === 'ArrowUp') setWo(wo.sel - 1);
+      else if (e.key === 'Enter') pickWo(wo.sel);
+      else if (e.key === 'Escape' || e.key === 'Backspace' || e.key === 'o' || e.key === 'O') closeWo();
+    }
+    return {
+      key,
+      sortKey,
+      moveKey,
+      setPage,
+      tileFor,
+      setLiveTile,
+      paintKf,
+      renderGrid,
+      sorting: () => !!wo,
+      moving: () => !!mv,
+      // Deja marcado un canal (al volver de él, o al elegirlo en Buscar)
+      mark(index) {
+        Object.assign(kf, { area: 'grid', index });
+      },
+      // Llegó la lista de juegos: se deja de mover y se ordena
+      setRaw(list) {
+        rawGames = list || [];
+        if (mv) {
+          mv = null;
+          wii.menuEl.classList.remove('moving');
+          paintMove();
+        }
+        wii.games = order.apply(rawGames, wii.summary);
+      },
+      raw: () => rawGames,
+      sortsByAch: () => order.mode === 'ach' && !mv && wii.view === 'menu',
+      // Entrada: los canales aparecen uno tras otro
+      intro() {
+        wii.menuEl.classList.add('intro');
+        setTimeout(() => wii.menuEl.classList.remove('intro'), 1400);
+      },
+      dispose() {
+        clearInterval(tickTimer);
+        clearTimeout(pageTimer);
+      },
+    };
+  }
 
-    // ---------- Pantalla de canal ----------
-
+  // ---------- Pantalla de canal ----------
+  function pantallaCanal(wii) {
+    const { $, ctx, root } = wii;
+    const channel = $('#channel');
+    const chTop = channel.querySelector('.ch-top');
+    const chMedia = channel.querySelector('.ch-media');
+    const chTitle = channel.querySelector('.ch-title');
+    let hls = null;
     // Música propia del juego (musica.mp3): suena en su canal en vez de la música de la Wii
     const ss = () => (ctx.soundSettings ? ctx.soundSettings() : { music: true, musicVolume: 0.35 });
-    const { fadeAudio } = window.NostalHubUtil;
+    const { fadeAudio } = U;
     let chSong = null; // { url, audio }
     function setChannelMusic(url) {
       const wanted = url && ss().music !== false ? url : null;
@@ -675,22 +854,22 @@
     }
 
     async function openChannel(index) {
-      if (view !== 'menu') return;
-      const g = games[index];
-      const tile = tileFor(index);
+      if (wii.view !== 'menu') return;
+      const g = wii.games[index];
+      const tile = wii.canales.tileFor(index);
       if (!g || !tile) return;
-      view = 'busy';
-      current = index;
+      wii.view = 'busy';
+      wii.current = index;
 
       // El cuadrito crece hasta llenar la parte de arriba
-      const from = stageRect(tile.querySelector('.tile-inner'));
+      const from = ctx.stageRect(tile.querySelector('.tile-inner'));
       const zoomer = document.createElement('div');
       zoomer.className = 'zoomer';
       setZoomerImage(zoomer, tile.querySelector('.tile-still, .tile-bg, .tile-inner img'), g);
-      setLiveTile(null);
+      wii.canales.setLiveTile(null);
       Object.assign(zoomer.style, px(from));
       root.appendChild(zoomer);
-      menu.classList.add('dimmed');
+      wii.menuEl.classList.add('dimmed');
 
       const anim = zoomer.animate(
         [
@@ -709,16 +888,16 @@
       channel.classList.add('enter');
       await wait(30);
       zoomer.remove();
-      view = 'channel';
+      wii.view = 'channel';
     }
 
     async function closeChannel() {
-      if (view !== 'channel') return;
-      view = 'busy';
-      const g = games[current];
+      if (wii.view !== 'channel') return;
+      wii.view = 'busy';
+      const g = wii.games[wii.current];
       // Asegura que el canal esté en la página visible para volver a él
-      if (current >= 0) setPage(Math.floor(current / PER_PAGE), false);
-      const tile = tileFor(current);
+      if (wii.current >= 0) wii.canales.setPage(Math.floor(wii.current / PER_PAGE), false);
+      const tile = wii.canales.tileFor(wii.current);
 
       channel.classList.remove('enter');
       channel.classList.add('leave');
@@ -732,10 +911,10 @@
       Object.assign(zoomer.style, { left: '0px', top: '0px', width: `${STAGE_W}px`, height: `${TOP_H}px`, borderRadius: '0px' });
       root.appendChild(zoomer);
       channel.hidden = true;
-      menu.classList.remove('dimmed');
+      wii.menuEl.classList.remove('dimmed');
 
       if (tile) {
-        const to = stageRect(tile.querySelector('.tile-inner'));
+        const to = ctx.stageRect(tile.querySelector('.tile-inner'));
         await zoomer.animate(
           [
             { left: '0px', top: '0px', width: `${STAGE_W}px`, height: `${TOP_H}px`, borderRadius: '0px', opacity: 1 },
@@ -747,9 +926,9 @@
       await zoomer.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 120, fill: 'forwards' }).finished;
       zoomer.remove();
       channel.classList.remove('leave');
-      view = 'menu';
-      if (current >= 0) Object.assign(kf, { area: 'grid', index: current }); // queda marcado el canal del que vienes
-      paintKf();
+      wii.view = 'menu';
+      if (wii.current >= 0) wii.canales.mark(wii.current); // queda marcado el canal del que vienes
+      wii.canales.paintKf();
     }
 
     // Lo que crece o se achica entre el menú y el canal: una foto de lo que ya se ve. Volver a cargar la imagen congelaba
@@ -764,11 +943,6 @@
         zoomer.appendChild(c);
       } else if (g && (g.hero || g.tile) && !g.tileIsVideo) zoomer.style.backgroundImage = `url("${g.hero || g.tile}")`;
     }
-
-    function px(r) {
-      return { left: `${r.left}px`, top: `${r.top}px`, width: `${r.width}px`, height: `${r.height}px` };
-    }
-
     function fillChannel(g) {
       stopVideo();
       chMedia.innerHTML = '';
@@ -817,33 +991,15 @@
       }
 
       const desc = channel.querySelector('.ch-desc');
-    const stats = statsLine(g);
+    const stats = statsLine(wii, g);
     paintStats(g);
     channel.querySelector('.ch-desc-text').textContent = g.description || '';
     desc.hidden = !g.description && !stats;
     $('#btn-ach').hidden = !g.hasAch;
 
-    const many = games.length > 1;
+    const many = wii.games.length > 1;
       $('#ch-prev').style.visibility = many ? '' : 'hidden';
       $('#ch-next').style.visibility = many ? '' : 'hidden';
-    }
-
-    function titleText(name, variant) {
-      const wrap = document.createElement('div');
-      wrap.className = variant === 'tile' ? 'title-text small' : 'title-text';
-      let size;
-      if (variant === 'tile') {
-        // Hasta 2 líneas dentro del cuadrito
-        const longestWord = Math.max(...name.split(/\s+/).map((w) => w.length));
-        const perLine = Math.max(longestWord, Math.ceil(name.length / 2));
-        size = Math.max(24, Math.min(56, Math.floor(330 / (perLine * 0.62))));
-      } else {
-        size = Math.max(70, Math.min(170, Math.floor(1500 / (name.length * 0.6))));
-      }
-      wrap.style.fontSize = `${size}px`;
-      wrap.innerHTML = `<span class="stroke"></span><span class="fill"></span>`;
-      wrap.querySelectorAll('span').forEach((s) => (s.textContent = name));
-      return wrap;
     }
 
     function startVideo(g) {
@@ -902,11 +1058,11 @@
     }
 
     function switchChannel(dir) {
-      if (view !== 'channel' || games.length < 2) return;
-      current = (current + dir + games.length) % games.length;
-      channel.dataset.gameCurrent = games[current].id;
-      fillChannel(games[current]);
-      setChannelMusic(games[current].music);
+      if (wii.view !== 'channel' || wii.games.length < 2) return;
+      wii.current = (wii.current + dir + wii.games.length) % wii.games.length;
+      channel.dataset.gameCurrent = wii.games[wii.current].id;
+      fillChannel(wii.games[wii.current]);
+      setChannelMusic(wii.games[wii.current].music);
       chTop.classList.remove('swap-next', 'swap-prev');
       chTop.offsetWidth; // reinicia la animación
       chTop.classList.add(dir > 0 ? 'swap-next' : 'swap-prev');
@@ -915,17 +1071,73 @@
     $('#btn-back').addEventListener('click', closeChannel);
     $('#ch-prev').addEventListener('click', () => switchChannel(-1));
     $('#ch-next').addEventListener('click', () => switchChannel(1));
-    $('#btn-start').addEventListener('click', startGame);
+    $('#btn-start').addEventListener('click', () => wii.jugando.start());
+    // Juego al 100 %: sello dorado en la línea de datos del canal y en su cuadro del menú
+    function paintStats(g) {
+      const el = channel.querySelector('.ch-stats');
+      const per = wii.summary.perGame && g.appId && wii.summary.perGame[g.appId];
+      el.innerHTML = U.escapeHtml(statsLine(wii, g)) + (U.isComplete(per) ? `   <span class="nh-done-text">${U.completeBadge('seal')} Completado</span>` : '');
+    }
+    function key(e) {
+      if (e.key === 'ArrowDown' && !$('#btn-ach').hidden) return wii.logros.open(); // ↓ abre los logros
+      if (e.key === 'Escape' || e.key === 'Backspace') closeChannel();
+      else if (e.key === 'Enter') wii.jugando.start();
+      else if (e.key === 'ArrowLeft') switchChannel(-1);
+      else if (e.key === 'ArrowRight') switchChannel(1);
+    }
+    return {
+      key,
+      stopVideo,
+      paintStats,
+      open: openChannel,
+      close: closeChannel,
+      switch: switchChannel,
+      setMusic: setChannelMusic,
+      // Al iniciar el juego, el canal se esconde
+      hide() {
+        stopVideo();
+        channel.hidden = true;
+        channel.classList.remove('enter');
+      },
+      // El juego abierto ya no está en la lista: se vuelve al menú
+      dropped() {
+        wii.current = -1;
+        channel.hidden = true;
+        stopVideo();
+        setChannelMusic(null);
+        wii.menuEl.classList.remove('dimmed');
+        wii.view = 'menu';
+      },
+      // Llegaron datos nuevos con el canal abierto: refresca el arte sin cortar el video
+      refresh() {
+        if (wii.view !== 'channel' || wii.current < 0) return;
+        const g = wii.games[wii.current];
+        channel.querySelector('.ch-stats').textContent = statsLine(wii, g);
+        const hero = chMedia.querySelector('img.hero');
+        if (hero && (g.hero || g.tile) && hero.src !== (g.hero || g.tile)) hero.src = g.hero || g.tile;
+        setChannelMusic(g.music); // la acabas de poner o quitar en el editor
+      },
+      dispose() {
+        stopVideo();
+        setChannelMusic(null);
+      },
+    };
+  }
 
-    // ---------- Iniciar y "Jugando a…" ----------
+  // ---------- Iniciar y "Jugando a…" ----------
+  function pantallaJugando(wii) {
+    const { $, api, ctx } = wii;
+    const playing = $('#playing');
+    const nowPlaying = U.nowPlaying(playing, api, ctx.toast);
+    let playTimer = null;
     async function startGame() {
-      if (view !== 'channel') return;
-      const g = games[current];
-      view = 'busy';
+      if (wii.view !== 'channel') return;
+      const g = wii.games[wii.current];
+      wii.view = 'busy';
       const res = await api.launch(g.id);
       if (!res || !res.ok) {
-        view = 'channel';
-        toast(`No se pudo abrir: ${(res && res.error) || 'error desconocido'}`);
+        wii.view = 'channel';
+        ctx.toast(`No se pudo abrir: ${(res && res.error) || 'error desconocido'}`);
         return;
       }
 
@@ -935,16 +1147,14 @@
       flash.classList.add('on');
       await wait(320);
 
-      stopVideo();
-      channel.hidden = true;
-      channel.classList.remove('enter');
+      wii.canal.hide();
       playing.querySelector('.pl-bg').style.backgroundImage = g.hero || g.tile ? `url("${g.hero || g.tile}")` : '';
       playing.querySelector('.pl-name').textContent = g.name;
       playing.hidden = false;
       playing.classList.add('enter');
       document.body.classList.add('playing');
-      setChannelMusic(null);
-      view = 'playing';
+      wii.canal.setMusic(null);
+      wii.view = 'playing';
       nowPlaying.start(); // Spotify y Grupo a los lados
 
       const started = Date.now();
@@ -961,65 +1171,45 @@
     }
 
     async function endPlaying(reason) {
-      if (view !== 'playing') return;
+      if (wii.view !== 'playing') return;
       nowPlaying.stop();
       clearInterval(playTimer);
       document.body.classList.remove('playing');
-      menu.classList.remove('dimmed');
-      if (current >= 0) setPage(Math.floor(current / PER_PAGE), false);
+      wii.menuEl.classList.remove('dimmed');
+      if (wii.current >= 0) wii.canales.setPage(Math.floor(wii.current / PER_PAGE), false);
       await playing.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 450, easing: 'ease' }).finished;
       playing.hidden = true;
       playing.classList.remove('enter');
-      view = 'menu';
-      if (reason === 'not-started') toast('No se detectó que el juego abriera');
+      wii.view = 'menu';
+      if (reason === 'not-started') ctx.toast('No se detectó que el juego abriera');
     }
 
     $('#btn-stop').addEventListener('click', () => {
       api.dismissPlaying();
       endPlaying('manual');
     });
+    return {
+      start: startGame,
+      end: endPlaying,
+      dispose() {
+        nowPlaying.dispose();
+        clearInterval(playTimer);
+      },
+    };
+  }
 
-    // ---------- Horas jugadas y logros ----------
-    const U = window.NostalHubUtil;
-    let summary = { perGame: {} };
-    function statsLine(g) {
-      const per = summary.perGame && g.appId && summary.perGame[g.appId];
-      return [U.hours(g.playtimeMin), g.lastPlayed ? `Jugado ${U.ago(g.lastPlayed)}` : '', per && per.total ? `${per.done} de ${per.total} logros` : '']
-        .filter(Boolean)
-        .join('   ·   ');
-    }
-    if (api.getAchievementSummary) api.getAchievementSummary().then((s) => s && ((summary = s), redrawDone()));
-    const offSummary = api.onSteamSummary
-      ? api.onSteamSummary((s) => {
-          summary = s || summary;
-          if (order.mode === 'ach' && !mv && view === 'menu') setGames(rawGames); // el orden por logros cambia con el resumen
-          if ((view === 'channel' || view === 'ach') && current >= 0 && games[current]) paintStats(games[current]);
-          redrawDone();
-        })
-      : null;
-    // Juego al 100 %: sello dorado en la línea de datos del canal y en su cuadro del menú
-    function paintStats(g) {
-      const el = channel.querySelector('.ch-stats');
-      const per = summary.perGame && g.appId && summary.perGame[g.appId];
-      el.innerHTML = U.escapeHtml(statsLine(g)) + (U.isComplete(per) ? `   <span class="nh-done-text">${U.completeBadge('seal')} Completado</span>` : '');
-    }
-    let doneKey = '';
-    function redrawDone() {
-      const k = U.completeKey(summary);
-      if (k === doneKey) return;
-      doneKey = k;
-      if (games.length) renderGrid();
-    }
-
+  // ---------- Logros del canal abierto ----------
+  function pantallaLogros(wii) {
+    const { $, api } = wii;
     let achList = [];
     let achSel = 0;
     let achToken = 0;
     const wa = $('#wii-ach');
 
     async function openAch() {
-      if (view !== 'channel' || current < 0) return;
-      const g = games[current];
-      view = 'ach';
+      if (wii.view !== 'channel' || wii.current < 0) return;
+      const g = wii.games[wii.current];
+      wii.view = 'ach';
       wa.hidden = false;
       wa.classList.remove('leave');
       $('.wa-game').textContent = g.name;
@@ -1032,7 +1222,7 @@
       msg.innerHTML = '<div class="wa-spinner"></div>Cargando logros…';
       const token = ++achToken;
       const res = (api.getAchievements ? await api.getAchievements(g.appId) : null) || { status: 'error', list: [] };
-      if (token !== achToken || view !== 'ach') return;
+      if (token !== achToken || wii.view !== 'ach') return;
       if (res.status !== 'ok') {
         msg.innerHTML = U.achievementMessage(res);
         return;
@@ -1074,20 +1264,30 @@
       }
     }
     async function closeAch() {
-      if (view !== 'ach') return;
+      if (wii.view !== 'ach') return;
       achToken++;
       wa.classList.add('leave');
       await wait(220);
       wa.hidden = true;
       wa.classList.remove('leave');
-      view = 'channel';
+      wii.view = 'channel';
     }
     $('#btn-ach').addEventListener('click', openAch);
     $('#wa-back').addEventListener('click', closeAch);
+    function key(e) {
+      if (e.key === 'Escape' || e.key === 'Backspace' || e.key === 'Enter') closeAch();
+      else if (e.key === 'ArrowLeft') setAch(achSel - 1);
+      else if (e.key === 'ArrowRight') setAch(achSel + 1);
+      else if (e.key === 'ArrowUp') setAch(U.gridMove([...wa.querySelectorAll('.wa-cell')], achSel, -1));
+      else if (e.key === 'ArrowDown') setAch(U.gridMove([...wa.querySelectorAll('.wa-cell')], achSel, 1));
+    }
+    return { key, open: openAch };
+  }
 
-
-    // ---------- Amigos (de Steam) ----------
-    // Botón del sobre (abajo a la derecha): lista a la izquierda y la carta del amigo marcado a la derecha.
+  // ---------- Amigos (de Steam) ----------
+  // Botón del sobre (abajo a la derecha): lista a la izquierda y la carta del amigo marcado a la derecha.
+  function pantallaAmigos(wii) {
+    const { $, api, ctx } = wii;
     const feed = U.friendsFeed(api);
     const wf = $('#wii-fr');
     let wfSel = 0;
@@ -1101,16 +1301,16 @@
     }
     feed.onChange(() => {
       wfBadge();
-      if (view === 'friends') paintWf();
+      if (wii.view === 'friends') paintWf();
     });
     feed.load(); // para el número de amigos conectados en el sobre
     function wfPic(f, cls = '') {
       return `<span class="wf-pic ${cls} ${U.friendClass(f)}">${f.avatar ? `<img src="${U.escapeHtml(f.avatar)}" alt="" />` : `<b>${U.escapeHtml((f.name || '?').trim().charAt(0).toUpperCase())}</b>`}<i></i></span>`;
     }
     function openFriends() {
-      if (view !== 'menu') return;
-      view = 'friends';
-      menu.classList.add('dimmed');
+      if (wii.view !== 'menu') return;
+      wii.view = 'friends';
+      wii.menuEl.classList.add('dimmed');
       wf.hidden = false;
       wf.classList.remove('leave');
       wfSel = 0;
@@ -1121,14 +1321,14 @@
       feed.watch(true);
     }
     async function closeFriends() {
-      if (view !== 'friends') return;
+      if (wii.view !== 'friends') return;
       feed.watch(false);
       wf.classList.add('leave');
       await wait(220);
       wf.hidden = true;
       wf.classList.remove('leave');
-      menu.classList.remove('dimmed');
-      view = 'menu';
+      wii.menuEl.classList.remove('dimmed');
+      wii.view = 'menu';
     }
     function paintWf() {
       const d = feed.data;
@@ -1184,10 +1384,10 @@
       if (!f) return;
       if (btn) {
         feed.chat(f);
-        toast(`Se abrió el chat con ${f.name} en Steam`);
+        ctx.toast(`Se abrió el chat con ${f.name} en Steam`);
       } else {
         feed.profile(f);
-        toast(`Se abrió el perfil de ${f.name} en Steam`);
+        ctx.toast(`Se abrió el perfil de ${f.name} en Steam`);
       }
     }
     function friendsKey(e) {
@@ -1206,18 +1406,22 @@
     }
     $('#btn-friends').addEventListener('click', openFriends);
     $('#wf-back').addEventListener('click', closeFriends);
+    return { open: openFriends, key: friendsKey, dispose: () => feed.dispose() };
+  }
 
-    // ---------- Buscar un juego (la lupa de abajo a la izquierda) ----------
-    // Sin escribir nada salen todos por nombre (con el control se elige de la lista). Enter abre su canal.
+  // ---------- Buscar un juego (la lupa de abajo a la izquierda) ----------
+  // Sin escribir nada salen todos por nombre (con el control se elige de la lista). Enter abre su canal.
+  function pantallaBuscar(wii) {
+    const { $ } = wii;
     const wb = $('#wii-bus');
     const wbInput = wb.querySelector('.wb-input');
     let wbRows = [];
     let wbSel = 0;
     const plain = (t) => String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
     function openSearch() {
-      if (view !== 'menu' || mv) return;
-      view = 'search';
-      menu.classList.add('dimmed');
+      if (wii.view !== 'menu' || wii.canales.moving()) return;
+      wii.view = 'search';
+      wii.menuEl.classList.add('dimmed');
       wb.hidden = false;
       wb.classList.remove('leave');
       wbInput.value = '';
@@ -1225,29 +1429,29 @@
       wbInput.focus();
     }
     async function closeSearch() {
-      if (view !== 'search') return;
+      if (wii.view !== 'search') return;
       wbInput.blur();
       wb.classList.add('leave');
       await wait(220);
       wb.hidden = true;
       wb.classList.remove('leave');
-      menu.classList.remove('dimmed');
-      view = 'menu';
+      wii.menuEl.classList.remove('dimmed');
+      wii.view = 'menu';
     }
     function paintSearch() {
       const q = plain(wbInput.value.trim());
       // Primero los que empiezan con lo escrito, después los que lo tienen en otra parte; cada grupo por nombre
-      wbRows = games
+      wbRows = wii.games
         .map((g, i) => ({ g, i, at: plain(g.name).indexOf(q) }))
         .filter((r) => r.at >= 0)
         .sort((a, b) => (q ? (a.at !== 0) - (b.at !== 0) : 0) || a.g.name.localeCompare(b.g.name, 'es', { sensitivity: 'base' }));
-      wb.querySelector('.wb-count').textContent = q ? `${wbRows.length} de ${games.length}` : `${games.length} ${games.length === 1 ? 'juego' : 'juegos'}`;
+      wb.querySelector('.wb-count').textContent = q ? `${wbRows.length} de ${wii.games.length}` : `${wii.games.length} ${wii.games.length === 1 ? 'juego' : 'juegos'}`;
       const msg = wb.querySelector('.wb-msg');
       msg.hidden = wbRows.length > 0;
-      msg.innerHTML = games.length ? `<b>No hay juegos con "${U.escapeHtml(wbInput.value.trim())}"</b>` : '<b>Todavía no hay juegos</b>';
+      msg.innerHTML = wii.games.length ? `<b>No hay juegos con "${U.escapeHtml(wbInput.value.trim())}"</b>` : '<b>Todavía no hay juegos</b>';
       const list = wb.querySelector('.wb-list');
       list.innerHTML = wbRows
-        .map(({ g }, n) => `<button class="wf-row wb-row" data-n="${n}" data-game-id="${U.escapeHtml(g.id)}"><span class="wb-pic"><b>${U.escapeHtml(g.name.trim().charAt(0).toUpperCase())}</b></span><span class="wf-tx"><span class="wf-n">${U.escapeHtml(g.name)}</span><span class="wf-s">${U.escapeHtml(statsLine(g) || 'Sin jugar')}</span></span></button>`)
+        .map(({ g }, n) => `<button class="wf-row wb-row" data-n="${n}" data-game-id="${U.escapeHtml(g.id)}"><span class="wb-pic"><b>${U.escapeHtml(g.name.trim().charAt(0).toUpperCase())}</b></span><span class="wf-tx"><span class="wf-n">${U.escapeHtml(g.name)}</span><span class="wf-s">${U.escapeHtml(statsLine(wii, g) || 'Sin jugar')}</span></span></button>`)
         .join('');
       list.querySelectorAll('.wb-row').forEach((r) => {
         const { g } = wbRows[Number(r.dataset.n)];
@@ -1277,11 +1481,10 @@
       if (!r) return;
       wbInput.blur();
       wb.hidden = true;
-      view = 'menu';
-      setPage(Math.floor(r.i / PER_PAGE), false);
-      kf.area = 'grid';
-      kf.index = r.i;
-      openChannel(r.i);
+      wii.view = 'menu';
+      wii.canales.setPage(Math.floor(r.i / PER_PAGE), false);
+      wii.canales.mark(r.i);
+      wii.canal.open(r.i);
     }
     function searchKey(e) {
       const k = e.key;
@@ -1301,8 +1504,12 @@
     wbInput.addEventListener('input', paintSearch);
     $('#btn-search').addEventListener('click', openSearch);
     $('#wb-back').addEventListener('click', closeSearch);
+    return { open: openSearch, key: searchKey };
+  }
 
-    // ---------- Música (la nota de abajo a la derecha): la canción que suena en Spotify o la app elegida ----------
+  // ---------- Música (la nota de abajo a la derecha): la canción que suena en Spotify o la app elegida ----------
+  function pantallaMusica(wii) {
+    const { $, api, ctx } = wii;
     const wm = $('#wii-mu');
     let spotify = null;
     let wmSel = 0;
@@ -1314,26 +1521,26 @@
       ? api.onSpotify((st) => {
           spotify = st;
           musicDot();
-          if (view === 'music') paintMusic();
+          if (wii.view === 'music') paintMusic();
         })
       : null;
     function openMusic() {
-      if (view !== 'menu' || mv) return;
-      view = 'music';
-      menu.classList.add('dimmed');
+      if (wii.view !== 'menu' || wii.canales.moving()) return;
+      wii.view = 'music';
+      wii.menuEl.classList.add('dimmed');
       wm.hidden = false;
       wm.classList.remove('leave');
       wmSel = -1;
       paintMusic();
     }
     async function closeMusic() {
-      if (view !== 'music') return;
+      if (wii.view !== 'music') return;
       wm.classList.add('leave');
       await wait(220);
       wm.hidden = true;
       wm.classList.remove('leave');
-      menu.classList.remove('dimmed');
-      view = 'menu';
+      wii.menuEl.classList.remove('dimmed');
+      wii.view = 'menu';
     }
     function paintMusic() {
       const v = U.spotifyView(spotify || {});
@@ -1385,7 +1592,7 @@
       setMusicBtn(btns.indexOf(best));
     }
     function runMusic(m, v) {
-      if (m.startsWith('x:')) return U.musicRun(api, m.slice(2), v, toast);
+      if (m.startsWith('x:')) return U.musicRun(api, m.slice(2), v, ctx.toast);
       if (m === 'connect') return api.open && api.open('setup-spotify');
       if (api.spotifyControl) api.spotifyControl(m);
       if (m === 'toggle' && spotify && spotify.running) {
@@ -1409,10 +1616,21 @@
     $('#btn-music').addEventListener('click', openMusic);
     $('#wm-back').addEventListener('click', closeMusic);
     // Mientras estás en la Wii se sigue la canción (para el puntito de la nota y el panel)
-    if (api.spotifyWatch) api.spotifyWatch(true).then((st) => st && ((spotify = st), musicDot(), view === 'music' && paintMusic()));
+    if (api.spotifyWatch) api.spotifyWatch(true).then((st) => st && ((spotify = st), musicDot(), wii.view === 'music' && paintMusic()));
+    return {
+      open: openMusic,
+      key: musicKey,
+      dispose() {
+        if (offSpotify) offSpotify();
+        if (api.spotifyWatch) api.spotifyWatch(false);
+      },
+    };
+  }
 
-    // ---------- Configuración (engranaje) ----------
-    // Las opciones vienen de main.js (las mismas del menú de la bandeja); aquí solo se dibujan al estilo Wii.
+  // ---------- Configuración (engranaje) ----------
+  // Las opciones vienen de main.js (las mismas del menú de la bandeja); aquí solo se dibujan al estilo Wii.
+  function pantallaAjustes(wii) {
+    const { $, api, ctx } = wii;
     const ws = $('#wii-set');
     const wsList = ws.querySelector('.ws-list');
     const wsSub = ws.querySelector('.ws-sub');
@@ -1425,13 +1643,13 @@
     let wsOptFocus = 0;
 
     async function openSettings() {
-      if (view !== 'menu') return;
-      view = 'settings';
+      if (wii.view !== 'menu') return;
+      wii.view = 'settings';
       wsModel = api.getMenu ? await api.getMenu() : [];
       wsPage = 0;
       wsFocus = 0;
       wsItem = null;
-      menu.classList.add('dimmed');
+      wii.menuEl.classList.add('dimmed');
       ws.hidden = false;
       ws.classList.remove('leave');
       ws.classList.add('enter');
@@ -1439,14 +1657,14 @@
     }
 
     async function closeSettings() {
-      if (view !== 'settings') return;
+      if (wii.view !== 'settings') return;
       ws.classList.remove('enter');
       ws.classList.add('leave');
       await wait(260);
       ws.hidden = true;
       ws.classList.remove('leave');
-      menu.classList.remove('dimmed');
-      view = 'menu';
+      wii.menuEl.classList.remove('dimmed');
+      wii.view = 'menu';
     }
 
     function renderSettings(anim) {
@@ -1503,13 +1721,13 @@
       if (it.type === 'action' && !it.confirm) {
         if (it.id === 'consoles') {
           ws.hidden = true;
-          menu.classList.remove('dimmed');
-          view = 'menu';
+          wii.menuEl.classList.remove('dimmed');
+          wii.view = 'menu';
           return ctx.openSelector();
         }
-        if (/^open-|^devtools$/.test(it.id)) toast('Se abrió en Windows');
+        if (/^open-|^devtools$/.test(it.id)) ctx.toast('Se abrió en Windows');
         wsModel = (await api.runMenu(it.id)) || wsModel;
-        if (view === 'settings' && !wsItem) renderSettings();
+        if (wii.view === 'settings' && !wsItem) renderSettings();
         return;
       }
       // Activar/desactivar, elegir entre varias o confirmar: sub-pantalla con Atrás / Confirmar
@@ -1573,7 +1791,7 @@
       if (it.confirm) return api.runMenu(it.id);
       wsItem = null;
       if (wsPick !== undefined && String(wsPick) !== String(it.value)) wsModel = (await api.runMenu(it.id, wsPick)) || wsModel;
-      if (view === 'settings') renderSettings();
+      if (wii.view === 'settings') renderSettings();
     }
 
     function backSettings() {
@@ -1588,11 +1806,11 @@
     $('#ws-prev').addEventListener('click', () => setWsPage(wsPage - 1));
     $('#ws-next').addEventListener('click', () => setWsPage(wsPage + 1));
     ws.addEventListener('wheel', (e) => {
-      if (view !== 'settings' || wsItem || Date.now() < wheelLock) return;
+      if (wii.view !== 'settings' || wsItem || Date.now() < wii.wheelLock) return;
       const d = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
       if (Math.abs(d) < 10) return;
       setWsPage(wsPage + (d > 0 ? 1 : -1));
-      wheelLock = Date.now() + 450;
+      wii.wheelLock = Date.now() + 450;
     });
 
     function settingsKey(e) {
@@ -1614,115 +1832,6 @@
         if (sec && sec.items[wsFocus]) pickItem(sec.items[wsFocus]);
       }
     }
-
-    // ---------- Teclado ----------
-    function onKey(e) {
-      // Enter/espacio no deben "apretar" además el último botón clickeado con el mouse (al buscar, el espacio se escribe)
-      if (e.key === 'Enter' || (e.key === ' ' && view !== 'search')) e.preventDefault();
-      if (wo) {
-        if (e.key === 'ArrowDown') setWo(wo.sel + 1);
-        else if (e.key === 'ArrowUp') setWo(wo.sel - 1);
-        else if (e.key === 'Enter') pickWo(wo.sel);
-        else if (e.key === 'Escape' || e.key === 'Backspace' || e.key === 'o' || e.key === 'O') closeWo();
-        return;
-      }
-      if (mv) return moveKey(e.key);
-      if (view === 'settings') return settingsKey(e);
-      if (view === 'friends') return friendsKey(e);
-      if (view === 'search') return searchKey(e);
-      if (view === 'music') return musicKey(e);
-      if (view === 'ach') {
-        if (e.key === 'Escape' || e.key === 'Backspace' || e.key === 'Enter') closeAch();
-        else if (e.key === 'ArrowLeft') setAch(achSel - 1);
-        else if (e.key === 'ArrowRight') setAch(achSel + 1);
-        else if (e.key === 'ArrowUp') setAch(U.gridMove([...wa.querySelectorAll('.wa-cell')], achSel, -1));
-        else if (e.key === 'ArrowDown') setAch(U.gridMove([...wa.querySelectorAll('.wa-cell')], achSel, 1));
-        return;
-      }
-      if (view === 'channel') {
-        if (e.key === 'ArrowDown' && !$('#btn-ach').hidden) return openAch(); // ↓ abre los logros
-        if (e.key === 'Escape' || e.key === 'Backspace') closeChannel();
-        else if (e.key === 'Enter') startGame();
-        else if (e.key === 'ArrowLeft') switchChannel(-1);
-        else if (e.key === 'ArrowRight') switchChannel(1);
-      } else if (view === 'menu') {
-        if (e.key === 'PageUp' || e.key === 'PageDown') {
-          setPage(page + (e.key === 'PageUp' ? -1 : 1));
-          kfToPage();
-          paintKf();
-        } else if (e.key.startsWith('Arrow')) menuKey(e.key);
-        else if (e.key === 'Enter' && kf.on) {
-          if (kf.area === 'grid') openChannel(kf.index);
-          else $(BAR[kf.btn]).click();
-        } else if (e.key === 'Escape') ctx.openSelector();
-        else if (e.key === 'a' || e.key === 'A') openFriends(); // el sobre: amigos
-        else if (e.key === 'o' || e.key === 'O') openSort();
-      }
-    }
-    window.addEventListener('keydown', onKey);
-
-    const toast = ctx.toast;
-
-    // ---------- Datos ----------
-    function setGames(list) {
-      const openId = current >= 0 && games[current] ? games[current].id : null;
-      rawGames = list || [];
-      if (mv) {
-        mv = null;
-        menu.classList.remove('moving');
-        paintMove();
-      }
-      games = order.apply(rawGames, summary);
-      if (openId) {
-        const idx = games.findIndex((g) => g.id === openId);
-        if (idx >= 0) current = idx;
-        else if (view === 'channel') {
-          current = -1;
-          channel.hidden = true;
-          stopVideo();
-          setChannelMusic(null);
-          menu.classList.remove('dimmed');
-          view = 'menu';
-        }
-      }
-      renderGrid();
-      // Si la pantalla de canal está abierta, refresca el arte sin cortar el video
-      if (view === 'channel' && current >= 0) {
-        const g = games[current];
-        channel.querySelector('.ch-stats').textContent = statsLine(g);
-        const hero = chMedia.querySelector('img.hero');
-        if (hero && (g.hero || g.tile) && hero.src !== (g.hero || g.tile)) hero.src = g.hero || g.tile;
-        setChannelMusic(g.music); // la acabas de poner o quitar en el editor
-      }
-    }
-
-    const offGames = api.onGamesUpdated(setGames);
-    const offEnded = api.onGameEnded(({ reason }) => endPlaying(reason));
-    api.getState().then((s) => {
-      setGames(s.games);
-      // Entrada: los canales aparecen uno tras otro
-      menu.classList.add('intro');
-      setTimeout(() => menu.classList.remove('intro'), 1400);
-    });
-
-    return {
-      unmount() {
-        nowPlaying.dispose();
-        feed.dispose();
-        stopVideo();
-        setChannelMusic(null);
-        clearInterval(tickTimer);
-        clearInterval(playTimer);
-        clearTimeout(pageTimer);
-        window.removeEventListener('keydown', onKey);
-        if (offGames) offGames();
-        if (offSummary) offSummary();
-        if (offEnded) offEnded();
-        if (offSpotify) offSpotify();
-        if (api.spotifyWatch) api.spotifyWatch(false);
-        document.body.classList.remove('playing');
-        root.innerHTML = '';
-      },
-    };
+    return { open: openSettings, key: settingsKey };
   }
 })();
