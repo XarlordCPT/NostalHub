@@ -23,7 +23,9 @@
   const CARD_H = H - CARD_TOP + 40; // sigue un poco bajo el borde de la pantalla
   const MAX_CARDS = 5;
   const TAG = 124; // burbuja colgando arriba de la tarjeta
-  const { wait, pad2 } = window.NostalHubUtil;
+  const U = window.NostalHubUtil;
+  const esc = U.escapeHtml;
+  const { wait, pad2 } = U;
   const DAYS = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
   const MONTHS = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
 
@@ -305,35 +307,247 @@
   window.Themes.vita = { mount };
 
   // root: contenedor del tema. ctx: { api, stage, stageRect, toast, openSelector, sound }
+  // El tema va separado por partes (una función cada una, más abajo). Todas reciben `vita`, que tiene lo que es de
+  // todas (en qué pantalla se está, si hay una animación en curso, los juegos, las tarjetas abiertas y cuál se ve, el
+  // perfil, el resumen de logros, la música, Discord, las opciones) y las otras partes (vita.inicio, vita.tarjetas,
+  // vita.juego, vita.rapido…). Lo que es de una sola parte queda dentro de su función.
   function mount(root, ctx) {
     root.innerHTML = MARKUP;
     const api = ctx.api;
-    const U = window.NostalHubUtil;
-    const feed = U.friendsFeed(api); // amigos de Steam
-    const esc = U.escapeHtml;
-    const $ = (s, el = root) => el.querySelector(s);
-    const $$ = (s, el = root) => [...el.querySelectorAll(s)];
+    const $ = (sel, el = root) => el.querySelector(sel);
+    const $$ = (sel, el = root) => [...el.querySelectorAll(sel)];
     const call = (fn, ...a) => (typeof api[fn] === 'function' ? api[fn](...a) : Promise.resolve(null));
-    const sound = (k) => ctx.sound && ctx.sound(k);
-
-    let games = [];
-    let view = 'lock'; // lock | home | card | playing
-    let busy = false; // durante animaciones
-    let page = 0;
-    let sel = 0;
-    let pages = [];
-    const cards = []; // { key, kind, game, el, peel, focus, ... }
-    let at = -1; // -1 = inicio; si no, índice de la tarjeta
-    let profile = { name: 'Jugador', avatar: null };
-    let summary = { done: 0, total: 0, perGame: {}, hasKey: false };
-    let spotify = null;
-    let discord = { status: 'off', channel: null, members: [] };
-    let menuModel = [];
-    let playTimer = null;
-    let playingGame = null;
+    const vita = {
+      root,
+      ctx,
+      api,
+      $,
+      $$,
+      call,
+      sound: (k) => ctx.sound && ctx.sound(k),
+      feed: U.friendsFeed(api), // amigos de Steam
+      view: 'lock', // lock | home | card | playing
+      busy: false, // durante animaciones
+      games: [],
+      cards: [], // tarjetas abiertas: { key, kind, game, el, peel, focus, ... }
+      at: -1, // -1 = inicio; si no, índice de la tarjeta que se ve
+      profile: { name: 'Jugador', avatar: null },
+      summary: { done: 0, total: 0, perGame: {}, hasKey: false },
+      spotify: null,
+      discord: { status: 'off', channel: null, members: [] },
+      menuModel: [],
+    };
     const offs = [];
-    const nowPlaying = U.nowPlaying($('.v-playing'), api, ctx.toast);
+    vita.jugando = pantallaJugando(vita);
+    vita.reloj = reloj(vita);
+    vita.inicio = pantallaInicio(vita);
+    vita.tarjetas = tarjetas(vita);
+    vita.juego = tarjetaJuego(vita);
+    vita.musica = tarjetaMusica(vita);
+    vita.amigos = tarjetaAmigos(vita);
+    vita.grupo = tarjetaGrupo(vita);
+    vita.trofeos = tarjetaTrofeos(vita);
+    vita.biblioteca = tarjetaBiblioteca(vita);
+    vita.ajustes = tarjetaAjustes(vita);
+    vita.ventanita = ventanita(vita);
+    vita.rapido = menuRapido(vita);
+    vita.avisos = avisos(vita);
+    vita.bloqueo = pantallaBloqueo(vita);
 
+    // ---------- Pista de teclas (barra superior) ----------
+    vita.paintHint = () => {
+      const h = $('.v-hint');
+      if (vita.view === 'lock') h.textContent = 'Enter o clic: desbloquear';
+      else if (vita.view === 'card') h.textContent = 'Esc: inicio  ·  Retroceso: cerrar tarjeta  ·  Q / E: cambiar  ·  P: menú rápido';
+      else if (vita.inicio.choosing()) h.textContent = 'Elige la burbuja que quieres mover (clic, o flechas y Enter)  ·  Esc: cancelar';
+      else if (vita.inicio.moving()) h.textContent = 'Moviendo: flechas o clic en otro lugar  ·  Enter: dejarla  ·  Esc: cancelar';
+      else h.textContent = 'Enter: abrir  ·  O: ordenar  ·  Q / E: tarjetas  ·  P: menú rápido  ·  Esc: consolas';
+    };
+
+    // ---------- Teclado ----------
+    function onKey(e) {
+      const k = e.key;
+      if (k === 'Enter' || k === ' ') e.preventDefault();
+      if (vita.view === 'playing') return vita.jugando.key(k);
+      if (vita.view === 'lock') {
+        if (k === 'Enter' || k === ' ') vita.bloqueo.peel();
+        else if (k === 'Escape') ctx.openSelector();
+        return;
+      }
+      if (vita.busy) return;
+      if (vita.ventanita.isOpen()) return vita.ventanita.key(k);
+      if (vita.inicio.moving()) return vita.inicio.moveKey(k);
+      if (vita.rapido.isOpen()) return vita.rapido.key(k);
+      if (vita.avisos.isOpen()) {
+        if (k === 'Escape' || k === 'Backspace' || k === 'Enter') vita.avisos.close();
+        return;
+      }
+      if (k === 'p' || k === 'P') return vita.rapido.open();
+      if (k === 'n' || k === 'N') return vita.avisos.toggle();
+      if (k === 'q' || k === 'Q') return vita.at >= 0 && vita.tarjetas.goTo(vita.at - 1);
+      if (k === 'e' || k === 'E') return vita.at < vita.cards.length - 1 && vita.tarjetas.goTo(vita.at + 1);
+      if (vita.view === 'home' && (k === 'o' || k === 'O')) return vita.inicio.openSort();
+      if (vita.view === 'home') vita.inicio.key(k);
+      else if (vita.view === 'card') vita.tarjetas.key(k);
+    }
+    window.addEventListener('keydown', onKey);
+
+    // ---------- Datos ----------
+    async function loadProfile() {
+      vita.profile = (await call('getSteamProfile')) || vita.profile;
+      vita.cards.filter((c) => c.kind === 'trophies').forEach((c) => vita.tarjetas.refresh(c));
+    }
+    let doneKey = ''; // juegos al 100 % (si cambia, se redibujan las burbujas con su platino)
+    async function loadSummary(s) {
+      vita.summary = s || (await call('getAchievementSummary')) || vita.summary;
+      const k = U.completeKey(vita.summary);
+      if (((k !== doneKey && vita.games.length) || vita.inicio.sortsByAch()) && !vita.inicio.moving()) {
+        doneKey = k;
+        vita.inicio.buildPages();
+      }
+      vita.cards.filter((c) => c.kind === 'trophies' || c.kind === 'game').forEach((c) => vita.tarjetas.refresh(c));
+    }
+    function renderSpotify(s) {
+      vita.spotify = s || vita.spotify;
+      vita.cards.filter((c) => c.kind === 'music').forEach((c) => vita.tarjetas.refresh(c));
+      vita.rapido.refresh();
+    }
+    let lastChannel = null;
+    vita.renderDiscord = renderDiscord;
+    function renderDiscord(s) {
+      vita.discord = s || vita.discord;
+      const ch = vita.discord.status === 'ok' && vita.discord.channel ? vita.discord.channel.id : null;
+      if (ch && ch !== lastChannel && lastChannel !== undefined) vita.avisos.notify(`Estás en ${vita.discord.channel.name}`, vita.discord.channel.guild || 'Discord');
+      lastChannel = ch;
+      vita.grupo.paintBadge();
+      vita.cards.filter((c) => c.kind === 'party').forEach((c) => vita.tarjetas.refresh(c));
+    }
+    let knownIds = null;
+    function setGames(list) {
+      const next = list || [];
+      if (knownIds) {
+        next.filter((g) => !knownIds.has(g.id)).forEach((g) => {
+          const im = bubbleImage(g);
+          vita.avisos.notify(`Nuevo: ${g.name}`, 'Se agregó a tus juegos', im && im.url);
+        });
+      }
+      knownIds = new Set(next.map((g) => g.id));
+      vita.games = next;
+      vita.inicio.cancelMove();
+      // las tarjetas abiertas usan los datos nuevos del juego
+      vita.cards.forEach((c) => {
+        if (c.game) c.game = vita.games.find((g) => g.id === c.game.id) || c.game;
+      });
+      vita.inicio.buildPages();
+      vita.cards.filter((c) => c.kind === 'game' || c.kind === 'library' || c.kind === 'trophies').forEach((c) => vita.tarjetas.refresh(c));
+    }
+    offs.push(api.onGamesUpdated(setGames));
+    offs.push(api.onGameEnded(({ reason }) => vita.jugando.end(reason)));
+    if (api.onSpotify) offs.push(api.onSpotify(renderSpotify));
+    if (api.onDiscord) offs.push(api.onDiscord(renderDiscord));
+    if (api.onSteamSummary) offs.push(api.onSteamSummary((s) => loadSummary(s)));
+    if (api.onSteamChanged)
+      offs.push(
+        api.onSteamChanged(() => {
+          loadProfile();
+          loadSummary();
+        })
+      );
+
+    root.classList.add('locked');
+    lastChannel = undefined; // el primer estado de Discord no avisa
+    call('spotifyWatch', true).then((s) => s && renderSpotify(s));
+    call('discordWatch', true).then((s) => renderDiscord(s || vita.discord));
+    call('getMenu').then((m) => (vita.menuModel = m || []));
+    loadProfile();
+    loadSummary();
+    vita.tarjetas.paintTasks();
+    vita.tarjetas.paintEdges();
+    vita.paintHint();
+    api.getState().then((st) => setGames(st.games));
+
+    return {
+      unmount() {
+        vita.jugando.dispose();
+        vita.feed.dispose();
+        vita.reloj.dispose();
+        vita.bloqueo.dispose();
+        vita.inicio.dispose();
+        window.removeEventListener('keydown', onKey);
+        offs.forEach((off) => off && off());
+        call('spotifyWatch', false);
+        call('discordWatch', false);
+        document.body.classList.remove('playing');
+        root.classList.remove('in-card', 'is-playing', 'intro', 'locked', 'dim-home');
+        root.innerHTML = '';
+      },
+    };
+  }
+
+  // Logros de un juego según el resumen ({ done, total }), o nada
+  function trophiesOf(vita, g) {
+    return (g && g.appId && vita.summary.perGame && vita.summary.perGame[g.appId]) || null;
+  }
+  function typeLabel(g) {
+    return { steam: 'Steam', exe: 'Programa', shortcut: 'Acceso directo', url: 'Otro launcher', minecraft: 'Launcher de Minecraft', emulator: 'Emulador', riot: 'Riot Games' }[g.type] || '';
+  }
+
+  // ---------- Arte y colores de cada juego ----------
+  function hue(name) {
+    let h = 0;
+    for (const ch of name || '') h = (h * 31 + ch.charCodeAt(0)) % 360;
+    return h;
+  }
+  function gameColors(g) {
+    const h = hue(g.name);
+    return [`hsl(${h} 70% 58%)`, `hsl(${(h + 40) % 360} 65% 32%)`];
+  }
+  function bubbleImage(g) {
+    if (g.bubble) return { url: g.bubble, pos: 'center' };
+    if (g.cover) return { url: g.cover, pos: 'center 32%' };
+    // el fondo (sin letras) se ve mejor recortado en círculo que la portada con el nombre
+    if (g.hero && g.heroIsReal) return { url: g.hero, pos: 'center' };
+    if (g.tile && !g.tileIsVideo) return { url: g.tile, pos: 'center' };
+    if (g.hero) return { url: g.hero, pos: 'center' };
+    return null;
+  }
+  function initials(name) {
+    return (name || '?')
+      .split(/\s+/)
+      .filter((w) => w.length > 2 || /^[A-Z0-9]/.test(w))
+      .slice(0, 2)
+      .map((w) => w.charAt(0).toUpperCase())
+      .join('');
+  }
+  // Cara de una burbuja: imagen dentro de una cúpula de vidrio
+  function bubbleFace(entry) {
+    const face = document.createElement('div');
+    face.className = 'v-face';
+    const img = document.createElement('div');
+    img.className = 'v-face-img';
+    if (entry.sys) {
+      img.innerHTML = ART[entry.sys] || '';
+      img.classList.add('art');
+    } else {
+      const g = entry.game;
+      const im = bubbleImage(g);
+      if (im) {
+        img.style.backgroundImage = `url("${im.url}")`;
+        img.style.backgroundPosition = im.pos;
+      } else {
+        const [a, b] = gameColors(g);
+        img.style.background = `radial-gradient(circle at 35% 30%, ${a}, ${b})`;
+        img.innerHTML = `<span class="v-face-ini">${esc(initials(g.name))}</span>`;
+      }
+    }
+    const gloss = document.createElement('div');
+    gloss.className = 'v-gloss';
+    face.append(img, gloss);
+    return face;
+  }
+
+  function reloj(vita) {
+    const { $ } = vita;
     // ---------- Reloj ----------
     function tickClock() {
       const d = new Date();
@@ -344,67 +558,20 @@
     }
     tickClock();
     const clockTimer = setInterval(tickClock, 10000);
+    return { dispose: () => clearInterval(clockTimer) };
+  }
 
-    // ---------- Arte y colores de cada juego ----------
-    function hue(name) {
-      let h = 0;
-      for (const ch of name || '') h = (h * 31 + ch.charCodeAt(0)) % 360;
-      return h;
-    }
-    function gameColors(g) {
-      const h = hue(g.name);
-      return [`hsl(${h} 70% 58%)`, `hsl(${(h + 40) % 360} 65% 32%)`];
-    }
-    function bubbleImage(g) {
-      if (g.bubble) return { url: g.bubble, pos: 'center' };
-      if (g.cover) return { url: g.cover, pos: 'center 32%' };
-      // el fondo (sin letras) se ve mejor recortado en círculo que la portada con el nombre
-      if (g.hero && g.heroIsReal) return { url: g.hero, pos: 'center' };
-      if (g.tile && !g.tileIsVideo) return { url: g.tile, pos: 'center' };
-      if (g.hero) return { url: g.hero, pos: 'center' };
-      return null;
-    }
-    function initials(name) {
-      return (name || '?')
-        .split(/\s+/)
-        .filter((w) => w.length > 2 || /^[A-Z0-9]/.test(w))
-        .slice(0, 2)
-        .map((w) => w.charAt(0).toUpperCase())
-        .join('');
-    }
-    // Cara de una burbuja: imagen dentro de una cúpula de vidrio
-    function bubbleFace(entry) {
-      const face = document.createElement('div');
-      face.className = 'v-face';
-      const img = document.createElement('div');
-      img.className = 'v-face-img';
-      if (entry.sys) {
-        img.innerHTML = ART[entry.sys] || '';
-        img.classList.add('art');
-      } else {
-        const g = entry.game;
-        const im = bubbleImage(g);
-        if (im) {
-          img.style.backgroundImage = `url("${im.url}")`;
-          img.style.backgroundPosition = im.pos;
-        } else {
-          const [a, b] = gameColors(g);
-          img.style.background = `radial-gradient(circle at 35% 30%, ${a}, ${b})`;
-          img.innerHTML = `<span class="v-face-ini">${esc(initials(g.name))}</span>`;
-        }
-      }
-      const gloss = document.createElement('div');
-      gloss.className = 'v-gloss';
-      face.append(img, gloss);
-      return face;
-    }
-
+  function pantallaInicio(vita) {
+    const { $, $$, ctx, root, call } = vita;
+    let page = 0;
+    let sel = 0;
+    let pages = [];
     // ---------- Páginas de burbujas ----------
     // Orden de las burbujas: Jugado recientemente, Nombre, Horas, % de logros o A mano (como al mantener una burbuja)
     const order = U.gameOrder('vita', { manual: true, def: 'recent' });
     let mv = null; // { list, index, before } al mover una burbuja (index en la lista de juegos)
     function sortedGames() {
-      return mv ? mv.list : order.apply(games, summary);
+      return mv ? mv.list : order.apply(vita.games, vita.summary);
     }
     function buildPages() {
       const list = sortedGames().map((g) => ({ key: `g:${g.id}`, game: g, label: g.name }));
@@ -432,12 +599,12 @@
           label.textContent = entry.label;
           b.appendChild(label);
           if (entry.sys === 'party') b.insertAdjacentHTML('beforeend', '<span class="v-badge" hidden></span>');
-          if (entry.game && U.isComplete(trophiesOf(entry.game))) b.insertAdjacentHTML('beforeend', U.completeBadge('platinum', 'on-icon')); // 100 %: platino
+          if (entry.game && U.isComplete(trophiesOf(vita, entry.game))) b.insertAdjacentHTML('beforeend', U.completeBadge('platinum', 'on-icon')); // 100 %: platino
           b.addEventListener('mouseenter', () => {
-            if (view === 'home' && !busy && p === page) setSel(i);
+            if (vita.view === 'home' && !vita.busy && p === page) setSel(i);
           });
           b.addEventListener('click', () => {
-            if (view !== 'home' || busy || p !== page) return;
+            if (vita.view !== 'home' || vita.busy || p !== page) return;
             if (held) return (held = false);
             if (mv) return moveClick(p, i);
             setSel(i);
@@ -445,7 +612,7 @@
           });
           // Mantener apretada una burbuja: ordenar o moverla
           b.addEventListener('pointerdown', (e) => {
-            if (e.button !== 0 || view !== 'home' || busy || p !== page || mv) return;
+            if (e.button !== 0 || vita.view !== 'home' || vita.busy || p !== page || mv) return;
             clearTimeout(holdTimer);
             held = false;
             holdTimer = setTimeout(() => {
@@ -463,10 +630,10 @@
       // puntitos de las páginas (a la izquierda)
       const dots = $('.v-dots');
       dots.innerHTML = pages.map((_, p) => `<button class="v-dot" data-p="${p}"></button>`).join('');
-      $$('.v-dot').forEach((d) => d.addEventListener('click', () => view === 'home' && setPage(Number(d.dataset.p))));
+      $$('.v-dot').forEach((d) => d.addEventListener('click', () => vita.view === 'home' && setPage(Number(d.dataset.p))));
       page = Math.min(page, pages.length - 1);
       setPage(page, false);
-      paintPartyBadge();
+      vita.grupo.paintBadge();
     }
     function setPage(p, animate = true) {
       const np = Math.max(0, Math.min(pages.length - 1, p));
@@ -476,7 +643,7 @@
       box.style.transition = animate ? '' : 'none';
       box.style.transform = `translateY(${-page * H}px)`;
       $$('.v-dot').forEach((d) => d.classList.toggle('on', Number(d.dataset.p) === page));
-      if (changed && animate) sound('page');
+      if (changed && animate) vita.sound('page');
       setSel(Math.min(sel, pages[page].length - 1));
     }
     function setSel(i) {
@@ -505,7 +672,7 @@
       const s = SLOTS[sel];
       if (k === 'ArrowRight') {
         if (sel + 1 < items.length && SLOTS[sel + 1].row === s.row) setSel(sel + 1);
-        else if (cards.length) goTo(0);
+        else if (vita.cards.length) vita.tarjetas.goTo(0);
       } else if (k === 'ArrowLeft') {
         if (sel > 0 && SLOTS[sel - 1].row === s.row) setSel(sel - 1);
       } else if (k === 'ArrowDown') {
@@ -530,16 +697,15 @@
       else if (k === 'Enter') activate(items[sel], bubbleEl(page, sel));
       else if (k === 'Escape') ctx.openSelector();
     }
-
     // ---------- Ordenar y mover burbujas ----------
     let holdTimer = null;
     let held = false;
     const linear = (p, i) => (p - 1) * PER_PAGE + i; // posición en la lista de juegos (la página 0 es del sistema)
     function openSort() {
-      if (view !== 'home' || mv) return;
+      if (vita.view !== 'home' || mv) return;
       const entry = pages[page] && pages[page][sel];
       const g = entry && entry.game;
-      openPop('Ordenar', [
+      vita.ventanita.open('Ordenar', [
         ...order.sorts.map((s) => ({ label: s.label, on: s.id === order.mode, run: () => resort(s.id) })),
         { icon: 'sort', label: g ? `Mover "${g.name}"` : 'Mover una burbuja', run: () => startMove(g ? linear(page, sel) : null) },
       ]);
@@ -558,12 +724,12 @@
       setSel(j % PER_PAGE);
     }
     function startMove(index) {
-      const list = order.apply(games, summary);
+      const list = order.apply(vita.games, vita.summary);
       mv = { list, index, before: list.map((g) => g.id) };
       root.classList.add('v-moving');
       if (index == null && page === 0 && pages.length > 1) setPage(1);
       buildPages();
-      paintHint();
+      vita.paintHint();
     }
     function moveTo(p, i) {
       const j = Math.max(0, Math.min(mv.list.length - 1, linear(p, i)));
@@ -572,14 +738,14 @@
       mv.index = j;
       buildPages();
       focusGame(mv.list[j].id);
-      sound('move');
+      vita.sound('move');
     }
     function moveClick(p, i) {
       if (p === 0) return;
       if (mv.index == null) {
         mv.index = linear(p, i);
         buildPages();
-        return paintHint();
+        return vita.paintHint();
       }
       if (linear(p, i) === mv.index) return endMove(true);
       moveTo(p, i);
@@ -609,7 +775,7 @@
         if (k === 'Enter' && page > 0) {
           mv.index = linear(page, sel);
           buildPages();
-          return paintHint();
+          return vita.paintHint();
         }
         if (k === 'PageDown' || k === 'PageUp') return setPage(Math.max(1, page + (k === 'PageDown' ? 1 : -1)));
         const t = page > 0 && navTarget(k, page, sel);
@@ -636,12 +802,12 @@
       const keep = index != null ? list[index] : null;
       buildPages();
       if (keep) focusGame(keep.id);
-      paintHint();
+      vita.paintHint();
     }
 
     // ---------- Abrir una burbuja ----------
     function activate(entry, el) {
-      if (!entry || busy) return;
+      if (!entry || vita.busy) return;
       if (entry.sys) {
         const id = entry.sys;
         if (id === 'store' || id === 'profile') {
@@ -652,9 +818,9 @@
         }
         if (id === 'consoles') return ctx.openSelector();
         if (id === 'random') return randomGame(el);
-        return openCard({ key: `s:${id}`, kind: id }, el);
+        return vita.tarjetas.open({ key: `s:${id}`, kind: id }, el);
       }
-      openCard({ key: `g:${entry.game.id}`, kind: 'game', game: entry.game }, el);
+      vita.tarjetas.open({ key: `g:${entry.game.id}`, kind: 'game', game: entry.game }, el);
     }
     function bounce(el) {
       if (!el) return;
@@ -662,26 +828,51 @@
       f.animate([{ transform: 'scale(1)' }, { transform: 'scale(0.86)' }, { transform: 'scale(1.08)' }, { transform: 'scale(1)' }], { duration: 420, easing: 'ease-out' });
     }
     async function randomGame(el) {
-      if (!games.length) return ctx.toast('Todavía no hay juegos');
-      busy = true;
+      if (!vita.games.length) return ctx.toast('Todavía no hay juegos');
+      vita.busy = true;
       const face = el.querySelector('.v-face');
       await face.animate([{ transform: 'rotate(0)' }, { transform: 'rotate(-540deg) scale(0.9)' }, { transform: 'rotate(-720deg)' }], { duration: 700, easing: 'ease-in-out' }).finished;
-      busy = false;
-      const g = games[Math.floor(Math.random() * games.length)];
-      openCard({ key: `g:${g.id}`, kind: 'game', game: g }, el);
+      vita.busy = false;
+      const g = vita.games[Math.floor(Math.random() * vita.games.length)];
+      vita.tarjetas.open({ key: `g:${g.id}`, kind: 'game', game: g }, el);
     }
+    // Rueda del mouse en el inicio: cambiar de página
+    let wheelLock = 0;
+    $('.v-home').addEventListener('wheel', (e) => {
+      if (vita.view !== 'home' || vita.busy || Date.now() < wheelLock || Math.abs(e.deltaY) < 10) return;
+      setPage(page + (e.deltaY > 0 ? 1 : -1));
+      wheelLock = Date.now() + 450;
+    });
+    return {
+      key: homeKey,
+      moveKey,
+      openSort,
+      buildPages,
+      moving: () => !!mv,
+      // Se está por mover una burbuja, pero falta elegir cuál
+      choosing: () => !!mv && mv.index == null,
+      sortsByAch: () => order.mode === 'ach',
+      // Llegó la lista de juegos de nuevo: se deja de mover
+      cancelMove() {
+        if (mv) (mv = null), root.classList.remove('v-moving'), vita.paintHint();
+      },
+      dispose: () => clearTimeout(holdTimer),
+    };
+  }
 
+  function tarjetas(vita) {
+    const { $, $$, ctx, root } = vita;
     // La burbuja va al centro, gira dos vueltas y se abre la tarjeta
     async function openCard(spec, fromEl) {
-      const existing = cards.findIndex((c) => c.key === spec.key);
+      const existing = vita.cards.findIndex((c) => c.key === spec.key);
       if (existing >= 0) {
-        if (spec.kind === 'trophies' && spec.game) Object.assign(cards[existing], { trophyGame: spec.game, fromList: false, focus: 0 });
-        if (spec.kind === 'trophies') refreshCard(cards[existing]);
+        if (spec.kind === 'trophies' && spec.game) Object.assign(vita.cards[existing], { trophyGame: spec.game, fromList: false, focus: 0 });
+        if (spec.kind === 'trophies') refreshCard(vita.cards[existing]);
         return goTo(existing);
       }
-      if (busy) return;
-      busy = true;
-      closeNotif();
+      if (vita.busy) return;
+      vita.busy = true;
+      vita.avisos.close();
       const fly = $('.v-fly');
       fly.innerHTML = '';
       let from = { x: W / 2, y: H / 2, s: 0.6 };
@@ -710,11 +901,11 @@
       ]);
       if (fromEl) fromEl.classList.remove('flying');
       // 3) se abre la tarjeta y la burbuja sube a colgar arriba
-      if (cards.length >= MAX_CARDS) removeCard(0, false);
-      cards.push(card);
+      if (vita.cards.length >= MAX_CARDS) removeCard(0, false);
+      vita.cards.push(card);
       card.el.classList.add('opening');
       card.el.classList.remove('prep');
-      goTo(cards.length - 1, false);
+      goTo(vita.cards.length - 1, false);
       const tagY = CARD_TOP + 14;
       const flyUp = fly.animate([{ transform: T(W / 2, H / 2 - 20, 1.3, 720) }, { transform: T(W / 2, tagY, TAG / D, 720) }], { duration: 420, easing: 'cubic-bezier(.3,.7,.3,1)', fill: 'forwards' });
       await card.el.animate(
@@ -729,7 +920,7 @@
       fly.hidden = true;
       fly.innerHTML = '';
       root.classList.remove('dim-home');
-      busy = false;
+      vita.busy = false;
     }
 
     // Descarga y decodifica las imágenes de un elemento antes de mostrarlo
@@ -774,20 +965,20 @@
         w: CARD_W,
         h: CARD_H,
         rest: 92,
-        canPeel: () => !busy && view === 'card' && cards[at] === card,
+        canPeel: () => !vita.busy && vita.view === 'card' && vita.cards[vita.at] === card,
         onStart: () => {
           el.classList.add('peeling');
-          sound('back');
+          vita.sound('back');
         },
         onDone: () => {
-          const i = cards.indexOf(card);
+          const i = vita.cards.indexOf(card);
           if (i >= 0) removeCard(i, true);
         },
       });
       // clic en una tarjeta que se asoma: ir a ella
       el.addEventListener('pointerdown', (e) => {
-        const i = cards.indexOf(card);
-        if (i !== at && !busy && view === 'card' && !e.target.closest('.v-corner')) {
+        const i = vita.cards.indexOf(card);
+        if (i !== vita.at && !vita.busy && vita.view === 'card' && !e.target.closest('.v-corner')) {
           e.preventDefault();
           goTo(i);
         }
@@ -797,60 +988,60 @@
       return card;
     }
     function layoutCards() {
-      cards.forEach((c, i) => {
+      vita.cards.forEach((c, i) => {
         c.el.style.left = `${W + CARD_X + i * (CARD_W + CARD_GAP)}px`;
-        c.el.classList.toggle('cur', i === at);
+        c.el.classList.toggle('cur', i === vita.at);
         // solo la tarjeta de juego abierta cuenta como "el juego actual" (clic derecho / tecla I)
-        if (c.kind === 'game' && i === at) c.el.dataset.gameCurrent = c.game.id;
+        if (c.kind === 'game' && i === vita.at) c.el.dataset.gameCurrent = c.game.id;
         else delete c.el.dataset.gameCurrent;
       });
     }
     function goTo(i, animate = true) {
-      if (i >= cards.length) i = cards.length - 1;
-      const prev = at;
-      at = i;
-      view = at < 0 ? 'home' : 'card';
+      if (i >= vita.cards.length) i = vita.cards.length - 1;
+      const prev = vita.at;
+      vita.at = i;
+      vita.view = vita.at < 0 ? 'home' : 'card';
       layoutCards();
       const track = $('.v-track');
       track.style.transition = animate ? '' : 'none';
-      track.style.transform = at < 0 ? 'none' : `translateX(${-(W + at * (CARD_W + CARD_GAP))}px)`;
+      track.style.transform = vita.at < 0 ? 'none' : `translateX(${-(W + vita.at * (CARD_W + CARD_GAP))}px)`;
       if (!animate) track.offsetWidth;
-      root.classList.toggle('in-card', at >= 0);
-      if (animate && prev !== at) sound('page');
+      root.classList.toggle('in-card', vita.at >= 0);
+      if (animate && prev !== vita.at) vita.sound('page');
       paintTasks();
       paintEdges();
-      paintHint();
-      if (at >= 0) setFocus(cards[at], cards[at].focus || 0);
-      feed.watch(at >= 0 && cards[at].kind === 'friends');
+      vita.paintHint();
+      if (vita.at >= 0) setFocus(vita.cards[vita.at], vita.cards[vita.at].focus || 0);
+      vita.feed.watch(vita.at >= 0 && vita.cards[vita.at].kind === 'friends');
     }
     function removeCard(i, animate) {
-      const card = cards[i];
+      const card = vita.cards[i];
       if (!card) return;
-      cards.splice(i, 1);
+      vita.cards.splice(i, 1);
       const out = card.el;
       if (animate) {
         out.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 200, fill: 'forwards' }).finished.then(() => out.remove());
       } else out.remove();
       // la que estaba abierta pasa a la anterior (o al inicio)
-      if (at >= i) at -= 1;
-      if (animate) goTo(at);
+      if (vita.at >= i) vita.at -= 1;
+      if (animate) goTo(vita.at);
       else layoutCards();
       paintTasks();
     }
     function paintTasks() {
       const box = $('.v-tasks');
-      box.innerHTML = `<button class="v-task home${at < 0 ? ' on' : ''}" data-t="-1">${icon('home')}</button>`;
-      cards.forEach((c, i) => {
+      box.innerHTML = `<button class="v-task home${vita.at < 0 ? ' on' : ''}" data-t="-1">${icon('home')}</button>`;
+      vita.cards.forEach((c, i) => {
         const b = document.createElement('button');
-        b.className = `v-task${i === at ? ' on' : ''}`;
+        b.className = `v-task${i === vita.at ? ' on' : ''}`;
         b.dataset.t = i;
         b.appendChild(bubbleFace(c.kind === 'game' ? { game: c.game } : { sys: c.kind }));
         box.appendChild(b);
       });
       $$('.v-task', box).forEach((b) =>
         b.addEventListener('click', () => {
-          if (busy || view === 'lock' || view === 'playing') return;
-          closeNotif();
+          if (vita.busy || vita.view === 'lock' || vita.view === 'playing') return;
+          vita.avisos.close();
           goTo(Number(b.dataset.t));
         })
       );
@@ -858,15 +1049,15 @@
     function paintEdges() {
       const l = $('.v-edge.left');
       const r = $('.v-edge.right');
-      l.hidden = at < 0;
-      r.hidden = at >= cards.length - 1;
-      r.classList.toggle('from-home', at < 0);
+      l.hidden = vita.at < 0;
+      r.hidden = vita.at >= vita.cards.length - 1;
+      r.classList.toggle('from-home', vita.at < 0);
     }
-    $('.v-edge.left').addEventListener('click', () => !busy && view === 'card' && goTo(at - 1));
-    $('.v-edge.right').addEventListener('click', () => !busy && (view === 'card' || view === 'home') && goTo(at + 1));
+    $('.v-edge.left').addEventListener('click', () => !vita.busy && vita.view === 'card' && goTo(vita.at - 1));
+    $('.v-edge.right').addEventListener('click', () => !vita.busy && (vita.view === 'card' || vita.view === 'home') && goTo(vita.at + 1));
     function closeCurrent() {
-      const c = cards[at];
-      if (c && !busy) c.peel.peel();
+      const c = vita.cards[vita.at];
+      if (c && !vita.busy) c.peel.peel();
     }
 
     // Contenido de cada tarjeta
@@ -884,18 +1075,18 @@
           const [a, b] = gameColors(g);
           bg.style.background = `linear-gradient(135deg, ${a}, ${b})`;
         }
-        paintGameCard(card, main);
+        vita.juego.paint(card, main);
       } else {
         title.textContent = CARD_TITLES[card.kind] || '';
-        if (card.kind === 'music') paintMusicCard(card, main);
-        else if (card.kind === 'party') paintPartyCard(card, main);
-        else if (card.kind === 'friends') paintFriendsCard(card, main);
-        else if (card.kind === 'trophies') paintTrophyCard(card, main);
-        else if (card.kind === 'library') paintLibraryCard(card, main);
-        else if (card.kind === 'settings') paintSettingsCard(card, main);
+        if (card.kind === 'music') vita.musica.paint(card, main);
+        else if (card.kind === 'party') vita.grupo.paint(card, main);
+        else if (card.kind === 'friends') vita.amigos.paint(card, main);
+        else if (card.kind === 'trophies') vita.trofeos.paint(card, main);
+        else if (card.kind === 'library') vita.biblioteca.paint(card, main);
+        else if (card.kind === 'settings') vita.ajustes.paint(card, main);
       }
       body.classList.toggle('dark-title', card.kind === 'settings' || card.kind === 'library');
-      if (cards[at] === card) setFocus(card, card.focus || 0);
+      if (vita.cards[vita.at] === card) setFocus(card, card.focus || 0);
     }
     // Elementos que se pueden elegir con las flechas dentro de la tarjeta
     function focusables(card) {
@@ -913,20 +1104,45 @@
     }
     function bindFocus(card) {
       focusables(card).forEach((b, j) => {
-        b.addEventListener('mouseenter', () => cards[at] === card && setFocus(card, j));
+        b.addEventListener('mouseenter', () => vita.cards[vita.at] === card && setFocus(card, j));
       });
     }
+    function rowKey(card, k) {
+      // botones en fila: ← → entre ellos; en los bordes, cambia de tarjeta
+      const list = focusables(card);
+      if (k === 'ArrowRight' || k === 'ArrowDown') {
+        if (card.focus < list.length - 1) setFocus(card, card.focus + 1);
+        else if (k === 'ArrowRight' && vita.at < vita.cards.length - 1) goTo(vita.at + 1);
+      } else if (k === 'ArrowLeft' || k === 'ArrowUp') {
+        if (card.focus > 0) setFocus(card, card.focus - 1);
+        else if (k === 'ArrowLeft') goTo(vita.at - 1);
+      } else if (k === 'Enter' && list[card.focus]) list[card.focus].click();
+      else return false;
+      return true;
+    }
+    // Teclas dentro de una tarjeta
+    function cardKey(k) {
+      const card = vita.cards[vita.at];
+      if (!card) return;
+      let used = false;
+      if (card.kind === 'game') used = vita.juego.key(card, k);
+      else if (card.kind === 'music' || card.kind === 'party') used = rowKey(card, k);
+      else if (card.kind === 'friends') used = vita.amigos.key(card, k);
+      else if (card.kind === 'trophies') used = vita.trofeos.key(card, k);
+      else if (card.kind === 'library') used = vita.biblioteca.key(card, k);
+      else if (card.kind === 'settings') used = vita.ajustes.key(card, k);
+      if (used) return;
+      if (k === 'Escape') goTo(-1);
+      else if (k === 'Backspace' || k === 'Delete') closeCurrent();
+    }
+    return { goTo, focusables, setFocus, bindFocus, rowKey, paintTasks, paintEdges, open: openCard, refresh: refreshCard, key: cardKey };
+  }
 
+  function tarjetaJuego(vita) {
     // --- Juego (LiveArea) ---
-    function trophiesOf(g) {
-      return (g && g.appId && summary.perGame && summary.perGame[g.appId]) || null;
-    }
-    function typeLabel(g) {
-      return { steam: 'Steam', exe: 'Programa', shortcut: 'Acceso directo', url: 'Otro launcher', minecraft: 'Launcher de Minecraft', emulator: 'Emulador', riot: 'Riot Games' }[g.type] || '';
-    }
     function paintGameCard(card, main) {
       const g = card.game;
-      const tp = trophiesOf(g);
+      const tp = trophiesOf(vita, g);
       // Puerta: tu imagen propia, o el fondo del juego con su logo encima, o la portada de Steam (que ya trae el nombre)
       let gateArt = null;
       let logo = false;
@@ -954,37 +1170,41 @@
                 ? `<div class="v-li-t nh-done-text plat">${U.completeBadge('platinum')} Platino · ${tp.done} de ${tp.total}</div><div class="v-prog plat"><i style="width:100%"></i></div>`
                 : tp && tp.total
                 ? `<div class="v-li-t">${tp.done} de ${tp.total} · ${Math.round((tp.done / tp.total) * 100)} %</div><div class="v-prog"><i style="width:${(tp.done / tp.total) * 100}%"></i></div>`
-                : `<div class="v-li-t dim">${summary.hasKey ? 'Ver sus trofeos' : 'Agrega tu clave de Steam'}</div>`
+                : `<div class="v-li-t dim">${vita.summary.hasKey ? 'Ver sus trofeos' : 'Agrega tu clave de Steam'}</div>`
             }
           </button>
           <div class="v-li wide"><div class="v-li-h">${icon('info')}<span>Información</span></div><div class="v-li-t clamp">${esc(g.description || 'Sin descripción. Puedes escribir una en descripcion.txt, en la carpeta de personalización del juego.')}</div></div>
         </div>`;
       const lg = main.querySelector('.v-gate-logo');
       if (lg) lg.addEventListener('error', () => lg.replaceWith(Object.assign(document.createElement('div'), { className: 'v-gate-name', textContent: g.name })));
-      main.querySelector('[data-f="start"]').addEventListener('click', () => cards[at] === card && pressStart(card));
-      main.querySelector('[data-f="troph"]').addEventListener('click', () => cards[at] === card && openCard({ key: 's:trophies', kind: 'trophies', game: g }, null));
-      bindFocus(card);
+      main.querySelector('[data-f="start"]').addEventListener('click', () => vita.cards[vita.at] === card && pressStart(card));
+      main.querySelector('[data-f="troph"]').addEventListener('click', () => vita.cards[vita.at] === card && vita.tarjetas.open({ key: 's:trophies', kind: 'trophies', game: g }, null));
+      vita.tarjetas.bindFocus(card);
     }
     async function pressStart(card) {
       const btn = card.el.querySelector('.v-gate-frame');
       btn.animate([{ transform: 'scale(1)' }, { transform: 'scale(0.95)' }, { transform: 'scale(1)' }], { duration: 260 });
       await wait(160);
-      startGame(card.game);
+      vita.jugando.start(card.game);
     }
     function gameKey(card, k) {
-      const list = focusables(card);
-      if (k === 'ArrowDown' && card.focus === 0 && list.length > 1) setFocus(card, 1);
-      else if (k === 'ArrowUp' && card.focus > 0) setFocus(card, 0);
-      else if (k === 'ArrowLeft') goTo(at - 1);
-      else if (k === 'ArrowRight') at < cards.length - 1 && goTo(at + 1);
+      const list = vita.tarjetas.focusables(card);
+      if (k === 'ArrowDown' && card.focus === 0 && list.length > 1) vita.tarjetas.setFocus(card, 1);
+      else if (k === 'ArrowUp' && card.focus > 0) vita.tarjetas.setFocus(card, 0);
+      else if (k === 'ArrowLeft') vita.tarjetas.goTo(vita.at - 1);
+      else if (k === 'ArrowRight') vita.at < vita.cards.length - 1 && vita.tarjetas.goTo(vita.at + 1);
       else if (k === 'Enter' && list[card.focus]) list[card.focus].click();
       else return false;
       return true;
     }
+    return { paint: paintGameCard, key: gameKey };
+  }
 
+  function tarjetaMusica(vita) {
+    const { $, $$, api, ctx, call } = vita;
     // --- Música (Spotify) ---
     function paintMusicCard(card, main) {
-      const st = spotify || {};
+      const st = vita.spotify || {};
       const v = U.spotifyView(st);
       const acts = U.musicActions(v);
       main.innerHTML = `
@@ -1012,14 +1232,14 @@
         </div>`;
       $$('[data-f]', main).forEach((b) =>
         b.addEventListener('click', () => {
-          if (cards[at] !== card) return;
+          if (vita.cards[vita.at] !== card) return;
           const cmd = b.dataset.f;
           if (cmd.startsWith('x:')) return U.musicRun(api, cmd.slice(2), v, ctx.toast);
           if (cmd === 'connect') return call('open', 'setup-spotify');
           call('spotifyControl', cmd);
-          if (cmd === 'toggle' && spotify && spotify.running) {
-            spotify = { ...spotify, playing: !spotify.playing };
-            refreshCard(card);
+          if (cmd === 'toggle' && vita.spotify && vita.spotify.running) {
+            vita.spotify = { ...vita.spotify, playing: !vita.spotify.playing };
+            vita.tarjetas.refresh(card);
           }
         })
       );
@@ -1028,44 +1248,35 @@
         const h = $('.v-mu-hint', main);
         if (h) h.textContent = (el && el.dataset.label) || '';
       };
-      bindFocus(card);
+      vita.tarjetas.bindFocus(card);
     }
-    function rowKey(card, k) {
-      // botones en fila: ← → entre ellos; en los bordes, cambia de tarjeta
-      const list = focusables(card);
-      if (k === 'ArrowRight' || k === 'ArrowDown') {
-        if (card.focus < list.length - 1) setFocus(card, card.focus + 1);
-        else if (k === 'ArrowRight' && at < cards.length - 1) goTo(at + 1);
-      } else if (k === 'ArrowLeft' || k === 'ArrowUp') {
-        if (card.focus > 0) setFocus(card, card.focus - 1);
-        else if (k === 'ArrowLeft') goTo(at - 1);
-      } else if (k === 'Enter' && list[card.focus]) list[card.focus].click();
-      else return false;
-      return true;
-    }
+    return { paint: paintMusicCard };
+  }
 
+  function tarjetaAmigos(vita) {
+    const { $$, ctx, call } = vita;
     // --- Amigos (de Steam) ---
     // Tarjeta: a la izquierda el amigo marcado con sus botones, a la derecha la lista (↑ ↓) en burbujas alargadas.
-    feed.onChange(() => cards.filter((c) => c.kind === 'friends').forEach((c) => paintFriendsCard(c, c.el.querySelector('.v-card-main'))));
+    vita.feed.onChange(() => vita.cards.filter((c) => c.kind === 'friends').forEach((c) => paintFriendsCard(c, c.el.querySelector('.v-card-main'))));
     function friendPic(f, cls = '') {
       return `<span class="v-fr-av ${cls} ${U.friendClass(f)}">${f.avatar ? `<img src="${esc(f.avatar)}" alt="" />` : `<b>${esc(initials(f.name))}</b>`}<i></i></span>`;
     }
     function paintFriendsCard(card, main) {
-      const d = feed.data;
-      const rows = feed.list;
+      const d = vita.feed.data;
+      const rows = vita.feed.list;
       if (d.status !== 'ok' || !rows.length) {
         const m = U.friendsMessage(d.status);
         main.innerHTML = `<div class="v-pa-empty"><div class="v-pa-big">${ART.friends}</div><div class="v-pa-t">${esc(m.t)}</div><div class="v-pa-d">${esc(m.d)}</div>
           ${m.btn ? `<div class="v-pa-btns"><button class="v-pill" data-f="${m.btn[0]}"><span>${m.btn[1]}</span></button></div>` : ''}</div>`;
-        $$('[data-f]', main).forEach((b) => b.addEventListener('click', () => cards[at] === card && call('open', b.dataset.f)));
-        bindFocus(card);
-        if (cards[at] === card) setFocus(card, 0);
+        $$('[data-f]', main).forEach((b) => b.addEventListener('click', () => vita.cards[vita.at] === card && call('open', b.dataset.f)));
+        vita.tarjetas.bindFocus(card);
+        if (vita.cards[vita.at] === card) vita.tarjetas.setFocus(card, 0);
         return;
       }
       const keep = card.friendId ? rows.findIndex((f) => f.id === card.friendId) : -1;
       card.fSel = keep >= 0 ? keep : Math.min(card.fSel || 0, rows.length - 1);
       card.fBtn = card.fBtn || 0;
-      const online = feed.online.length;
+      const online = vita.feed.online.length;
       main.innerHTML = `<div class="v-fr">
           <div class="v-fr-side"></div>
           <div class="v-fr-main">
@@ -1076,13 +1287,13 @@
           </div>
         </div>`;
       $$('.v-fr-row', main).forEach((r) => {
-        r.addEventListener('mouseenter', () => cards[at] === card && setFriendSel(card, Number(r.dataset.fi), false));
-        r.addEventListener('click', () => cards[at] === card && feedOpen(card, 0, rows[Number(r.dataset.fi)]));
+        r.addEventListener('mouseenter', () => vita.cards[vita.at] === card && setFriendSel(card, Number(r.dataset.fi), false));
+        r.addEventListener('click', () => vita.cards[vita.at] === card && feedOpen(card, 0, rows[Number(r.dataset.fi)]));
       });
       setFriendSel(card, card.fSel, keep < 0);
     }
     function setFriendSel(card, i, scroll = true) {
-      const rows = feed.list;
+      const rows = vita.feed.list;
       if (!rows.length) return;
       card.fSel = Math.max(0, Math.min(rows.length - 1, i));
       const f = rows[card.fSel];
@@ -1100,7 +1311,7 @@
         <div class="v-fr-btns"><button class="v-pill${card.fBtn === 0 ? ' sel' : ''}" data-fb="0">${icon('person')}<span>Perfil</span></button><button class="v-pill${card.fBtn === 1 ? ' sel' : ''}" data-fb="1">${icon('chat')}<span>Mensaje</span></button></div>`;
       $$('[data-fb]', side).forEach((b) => {
         b.addEventListener('mouseenter', () => setFriendBtn(card, Number(b.dataset.fb)));
-        b.addEventListener('click', () => cards[at] === card && feedOpen(card, Number(b.dataset.fb), f));
+        b.addEventListener('click', () => vita.cards[vita.at] === card && feedOpen(card, Number(b.dataset.fb), f));
       });
     }
     function setFriendBtn(card, i) {
@@ -1109,33 +1320,37 @@
     }
     function feedOpen(card, btn, f) {
       if (!f) return;
-      sound('select');
+      vita.sound('select');
       if (btn) {
-        feed.chat(f);
+        vita.feed.chat(f);
         ctx.toast(`Se abrió el chat con ${f.name} en Steam`);
       } else {
-        feed.profile(f);
+        vita.feed.profile(f);
         ctx.toast(`Se abrió el perfil de ${f.name} en Steam`);
       }
     }
     function friendsCardKey(card, k) {
-      if (feed.data.status !== 'ok' || !feed.list.length) return rowKey(card, k);
+      if (vita.feed.data.status !== 'ok' || !vita.feed.list.length) return vita.tarjetas.rowKey(card, k);
       if (k === 'ArrowDown') setFriendSel(card, card.fSel + 1);
       else if (k === 'ArrowUp') setFriendSel(card, card.fSel - 1);
       else if (k === 'ArrowLeft') {
         if (card.fBtn > 0) setFriendBtn(card, 0);
-        else goTo(at - 1);
+        else vita.tarjetas.goTo(vita.at - 1);
       } else if (k === 'ArrowRight') {
         if (card.fBtn < 1) setFriendBtn(card, 1);
-        else if (at < cards.length - 1) goTo(at + 1);
-      } else if (k === 'Enter') feedOpen(card, card.fBtn, feed.list[card.fSel]);
+        else if (vita.at < vita.cards.length - 1) vita.tarjetas.goTo(vita.at + 1);
+      } else if (k === 'Enter') feedOpen(card, card.fBtn, vita.feed.list[card.fSel]);
       else return false;
       return true;
     }
+    return { paint: paintFriendsCard, key: friendsCardKey };
+  }
 
+  function tarjetaGrupo(vita) {
+    const { $$, call } = vita;
     // --- Grupo (Discord) ---
     function partyStatusText() {
-      switch (discord.status) {
+      switch (vita.discord.status) {
         case 'no-config':
           return { t: 'Conecta tu Discord', d: 'Para ver tu canal de voz y quiénes están contigo, conecta tu Discord. Se hace aquí mismo y toma unos 2 minutos.', btns: [['discord', 'Conectar Discord']] };
         case 'no-discord':
@@ -1147,7 +1362,7 @@
         case 'authorizing':
           return { t: 'Acepta en Discord', d: 'Revisa la ventana que apareció en Discord y presiona Autorizar.', btns: [] };
         case 'error':
-          return { t: 'No se pudo conectar', d: discord.message || 'Revisa los datos de tu aplicación de Discord.', btns: [['auth', 'Intentar de nuevo'], ['discord', 'Conectar Discord']] };
+          return { t: 'No se pudo conectar', d: vita.discord.message || 'Revisa los datos de tu aplicación de Discord.', btns: [['auth', 'Intentar de nuevo'], ['discord', 'Conectar Discord']] };
         case 'off':
           return { t: 'Conectando con Discord…', d: '', btns: [] };
         default:
@@ -1159,17 +1374,17 @@
       if (st) {
         main.innerHTML = `<div class="v-pa-empty"><div class="v-pa-big">${ART.party}</div><div class="v-pa-t">${esc(st.t)}</div><div class="v-pa-d">${esc(st.d)}</div>
           <div class="v-pa-btns">${st.btns.map(([id, label]) => `<button class="v-pill" data-f="${id}"><span>${label}</span></button>`).join('')}</div></div>`;
-      } else if (!discord.channel) {
+      } else if (!vita.discord.channel) {
         main.innerHTML = `<div class="v-pa-empty"><div class="v-pa-big">${ART.party}</div><div class="v-pa-t">No estás en un canal de voz</div><div class="v-pa-d">Cuando entres a un canal de voz en Discord, aquí vas a ver quiénes están contigo.</div></div>`;
       } else {
-        const n = discord.members.length;
+        const n = vita.discord.members.length;
         main.innerHTML = `
           <div class="v-pa">
             <div class="v-pa-room">
               <div class="v-pa-rbub">${ART.party}</div>
-              <div><div class="v-pa-name">${esc(discord.channel.name)}</div><div class="v-pa-guild">${esc(discord.channel.guild || 'Mensaje directo')}</div><div class="v-pa-count">${icon('headset')}<span>${n} ${n === 1 ? 'persona' : 'personas'}</span></div></div>
+              <div><div class="v-pa-name">${esc(vita.discord.channel.name)}</div><div class="v-pa-guild">${esc(vita.discord.channel.guild || 'Mensaje directo')}</div><div class="v-pa-count">${icon('headset')}<span>${n} ${n === 1 ? 'persona' : 'personas'}</span></div></div>
             </div>
-            <div class="v-pa-list">${discord.members
+            <div class="v-pa-list">${vita.discord.members
               .map(
                 (m) => `<div class="v-pa-m${m.speaking ? ' talking' : ''}">
                   <span class="v-pa-av" style="background-image:url('${m.avatar}')"></span>
@@ -1182,33 +1397,37 @@
       }
       $$('[data-f]', main).forEach((b) =>
         b.addEventListener('click', () => {
-          if (cards[at] !== card) return;
-          if (b.dataset.f === 'auth') call('discordAuthorize').then((s) => s && renderDiscord(s));
+          if (vita.cards[vita.at] !== card) return;
+          if (b.dataset.f === 'auth') call('discordAuthorize').then((s) => s && vita.renderDiscord(s));
           else call('open', b.dataset.f);
         })
       );
-      bindFocus(card);
+      vita.tarjetas.bindFocus(card);
     }
     function paintPartyBadge() {
-      const n = discord.status === 'ok' && discord.channel ? discord.members.length : 0;
+      const n = vita.discord.status === 'ok' && vita.discord.channel ? vita.discord.members.length : 0;
       $$('.v-badge').forEach((b) => {
         b.hidden = !n;
         b.textContent = String(n);
       });
     }
+    return { paint: paintPartyCard, paintBadge: paintPartyBadge };
+  }
 
+  function tarjetaTrofeos(vita) {
+    const { $, call } = vita;
     // --- Trofeos ---
     const T_ROW = 132;
     const T_VIEW = 640;
     async function paintTrophyCard(card, main) {
-      const pct = summary.total ? Math.round((summary.done / summary.total) * 100) : 0;
+      const pct = vita.summary.total ? Math.round((vita.summary.done / vita.summary.total) * 100) : 0;
       main.innerHTML = `
         <div class="v-tr">
           <div class="v-tr-side">
-            <div class="v-tr-av"${profile.avatar ? ` style="background-image:url('${profile.avatar}')"` : ''}>${profile.avatar ? '' : esc((profile.name || '?').charAt(0))}</div>
-            <div class="v-tr-name">${esc(profile.name || 'Jugador')}</div>
+            <div class="v-tr-av"${vita.profile.avatar ? ` style="background-image:url('${vita.profile.avatar}')"` : ''}>${vita.profile.avatar ? '' : esc((vita.profile.name || '?').charAt(0))}</div>
+            <div class="v-tr-name">${esc(vita.profile.name || 'Jugador')}</div>
             <div class="v-tr-cup">${ART.trophies}</div>
-            <div class="v-tr-total">${summary.hasKey ? `${summary.done || 0}` : '—'}<small>${summary.hasKey ? `de ${summary.total || 0} · ${pct} %` : 'Sin clave de Steam'}</small></div>
+            <div class="v-tr-total">${vita.summary.hasKey ? `${vita.summary.done || 0}` : '—'}<small>${vita.summary.hasKey ? `de ${vita.summary.total || 0} · ${pct} %` : 'Sin clave de Steam'}</small></div>
             <div class="v-prog gold"><i style="width:${pct}%"></i></div>
           </div>
           <div class="v-tr-main"><div class="v-tr-head"></div><div class="v-tr-view"><div class="v-tr-list"></div></div><div class="v-tr-msg" hidden></div></div>
@@ -1264,23 +1483,23 @@
           r.querySelector('.v-tr-when small').textContent = a.percent != null ? `${Number(a.percent).toFixed(1).replace('.', ',')} %` : '';
           list.appendChild(r);
         });
-        bindFocus(card);
-        if (cards[at] === card) setFocus(card, 0);
+        vita.tarjetas.bindFocus(card);
+        if (vita.cards[vita.at] === card) vita.tarjetas.setFocus(card, 0);
         return;
       }
       head.textContent = 'Tus juegos';
-      if (!summary.hasKey) {
+      if (!vita.summary.hasKey) {
         msg.hidden = false;
         msg.innerHTML = U.achievementMessage({ status: 'no-key' });
         return;
       }
-      const rows = games.filter((g) => trophiesOf(g) && trophiesOf(g).total).sort((a, b) => (b.lastPlayed || 0) - (a.lastPlayed || 0));
+      const rows = vita.games.filter((g) => trophiesOf(vita, g) && trophiesOf(vita, g).total).sort((a, b) => (b.lastPlayed || 0) - (a.lastPlayed || 0));
       if (!rows.length) {
         msg.hidden = false;
         msg.textContent = 'Todavía no hay datos de trofeos. Se cargan solos en unos minutos.';
       }
       rows.forEach((g) => {
-        const tp = trophiesOf(g);
+        const tp = trophiesOf(vita, g);
         const p = Math.round((tp.done / tp.total) * 100);
         const r = document.createElement('button');
         r.className = 'v-tr-row';
@@ -1298,39 +1517,43 @@
         cnt.innerHTML = U.isComplete(tp) ? `${U.completeBadge('platinum')}<span class="nh-done-text plat">${tp.done} / ${tp.total}</span>` : `${icon('trophy')}<span>${tp.done} / ${tp.total}</span>`;
         r.append(b, info, cnt);
         r.addEventListener('click', () => {
-          if (cards[at] !== card) return;
+          if (vita.cards[vita.at] !== card) return;
           card.trophyGame = g;
           card.fromList = true;
           card.focus = 0;
-          refreshCard(card);
+          vita.tarjetas.refresh(card);
         });
         list.appendChild(r);
       });
-      bindFocus(card);
+      vita.tarjetas.bindFocus(card);
     }
     function trophyKey(card, k) {
-      const list = focusables(card);
-      if (k === 'ArrowDown') setFocus(card, card.focus + 1);
-      else if (k === 'ArrowUp') setFocus(card, card.focus - 1);
-      else if (k === 'ArrowLeft') goTo(at - 1);
-      else if (k === 'ArrowRight') at < cards.length - 1 && goTo(at + 1);
+      const list = vita.tarjetas.focusables(card);
+      if (k === 'ArrowDown') vita.tarjetas.setFocus(card, card.focus + 1);
+      else if (k === 'ArrowUp') vita.tarjetas.setFocus(card, card.focus - 1);
+      else if (k === 'ArrowLeft') vita.tarjetas.goTo(vita.at - 1);
+      else if (k === 'ArrowRight') vita.at < vita.cards.length - 1 && vita.tarjetas.goTo(vita.at + 1);
       else if (k === 'Enter' && list[card.focus]) list[card.focus].click();
       else if ((k === 'Escape' || k === 'Backspace') && card.trophyGame && card.fromList) {
         card.trophyGame = null;
         card.fromList = false;
         card.focus = 0;
-        refreshCard(card);
+        vita.tarjetas.refresh(card);
       } else return false;
       return true;
     }
+    return { paint: paintTrophyCard, key: trophyKey };
+  }
 
+  function tarjetaBiblioteca(vita) {
+    const { $ } = vita;
     // --- Biblioteca: todos los juegos en burbujas ---
     const LIB_COLS = 6;
     const LIB_ROW = 300;
     const LIB_VIEW = 760;
     const libOrder = U.gameOrder('vitalib', { def: 'recent' }); // Jugado recientemente, Nombre, Horas o % de logros
     function paintLibraryCard(card, main) {
-      const list = libOrder.apply(games, summary);
+      const list = libOrder.apply(vita.games, vita.summary);
       card.libList = list;
       main.innerHTML = `
         <div class="v-lib">
@@ -1348,14 +1571,14 @@
         n.className = 'v-lib-name';
         n.textContent = g.name;
         c.appendChild(n);
-        c.addEventListener('click', () => cards[at] === card && openCard({ key: `g:${g.id}`, kind: 'game', game: g }, c));
+        c.addEventListener('click', () => vita.cards[vita.at] === card && vita.tarjetas.open({ key: `g:${g.id}`, kind: 'game', game: g }, c));
         grid.appendChild(c);
       });
       if (!list.length) grid.innerHTML = '<div class="v-lib-empty">Todavía no hay juegos.</div>';
       $('.v-lib-sort', main).addEventListener('click', () => {
         libOrder.next();
         card.focus = 0;
-        refreshCard(card);
+        vita.tarjetas.refresh(card);
       });
       card.lFirst = 0;
       card.onFocus = (el, i) => {
@@ -1364,40 +1587,44 @@
         grid.style.transform = `translateY(${-f * LIB_ROW}px)`;
       };
       $('.v-lib-view', main).addEventListener('wheel', (e) => {
-        if (cards[at] !== card || Math.abs(e.deltaY) < 10) return;
+        if (vita.cards[vita.at] !== card || Math.abs(e.deltaY) < 10) return;
         const rows = Math.ceil(list.length / LIB_COLS);
         const per = Math.floor(LIB_VIEW / LIB_ROW);
         card.lFirst = Math.max(0, Math.min(Math.max(0, rows - per), (card.lFirst || 0) + (e.deltaY > 0 ? 1 : -1)));
         grid.style.transform = `translateY(${-card.lFirst * LIB_ROW}px)`;
       });
-      bindFocus(card);
+      vita.tarjetas.bindFocus(card);
     }
     function libraryKey(card, k) {
-      const list = focusables(card);
+      const list = vita.tarjetas.focusables(card);
       const i = card.focus;
       if (k === 'ArrowRight') {
-        if (i % LIB_COLS < LIB_COLS - 1 && i + 1 < list.length) setFocus(card, i + 1);
-        else if (at < cards.length - 1) goTo(at + 1);
+        if (i % LIB_COLS < LIB_COLS - 1 && i + 1 < list.length) vita.tarjetas.setFocus(card, i + 1);
+        else if (vita.at < vita.cards.length - 1) vita.tarjetas.goTo(vita.at + 1);
       } else if (k === 'ArrowLeft') {
-        if (i % LIB_COLS > 0) setFocus(card, i - 1);
-        else goTo(at - 1);
+        if (i % LIB_COLS > 0) vita.tarjetas.setFocus(card, i - 1);
+        else vita.tarjetas.goTo(vita.at - 1);
       } else if (k === 'ArrowDown') {
-        if (i + LIB_COLS < list.length) setFocus(card, i + LIB_COLS);
+        if (i + LIB_COLS < list.length) vita.tarjetas.setFocus(card, i + LIB_COLS);
       } else if (k === 'ArrowUp') {
-        if (i >= LIB_COLS) setFocus(card, i - LIB_COLS);
+        if (i >= LIB_COLS) vita.tarjetas.setFocus(card, i - LIB_COLS);
       } else if (k === 'Enter' && list[i]) list[i].click();
       else if (k === 's' || k === 'S') $('.v-lib-sort', card.el).click();
       else return false;
       return true;
     }
+    return { paint: paintLibraryCard, key: libraryKey };
+  }
 
+  function tarjetaAjustes(vita) {
+    const { $, ctx, call } = vita;
     // --- Ajustes ---
     const CAT_ICONS = { general: 'gear', games: 'pad', emulators: 'pad', screen: 'screen', sound: 'speaker', accounts: 'person', files: 'folder' };
     async function paintSettingsCard(card, main) {
-      if (!menuModel.length) menuModel = (await call('getMenu')) || [];
+      if (!vita.menuModel.length) vita.menuModel = (await call('getMenu')) || [];
       card.level = card.level || 'cats';
-      const cat = menuModel[card.cat || 0];
-      const rows = card.level === 'cats' ? menuModel : cat ? cat.items : [];
+      const cat = vita.menuModel[card.cat || 0];
+      const rows = card.level === 'cats' ? vita.menuModel : cat ? cat.items : [];
       main.innerHTML = `
         <div class="v-set">
           <div class="v-set-head">${card.level === 'cats' ? 'Ajustes' : `<span class="v-set-crumb">Ajustes</span>${icon('chevron')}<span>${esc(cat.title)}</span>`}</div>
@@ -1423,8 +1650,8 @@
           b.querySelector('.v-set-l').textContent = r.label;
         }
         b.addEventListener('click', () => {
-          if (cards[at] !== card) return;
-          setFocus(card, i);
+          if (vita.cards[vita.at] !== card) return;
+          vita.tarjetas.setFocus(card, i);
           pickSetting(card);
         });
         list.appendChild(b);
@@ -1435,22 +1662,22 @@
         const top = Math.max(0, i - 7) * 92;
         list.style.transform = `translateY(${-top}px)`;
       };
-      bindFocus(card);
-      if (cards[at] === card) setFocus(card, card.focus || 0);
+      vita.tarjetas.bindFocus(card);
+      if (vita.cards[vita.at] === card) vita.tarjetas.setFocus(card, card.focus || 0);
     }
     async function pickSetting(card) {
       if (card.level === 'cats') {
         card.cat = card.focus;
         card.level = 'items';
         card.focus = 0;
-        return refreshCard(card);
+        return vita.tarjetas.refresh(card);
       }
-      const it = menuModel[card.cat].items[card.focus];
+      const it = vita.menuModel[card.cat].items[card.focus];
       if (!it) return;
       if (it.id === 'consoles') return ctx.openSelector();
-      if (it.confirm) return openPower();
+      if (it.confirm) return vita.ventanita.power();
       if (it.type === 'choice') {
-        return openPop(
+        return vita.ventanita.open(
           it.label,
           it.options.map((o) => ({ label: o.label, on: String(o.value) === String(it.value), run: () => runOption(it, o.value) }))
         );
@@ -1460,42 +1687,30 @@
     }
     async function runOption(it, value) {
       const next = await call('runMenu', it.id, value);
-      if (next) menuModel = next;
-      cards.filter((c) => c.kind === 'settings').forEach(refreshCard);
-      if (qmOpen) renderQm();
+      if (next) vita.menuModel = next;
+      vita.cards.filter((c) => c.kind === 'settings').forEach((c) => vita.tarjetas.refresh(c));
+      vita.rapido.refresh();
     }
     function settingsKey(card, k) {
-      if (k === 'ArrowDown') setFocus(card, card.focus + 1);
-      else if (k === 'ArrowUp') setFocus(card, card.focus - 1);
+      if (k === 'ArrowDown') vita.tarjetas.setFocus(card, card.focus + 1);
+      else if (k === 'ArrowUp') vita.tarjetas.setFocus(card, card.focus - 1);
       else if (k === 'Enter' || (k === 'ArrowRight' && card.level === 'cats')) pickSetting(card);
-      else if (k === 'ArrowRight') at < cards.length - 1 && goTo(at + 1);
+      else if (k === 'ArrowRight') vita.at < vita.cards.length - 1 && vita.tarjetas.goTo(vita.at + 1);
       else if (k === 'ArrowLeft' || k === 'Escape' || k === 'Backspace') {
         if (card.level === 'items') {
           card.level = 'cats';
           card.focus = card.cat || 0;
-          refreshCard(card);
-        } else if (k === 'ArrowLeft') goTo(at - 1);
+          vita.tarjetas.refresh(card);
+        } else if (k === 'ArrowLeft') vita.tarjetas.goTo(vita.at - 1);
         else return false;
       } else return false;
       return true;
     }
+    return { runOption, paint: paintSettingsCard, key: settingsKey };
+  }
 
-    // Teclas dentro de una tarjeta
-    function cardKey(k) {
-      const card = cards[at];
-      if (!card) return;
-      let used = false;
-      if (card.kind === 'game') used = gameKey(card, k);
-      else if (card.kind === 'music' || card.kind === 'party') used = rowKey(card, k);
-      else if (card.kind === 'friends') used = friendsCardKey(card, k);
-      else if (card.kind === 'trophies') used = trophyKey(card, k);
-      else if (card.kind === 'library') used = libraryKey(card, k);
-      else if (card.kind === 'settings') used = settingsKey(card, k);
-      if (used) return;
-      if (k === 'Escape') goTo(-1);
-      else if (k === 'Backspace' || k === 'Delete') closeCurrent();
-    }
-
+  function ventanita(vita) {
+    const { $, $$, ctx, call } = vita;
     // ---------- Ventanita para elegir ----------
     let pop = null;
     function openPop(title, items) {
@@ -1540,16 +1755,26 @@
         { icon: 'power', label: 'Apagar NostalHub', run: () => call('runMenu', 'quit') },
       ]);
     }
+    function key(k) {
+      if (k === 'ArrowDown') setPop(pop.sel + 1);
+      else if (k === 'ArrowUp') setPop(pop.sel - 1);
+      else if (k === 'Enter') choosePop(pop.sel);
+      else if (k === 'Escape' || k === 'Backspace') closePop();
+    }
+    return { key, open: openPop, power: openPower, isOpen: () => !!pop };
+  }
 
+  function menuRapido(vita) {
+    const { $, $$, ctx, call } = vita;
     // ---------- Menú rápido (como mantener el botón PS) ----------
     let qmOpen = false;
     let qmSel = 0;
     let qmItems = [];
     async function openQm() {
-      if (qmOpen || view === 'playing' || view === 'lock') return;
-      closeNotif();
+      if (qmOpen || vita.view === 'playing' || vita.view === 'lock') return;
+      vita.avisos.close();
       qmOpen = true;
-      menuModel = (await call('getMenu')) || menuModel;
+      vita.menuModel = (await call('getMenu')) || vita.menuModel;
       const qm = $('.v-qm');
       qm.hidden = false;
       qm.classList.remove('leave');
@@ -1566,12 +1791,12 @@
       qm.classList.remove('leave');
     }
     function soundItem(id) {
-      const sec = menuModel.find((s) => s.id === 'sound');
+      const sec = vita.menuModel.find((s) => s.id === 'sound');
       return sec ? sec.items.find((x) => x.id === id) : null;
     }
     function renderQm() {
       const panel = $('.v-qm-panel');
-      const v = U.spotifyView(spotify || {});
+      const v = U.spotifyView(vita.spotify || {});
       const slider = (it) => {
         if (!it || it.type !== 'choice') return '';
         const opts = it.options || [];
@@ -1613,7 +1838,7 @@
             const r = e.target.closest('.v-slider').getBoundingClientRect();
             const t = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width));
             const o = it.options[Math.round(t * (it.options.length - 1))];
-            return runOption(it, o.value);
+            return vita.ajustes.runOption(it, o.value);
           }
           qmRun(b.dataset.q, 1);
         });
@@ -1627,8 +1852,8 @@
     function qmRun(id, dir) {
       if (['prev', 'toggle', 'next', 'open'].includes(id)) {
         call('spotifyControl', id);
-        if (id === 'toggle' && spotify && spotify.running) {
-          spotify = { ...spotify, playing: !spotify.playing };
+        if (id === 'toggle' && vita.spotify && vita.spotify.running) {
+          vita.spotify = { ...vita.spotify, playing: !vita.spotify.playing };
           renderQm();
         }
       } else if (id === 'mv' || id === 'sv') {
@@ -1636,17 +1861,17 @@
         const opts = it.options || [];
         const i = opts.findIndex((o) => String(o.value) === String(it.value));
         const j = Math.max(0, Math.min(opts.length - 1, i + dir));
-        if (j !== i) runOption(it, opts[j].value);
+        if (j !== i) vita.ajustes.runOption(it, opts[j].value);
       } else if (id === 'mus' || id === 'snd') {
         const it = soundItem(id === 'mus' ? 'music' : 'sounds');
-        runOption(it, !it.value);
+        vita.ajustes.runOption(it, !it.value);
       } else if (id === 'consoles') ctx.openSelector();
       else if (id === 'settings') {
         closeQm();
-        openCard({ key: 's:settings', kind: 'settings' }, null);
+        vita.tarjetas.open({ key: 's:settings', kind: 'settings' }, null);
       } else if (id === 'power') {
         closeQm();
-        openPower();
+        vita.ventanita.power();
       }
     }
     function qmKey(k) {
@@ -1672,13 +1897,26 @@
     $('.v-qm').addEventListener('pointerdown', (e) => {
       if (e.target === e.currentTarget) closeQm();
     });
+    return {
+      open: openQm,
+      close: closeQm,
+      key: qmKey,
+      isOpen: () => qmOpen,
+      // Llegaron datos nuevos (música u opciones): si está abierto, se vuelve a dibujar
+      refresh() {
+        if (qmOpen) renderQm();
+      },
+    };
+  }
 
+  function avisos(vita) {
+    const { $, root } = vita;
     // ---------- Avisos (esquina de arriba a la derecha) ----------
     const notes = [];
     let unseen = 0;
     let notifOpen = false;
     function notify(text, sub = '', art = null) {
-      notes.unshift({ text, sub, art, at: Date.now() });
+      notes.unshift({ text, sub, art, when: Date.now() });
       if (notes.length > 20) notes.pop();
       unseen++;
       paintNotif();
@@ -1696,13 +1934,13 @@
         ? notes
             .map(
               (x) => `<div class="v-np-it"><div class="v-np-art"${x.art ? ` style="background-image:url('${x.art}')"` : ''}>${x.art ? '' : icon('bell')}</div>
-                <div><div class="v-np-t">${esc(x.text)}</div><div class="v-np-s">${esc(x.sub)}${x.sub ? ' · ' : ''}${esc(U.ago(x.at))}</div></div></div>`
+                <div><div class="v-np-t">${esc(x.text)}</div><div class="v-np-s">${esc(x.sub)}${x.sub ? ' · ' : ''}${esc(U.ago(x.when))}</div></div></div>`
             )
             .join('')
         : '<div class="v-np-empty">No hay avisos nuevos.</div>';
     }
     function toggleNotif() {
-      if (view === 'lock' || view === 'playing') return;
+      if (vita.view === 'lock' || vita.view === 'playing') return;
       if (notifOpen) return closeNotif();
       notifOpen = true;
       unseen = 0;
@@ -1716,7 +1954,15 @@
     }
     $('.v-notif').addEventListener('click', toggleNotif);
     paintNotif();
+    // Clic afuera cierra los avisos
+    root.addEventListener('pointerdown', (e) => {
+      if (notifOpen && !e.target.closest('.v-notif-panel, .v-notif')) closeNotif();
+    });
+    return { notify, toggle: toggleNotif, close: closeNotif, isOpen: () => notifOpen };
+  }
 
+  function pantallaBloqueo(vita) {
+    const { $, root } = vita;
     // ---------- Pantalla de bloqueo ----------
     const lock = $('.v-lock');
     const lockPeel = makePeel({
@@ -1726,33 +1972,40 @@
       w: W,
       h: H - BAR,
       rest: 150,
-      onStart: () => sound('select'),
+      onStart: () => vita.sound('select'),
       onDone: unlocked,
     });
     function unlocked() {
       lock.hidden = true;
-      view = at >= 0 ? 'card' : 'home';
+      vita.view = vita.at >= 0 ? 'card' : 'home';
       root.classList.remove('locked');
       root.classList.add('intro');
       setTimeout(() => root.classList.remove('intro'), 1300);
-      paintHint();
+      vita.paintHint();
     }
-    lock.addEventListener('click', () => view === 'lock' && lockPeel.peel());
-    const teaseTimer = setInterval(() => view === 'lock' && lockPeel.tease(), 4200);
-    setTimeout(() => view === 'lock' && lockPeel.tease(), 900);
+    lock.addEventListener('click', () => vita.view === 'lock' && lockPeel.peel());
+    const teaseTimer = setInterval(() => vita.view === 'lock' && lockPeel.tease(), 4200);
+    setTimeout(() => vita.view === 'lock' && lockPeel.tease(), 900);
+    return { peel: () => lockPeel.peel(), dispose: () => clearInterval(teaseTimer) };
+  }
 
+  function pantallaJugando(vita) {
+    const { $, api, ctx, root, call } = vita;
+    const nowPlaying = U.nowPlaying($('.v-playing'), api, ctx.toast);
+    let playTimer = null;
+    let playingGame = null;
     // ---------- Iniciar y "Jugando a…" ----------
     async function startGame(g) {
-      if (!g || view === 'playing') return;
+      if (!g || vita.view === 'playing') return;
       const res = await api.launch(g.id);
       if (!res || !res.ok) {
         ctx.toast(`No se pudo abrir: ${(res && res.error) || 'error desconocido'}`);
         return;
       }
       playingGame = g;
-      view = 'playing';
-      closeQm();
-      closeNotif();
+      vita.view = 'playing';
+      vita.rapido.close();
+      vita.avisos.close();
       const p = $('.v-playing');
       const bub = $('.v-play-bub');
       bub.innerHTML = '';
@@ -1776,7 +2029,7 @@
       p.dataset.started = String(started);
     }
     async function endPlaying(reason) {
-      if (view !== 'playing') return;
+      if (vita.view !== 'playing') return;
       nowPlaying.stop();
       clearInterval(playTimer);
       document.body.classList.remove('playing');
@@ -1786,11 +2039,11 @@
       p.classList.add('leave');
       await wait(400);
       p.hidden = true;
-      view = at >= 0 ? 'card' : 'home';
+      vita.view = vita.at >= 0 ? 'card' : 'home';
       if (reason === 'not-started') ctx.toast('No se detectó que el juego abriera');
       else if (playingGame && mins >= 1) {
         const im = bubbleImage(playingGame);
-        notify(`Jugaste ${playingGame.name}`, `${mins} min`, im && im.url);
+        vita.avisos.notify(`Jugaste ${playingGame.name}`, `${mins} min`, im && im.url);
       }
       playingGame = null;
     }
@@ -1798,154 +2051,15 @@
       call('dismissPlaying');
       endPlaying('manual');
     });
-
-    // ---------- Pista de teclas (barra superior) ----------
-    function paintHint() {
-      const h = $('.v-hint');
-      if (view === 'lock') h.textContent = 'Enter o clic: desbloquear';
-      else if (view === 'card') h.textContent = 'Esc: inicio  ·  Retroceso: cerrar tarjeta  ·  Q / E: cambiar  ·  P: menú rápido';
-      else if (mv && mv.index == null) h.textContent = 'Elige la burbuja que quieres mover (clic, o flechas y Enter)  ·  Esc: cancelar';
-      else if (mv) h.textContent = 'Moviendo: flechas o clic en otro lugar  ·  Enter: dejarla  ·  Esc: cancelar';
-      else h.textContent = 'Enter: abrir  ·  O: ordenar  ·  Q / E: tarjetas  ·  P: menú rápido  ·  Esc: consolas';
-    }
-
-    // ---------- Teclado ----------
-    function onKey(e) {
-      const k = e.key;
-      if (k === 'Enter' || k === ' ') e.preventDefault();
-      if (view === 'playing') {
-        if (k === 'Enter') $('[data-p="stop"]').click();
-        return;
-      }
-      if (view === 'lock') {
-        if (k === 'Enter' || k === ' ') lockPeel.peel();
-        else if (k === 'Escape') ctx.openSelector();
-        return;
-      }
-      if (busy) return;
-      if (pop) {
-        if (k === 'ArrowDown') setPop(pop.sel + 1);
-        else if (k === 'ArrowUp') setPop(pop.sel - 1);
-        else if (k === 'Enter') choosePop(pop.sel);
-        else if (k === 'Escape' || k === 'Backspace') closePop();
-        return;
-      }
-      if (mv) return moveKey(k);
-      if (qmOpen) return qmKey(k);
-      if (notifOpen) {
-        if (k === 'Escape' || k === 'Backspace' || k === 'Enter') closeNotif();
-        return;
-      }
-      if (k === 'p' || k === 'P') return openQm();
-      if (k === 'n' || k === 'N') return toggleNotif();
-      if (k === 'q' || k === 'Q') return at >= 0 && goTo(at - 1);
-      if (k === 'e' || k === 'E') return at < cards.length - 1 && goTo(at + 1);
-      if (view === 'home' && (k === 'o' || k === 'O')) return openSort();
-      if (view === 'home') homeKey(k);
-      else if (view === 'card') cardKey(k);
-    }
-    window.addEventListener('keydown', onKey);
-
-    // Rueda del mouse en el inicio: cambiar de página
-    let wheelLock = 0;
-    $('.v-home').addEventListener('wheel', (e) => {
-      if (view !== 'home' || busy || Date.now() < wheelLock || Math.abs(e.deltaY) < 10) return;
-      setPage(page + (e.deltaY > 0 ? 1 : -1));
-      wheelLock = Date.now() + 450;
-    });
-    // Clic afuera cierra los avisos
-    root.addEventListener('pointerdown', (e) => {
-      if (notifOpen && !e.target.closest('.v-notif-panel, .v-notif')) closeNotif();
-    });
-
-    // ---------- Datos ----------
-    async function loadProfile() {
-      profile = (await call('getSteamProfile')) || profile;
-      cards.filter((c) => c.kind === 'trophies').forEach(refreshCard);
-    }
-    let doneKey = ''; // juegos al 100 % (si cambia, se redibujan las burbujas con su platino)
-    async function loadSummary(s) {
-      summary = s || (await call('getAchievementSummary')) || summary;
-      const k = U.completeKey(summary);
-      if (((k !== doneKey && games.length) || order.mode === 'ach') && !mv) {
-        doneKey = k;
-        buildPages();
-      }
-      cards.filter((c) => c.kind === 'trophies' || c.kind === 'game').forEach(refreshCard);
-    }
-    function renderSpotify(s) {
-      spotify = s || spotify;
-      cards.filter((c) => c.kind === 'music').forEach(refreshCard);
-      if (qmOpen) renderQm();
-    }
-    let lastChannel = null;
-    function renderDiscord(s) {
-      discord = s || discord;
-      const ch = discord.status === 'ok' && discord.channel ? discord.channel.id : null;
-      if (ch && ch !== lastChannel && lastChannel !== undefined) notify(`Estás en ${discord.channel.name}`, discord.channel.guild || 'Discord');
-      lastChannel = ch;
-      paintPartyBadge();
-      cards.filter((c) => c.kind === 'party').forEach(refreshCard);
-    }
-    let knownIds = null;
-    function setGames(list) {
-      const next = list || [];
-      if (knownIds) {
-        next.filter((g) => !knownIds.has(g.id)).forEach((g) => {
-          const im = bubbleImage(g);
-          notify(`Nuevo: ${g.name}`, 'Se agregó a tus juegos', im && im.url);
-        });
-      }
-      knownIds = new Set(next.map((g) => g.id));
-      games = next;
-      if (mv) (mv = null), root.classList.remove('v-moving'), paintHint();
-      // las tarjetas abiertas usan los datos nuevos del juego
-      cards.forEach((c) => {
-        if (c.game) c.game = games.find((g) => g.id === c.game.id) || c.game;
-      });
-      buildPages();
-      cards.filter((c) => c.kind === 'game' || c.kind === 'library' || c.kind === 'trophies').forEach(refreshCard);
-    }
-    offs.push(api.onGamesUpdated(setGames));
-    offs.push(api.onGameEnded(({ reason }) => endPlaying(reason)));
-    if (api.onSpotify) offs.push(api.onSpotify(renderSpotify));
-    if (api.onDiscord) offs.push(api.onDiscord(renderDiscord));
-    if (api.onSteamSummary) offs.push(api.onSteamSummary((s) => loadSummary(s)));
-    if (api.onSteamChanged)
-      offs.push(
-        api.onSteamChanged(() => {
-          loadProfile();
-          loadSummary();
-        })
-      );
-
-    root.classList.add('locked');
-    lastChannel = undefined; // el primer estado de Discord no avisa
-    call('spotifyWatch', true).then((s) => s && renderSpotify(s));
-    call('discordWatch', true).then((s) => renderDiscord(s || discord));
-    call('getMenu').then((m) => (menuModel = m || []));
-    loadProfile();
-    loadSummary();
-    paintTasks();
-    paintEdges();
-    paintHint();
-    api.getState().then((s) => setGames(s.games));
-
     return {
-      unmount() {
+      start: startGame,
+      end: endPlaying,
+      key(k) {
+        if (k === 'Enter') $('[data-p="stop"]').click();
+      },
+      dispose() {
         nowPlaying.dispose();
-        feed.dispose();
-        clearInterval(clockTimer);
         clearInterval(playTimer);
-        clearInterval(teaseTimer);
-        clearTimeout(holdTimer);
-        window.removeEventListener('keydown', onKey);
-        offs.forEach((off) => off && off());
-        call('spotifyWatch', false);
-        call('discordWatch', false);
-        document.body.classList.remove('playing');
-        root.classList.remove('in-card', 'is-playing', 'intro', 'locked', 'dim-home');
-        root.innerHTML = '';
       },
     };
   }

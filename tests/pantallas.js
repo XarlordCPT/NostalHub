@@ -131,6 +131,22 @@ const PANTALLAS = {
     amigos: { pasos: [k('Enter'), espera(1800), texto('Amigos')], ve: '[class*="v-card"]' },
     ajustes: { pasos: [k('Enter'), espera(1800), texto('Ajustes')], ve: '[class*="v-card"]' },
     'menu-rapido': { pasos: [k('Enter'), espera(1800), k('p')], ve: '[class*="v-qm"], [class*="v-quick"]' },
+    // Lo que faltaba: las otras tarjetas, un juego, sus trofeos, jugar y volver, varias tarjetas, cerrar una, ordenar
+    // (sin elegir), mover (sin guardar), avisos y energía
+    musica: { pasos: [k('Enter'), espera(1800), texto('Música'), espera(2400), k('ArrowRight')], ve: '.k-music [data-f].sel' },
+    grupo: { pasos: [k('Enter'), espera(1800), texto('Grupo'), espera(2400)], ve: '.k-party .v-card-main > *' },
+    biblioteca: { pasos: [k('Enter'), espera(1800), texto('Biblioteca'), espera(2400), k('ArrowRight'), k('ArrowDown')], ve: '.v-lib-cell.sel' },
+    juego: { pasos: [k('Enter'), espera(1800), k('PageDown'), espera(600), k('Enter'), espera(2400), k('ArrowDown')], ve: '.k-game [data-f].sel' },
+    'juego-trofeos': { pasos: [k('Enter'), espera(1800), k('PageDown'), espera(600), k('Enter'), espera(2400), k('ArrowDown'), k('Enter'), espera(2600), k('ArrowDown')], ve: '.v-tr-row.sel' },
+    jugando: { pasos: [k('Enter'), espera(1800), k('PageDown'), espera(600), k('Enter'), espera(2400), k('Enter'), espera(1000)], ve: '.is-playing [data-p="stop"]' },
+    'vuelta-con-mouse': { pasos: [k('Enter'), espera(1800), k('PageDown'), espera(600), k('Enter'), espera(2400), k('Enter'), espera(1000), clic('[data-p="stop"]'), espera(900), k('Escape'), espera(700)], ve: '.v-bub.sel' },
+    'dos-tarjetas': { pasos: [k('Enter'), espera(1800), texto('Amigos'), espera(2400), k('Escape'), espera(600), texto('Ajustes'), espera(2400), k('ArrowDown'), k('Enter'), espera(400), k('q'), espera(700)], ve: '.v-card.cur' },
+    'cerrar-tarjeta': { pasos: [k('Enter'), espera(1800), texto('Ajustes'), espera(2400), k('Delete'), espera(1800)], ve: '.v-bub.sel' },
+    'ordenar-lista': { pasos: [k('Enter'), espera(1800), k('PageDown'), espera(600), k('o')], ve: '.v-pop-it.sel' },
+    moviendo: { pasos: [k('Enter'), espera(1800), k('PageDown'), espera(600), k('o'), espera(200), k('ArrowUp'), k('Enter'), espera(300), k('ArrowRight')], ve: '.v-bub.moving' },
+    'mover-cancelar': { pasos: [k('Enter'), espera(1800), k('PageDown'), espera(600), k('o'), espera(200), k('ArrowUp'), k('Enter'), espera(300), k('ArrowRight'), k('Escape'), espera(300)], ve: '.v-bub.sel' },
+    avisos: { pasos: [k('Enter'), espera(1800), k('n')], ve: '.v-notif-panel:not([hidden])' },
+    energia: { pasos: [k('Enter'), espera(1800), k('p'), espera(700), k('ArrowDown', 9), k('Enter')], ve: '.v-pop-it.sel' },
   },
   switch: {
     inicio: { pasos: [], ve: '[data-game-id]' },
