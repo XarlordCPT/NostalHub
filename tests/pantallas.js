@@ -116,6 +116,18 @@ const PANTALLAS = {
     logros: { pasos: [clic('[data-s="notes"]'), espera(1300), k('Enter')], ve: '.b-app .ba-row' },
     amigos: { pasos: [clic('[data-s="friends"]')], ve: '.b-app' },
     ajustes: { pasos: [clic('.b-slot[data-i="0"]'), espera(300), clic('.b-slot[data-i="0"]')], ve: '.b-app .ba-row' },
+    // Lo que faltaba: las otras apps, las ventanas, mover un ícono (sin guardarlo), jugar y volver
+    actividad: { pasos: [clic('.b-slot[data-i="2"]'), espera(300), clic('.b-slot[data-i="2"]')], ve: '.ta-chart' },
+    musica: { pasos: [clic('.b-slot[data-i="3"]'), espera(300), clic('.b-slot[data-i="3"]'), espera(400), k('ArrowDown')], ve: '.ta-music' },
+    grupo: { pasos: [clic('[data-s="party"]')], ve: '.b-app .ba-row' },
+    notificaciones: { pasos: [clic('[data-s="notif"]')], ve: '.b-app .ba-row' },
+    tema: { pasos: [clic('.b-theme'), espera(400), k('ArrowDown')], ve: '.b-app .ba-row.sel' },
+    opciones: { pasos: [k('o')], ve: '.b-dlg:not([hidden]) button.sel' },
+    'logros-del-juego': { pasos: [k('o'), espera(300), texto('Logros'), espera(1300), k('ArrowDown')], ve: '.b-app .ba-row.sel' },
+    mover: { pasos: [k('o'), espera(300), texto('Mover'), espera(300), k('ArrowRight')], ve: '.b-moving .b-slot.sel' },
+    'amigo-ventana': { pasos: [clic('[data-s="friends"]'), espera(600), k('Enter')], ve: '.b-dlg:not([hidden]) button.sel' },
+    jugando: { pasos: [k('Enter'), espera(1600)], ve: '.bp-btn' },
+    'vuelta-con-mouse': { pasos: [k('Enter'), espera(1600), clic('.bp-btn'), espera(600), k('ArrowRight'), clic('[data-s="notes"]'), espera(600), clic('.ba-back')], ve: '.b-slot.sel' },
   },
 };
 // Pantallas que no son de una consola

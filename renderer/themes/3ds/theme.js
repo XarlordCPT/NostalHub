@@ -8,7 +8,9 @@
    Las pantallas se diseñan en su tamaño real y se agrandan (K). Se registra en window.Themes['3ds']. */
 (() => {
   // Pantallas nativas de 400×240 y 320×240, dibujadas 1,75 veces más grandes (700×420 y 560×420) en el CSS
-  const { wait, pad2 } = window.NostalHubUtil;
+  const U = window.NostalHubUtil;
+  const esc = U.escapeHtml;
+  const { wait, pad2 } = U;
   const store = {
     get(k, d) {
       try {
@@ -168,38 +170,189 @@
   }
 
   // =====================================================================
+  // El tema va separado por partes (una función cada una, más abajo). Todas reciben `ds` (la consola), que tiene lo
+  // que es de todas (en qué pantalla se está, los juegos, el perfil, el resumen de logros, la música, Discord, las
+  // opciones, la app y la ventana abiertas) y las otras partes (ds.aspecto, ds.inicio, ds.apps, ds.ventana,
+  // ds.jugando). Lo que es de una sola parte queda dentro de su función.
   function mount(root, ctx) {
     root.innerHTML = MARKUP;
     const api = ctx.api;
-    const U = window.NostalHubUtil;
-    const feed = U.friendsFeed(api); // amigos de Steam (Lista de amigos)
-    const esc = U.escapeHtml;
-    const $ = (s, el = root) => el.querySelector(s);
-    const $$ = (s, el = root) => [...el.querySelectorAll(s)];
+    const $ = (sel, el = root) => el.querySelector(sel);
+    const $$ = (sel, el = root) => [...el.querySelectorAll(sel)];
     const call = (fn, ...a) => (typeof api[fn] === 'function' ? api[fn](...a) : Promise.resolve(null));
-
-    let games = [];
-    let profile = { name: 'Jugador', avatar: null };
-    let summary = { perGame: {}, hasKey: false };
-    let spotify = null;
-    let discord = { status: 'off', channel: null, members: [] };
-    let menuModel = [];
-    let view = 'home'; // home | settings | activity | music | trophies | friends | notes | playing
+    const ds = {
+      root,
+      ctx,
+      api,
+      $,
+      $$,
+      call,
+      feed: U.friendsFeed(api), // amigos de Steam (Lista de amigos)
+      // Fondo personalizado (como los temas hechos a mano): una imagen tuya o el arte de un juego en las dos pantallas
+      wall: U.wallpaper(api, '3ds'),
+      view: 'home', // home | settings | activity | music | trophies | friends | party | notes | launching | playing
+      games: [],
+      profile: { name: 'Jugador', avatar: null },
+      summary: { perGame: {}, hasKey: false },
+      spotify: null,
+      discord: { status: 'off', channel: null, members: [] },
+      menuModel: [],
+      app: null, // la app abierta: { icon, title(), list() → [{ label, value, desc, run, icon, img, dim }], sel, top(fila), back() }
+      dlg: null, // la ventana abierta: { btns, sel }
+    };
     const offs = [];
+    ds.aspecto = aspecto(ds);
+    ds.inicio = pantallaInicio(ds);
+    ds.apps = marcoDeApps(ds);
+    ds.ventana = ventana(ds);
+    ds.jugando = pantallaJugando(ds);
 
-    // ---------- Tema, carcasa, filas y 3D (se recuerdan) ----------
+    // =====================================================================
+    // Teclado y botones de la carcasa
+    // =====================================================================
+    function onKey(e) {
+      const k = e.key;
+      if (k === 'Enter' || k === ' ' || k.startsWith('Arrow')) e.preventDefault();
+      handleKey(k);
+    }
+    function handleKey(k) {
+      if (ds.view === 'launching') return;
+      if (ds.view === 'playing') return ds.jugando.key(k);
+      if (k === 'Home') {
+        if (ds.dlg) ds.ventana.close();
+        if (ds.view !== 'home') {
+          ds.app = null;
+          ds.apps.close();
+        }
+        return;
+      }
+      if (k === 'Power') return ds.ventana.power();
+      if (ds.dlg) return ds.ventana.key(k);
+      if (ds.view !== 'home') return ds.app && ds.apps.key(k);
+      ds.inicio.key(k);
+    }
+    window.addEventListener('keydown', onKey);
+    // Los botones dibujados de la consola hacen lo mismo que las teclas
+    $$('.d-base [data-k]').forEach((b) =>
+      b.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const k = b.dataset.k;
+        if (k.startsWith('Arrow') || k === 'Home') ctx.sound(k === 'Home' ? 'back' : 'move');
+        if (k === 'Enter') ctx.sound('select');
+        if (k === 'Escape') ctx.sound('back');
+        if (k === 'y') return ds.view === 'home' && ds.inicio.zoom(-1);
+        if (k === 'Select') return ds.view === 'home' && ds.inicio.zoom(1);
+        handleKey(k);
+      })
+    );
+
+    // =====================================================================
+    // Datos
+    // =====================================================================
+    ds.setDiscord = (data) => {
+      ds.discord = data || ds.discord;
+      ds.inicio.paintFriendsBadge();
+      if (ds.view === 'party' || ds.view === 'notes') ds.apps.paint();
+    };
+    function setSpotify(data) {
+      ds.spotify = data || ds.spotify;
+      if (ds.view === 'music') ds.apps.paint();
+      else if (ds.view === 'home') ds.inicio.musicChanged();
+    }
+    function setGames(list) {
+      ds.games = list || [];
+      ds.inicio.cancelMove();
+      if (ds.wall.value.startsWith('game:')) ds.aspecto.applyWall(); // el arte del juego elegido como fondo
+      if (ds.view === 'home') {
+        ds.inicio.build();
+        ds.inicio.render();
+      } else if (ds.view === 'activity' || ds.view === 'trophies' || ds.view === 'notes') ds.apps.paint();
+    }
+    offs.push(api.onGamesUpdated(setGames));
+    offs.push(api.onGameEnded(({ reason }) => ds.jugando.end(reason)));
+    if (api.onSpotify) offs.push(api.onSpotify(setSpotify));
+    if (api.onDiscord) offs.push(api.onDiscord(ds.setDiscord));
+    // Juegos al 100 %: si cambian, se vuelven a dibujar los íconos con su estrella
+    let doneKey = '';
+    function onSummary(sum) {
+      ds.summary = sum || ds.summary;
+      const k = U.completeKey(ds.summary);
+      const changed = k !== doneKey;
+      doneKey = k;
+      ds.inicio.summaryChanged(changed);
+    }
+    if (api.onSteamSummary) offs.push(api.onSteamSummary(onSummary));
+    if (api.onSteamChanged)
+      offs.push(
+        api.onSteamChanged(async () => {
+          ds.profile = (await call('getSteamProfile')) || ds.profile;
+          ds.summary = (await call('getAchievementSummary')) || ds.summary;
+        })
+      );
+    call('spotifyWatch', true).then((data) => data && setSpotify(data));
+    call('discordWatch', true).then((data) => data && ds.setDiscord(data));
+    call('getMenu').then((m) => (ds.menuModel = m || []));
+    call('getSteamProfile').then((p) => p && (ds.profile = p));
+    call('getAchievementSummary').then((sum) => sum && onSummary(sum));
+    ds.inicio.build();
+    ds.inicio.render();
+    api.getState().then((st) => {
+      ds.games = st.games || [];
+      ds.inicio.firstEntry();
+    });
+    // Encendido: las pantallas se prenden desde blanco
+    root.classList.add('boot');
+    setTimeout(() => root.classList.remove('boot'), 900);
+
+    return {
+      unmount() {
+        ds.feed.dispose();
+        ds.aspecto.dispose();
+        ds.jugando.dispose();
+        window.removeEventListener('keydown', onKey);
+        offs.forEach((off) => off && off());
+        call('spotifyWatch', false);
+        call('discordWatch', false);
+        document.body.classList.remove('playing');
+        root.removeAttribute('data-t');
+        root.removeAttribute('data-s');
+        root.removeAttribute('data-rows');
+        root.style.removeProperty('--wall');
+        root.style.removeProperty('--px');
+        root.style.removeProperty('--py');
+        root.className = root.className.replace(/\b(in-app|is-playing|launching|boot|d3|can-opt)\b/g, '').trim();
+        root.innerHTML = '';
+      },
+    };
+  }
+
+  // Logros de un juego según el resumen ({ done, total }), o nada
+  function trophiesOf(ds, g) {
+    return (g && g.appId && ds.summary.perGame && ds.summary.perGame[g.appId]) || null;
+  }
+
+  // Imagen cuadrada del juego: tu cuadrado.png → fondo con logo → carátula → portada
+  function squareHtml(g) {
+    if (g.square) return `<span class="sq" style="background-image:url('${esc(g.square)}')"></span>`;
+    if (g.hero && g.heroIsReal && g.logo) return `<span class="sq" style="background-image:url('${esc(g.hero)}')"><img src="${esc(g.logo)}" alt="" draggable="false" /></span>`;
+    if (g.cover) return `<span class="sq top" style="background-image:url('${esc(g.cover)}')"></span>`;
+    const u = g.hero || (g.tileIsVideo ? null : g.tile);
+    if (u) return `<span class="sq" style="background-image:url('${esc(u)}')">${g.logo ? `<img src="${esc(g.logo)}" alt="" draggable="false" />` : ''}</span>`;
+    return `<span class="sq none">${esc(g.name)}</span>`;
+  }
+
+  // ---------- Aspecto: tema, carcasa, fondo, 3D (se recuerdan) y el reloj ----------
+  function aspecto(ds) {
+    const { $, root } = ds;
     let theme = store.get('theme', 'white');
     let shell = store.get('shell', 'black');
-    let rows = Math.max(1, Math.min(6, Number(store.get('rows', 2)) || 2));
     let depth = Math.max(0, Math.min(1, Number(store.get('depth', 0.6))));
-    // Fondo personalizado (como los temas hechos a mano): una imagen tuya o el arte de un juego en las dos pantallas
-    const wall = U.wallpaper(api, '3ds');
     function applyWall() {
-      const url = wall.url(games);
+      const url = ds.wall.url(ds.games);
       root.style.setProperty('--wall', url ? `url("${url}")` : 'none');
       root.classList.toggle('has-wall', !!url);
     }
-    wall.load().then(applyWall);
+    ds.wall.load().then(applyWall);
     function applyLook() {
       root.dataset.t = theme;
       root.dataset.s = shell;
@@ -219,44 +372,87 @@
     tick();
     const clockTimer = setInterval(tick, 10000);
 
-    // =====================================================================
-    // Íconos: apps del sistema y después tus juegos
-    // =====================================================================
-    function trophiesOf(g) {
-      return (g && g.appId && summary.perGame && summary.perGame[g.appId]) || null;
+    // Profundidad: las capas del banner se mueven un poco con el mouse (más con el deslizador arriba)
+    let mx = 0;
+    let my = 0;
+    function onMouse(e) {
+      const r = $('.d-top').getBoundingClientRect();
+      mx = Math.max(-1, Math.min(1, ((e.clientX - r.left) / r.width - 0.5) * 2));
+      my = Math.max(-1, Math.min(1, ((e.clientY - r.top) / r.height - 0.5) * 2));
+      paintDepth();
     }
+    function paintDepth() {
+      const d = depth;
+      root.style.setProperty('--px', (mx * d).toFixed(3));
+      root.style.setProperty('--py', (my * d).toFixed(3));
+    }
+    window.addEventListener('mousemove', onMouse);
+    // Deslizador 3D (a la derecha de la pantalla de arriba)
+    const slider = $('.d-slider');
+    function slide(e) {
+      const r = $('.d-slider-track').getBoundingClientRect();
+      depth = Math.max(0, Math.min(1, 1 - (e.clientY - r.top) / r.height));
+      store.set('depth', depth.toFixed(2));
+      applyLook();
+      paintDepth();
+    }
+    slider.addEventListener('pointerdown', (e) => {
+      slider.setPointerCapture(e.pointerId);
+      slide(e);
+      const mv = (ev) => slide(ev);
+      const up = () => (slider.removeEventListener('pointermove', mv), slider.removeEventListener('pointerup', up));
+      slider.addEventListener('pointermove', mv);
+      slider.addEventListener('pointerup', up);
+    });
+    return {
+      applyWall,
+      theme: () => theme,
+      shell: () => shell,
+      setTheme(id) {
+        theme = id;
+        store.set('theme', theme);
+        applyLook();
+      },
+      setShell(id) {
+        shell = id;
+        store.set('shell', shell);
+        applyLook();
+      },
+      dispose() {
+        clearInterval(clockTimer);
+        window.removeEventListener('mousemove', onMouse);
+      },
+    };
+  }
+
+  // ---------- Menú HOME: los íconos (apps del sistema y tus juegos), los accesos directos, el banner de arriba,
+  // las opciones de un juego y ordenar o mover íconos ----------
+  function pantallaInicio(ds) {
+    const { $, $$, ctx, root, call } = ds;
+    let rows = Math.max(1, Math.min(6, Number(store.get('rows', 2)) || 2));
     function apps() {
       return [
         { app: 'settings', icon: 'gear', color: '#8c8c8c', title: 'Configuración de la consola', sub: 'Tema, carcasa, pantalla, sonido y cuentas' },
         { app: 'eshop', icon: 'bag', color: '#f07b1d', title: 'Nintendo eShop', sub: 'Se abre la tienda de Steam' },
         { app: 'activity', icon: 'chart', color: '#3fa63f', title: 'Registro de actividad', sub: 'Cuánto has jugado a cada juego' },
-        { app: 'music', icon: 'music', color: '#e8443a', title: 'Nintendo 3DS Sonido', sub: spotify && spotify.running ? `${spotify.appName || 'Spotify'}: ${spotify.title || 'abierto'}` : `Tu música de ${(spotify && spotify.appName) || 'Spotify'}` },
-        { app: 'trophies', icon: 'trophy', color: '#e2a300', title: 'Logros', sub: summary.hasKey ? `${summary.done || 0} de ${summary.total || 0} logros` : 'Conecta tu Steam para verlos' },
+        { app: 'music', icon: 'music', color: '#e8443a', title: 'Nintendo 3DS Sonido', sub: ds.spotify && ds.spotify.running ? `${ds.spotify.appName || 'Spotify'}: ${ds.spotify.title || 'abierto'}` : `Tu música de ${(ds.spotify && ds.spotify.appName) || 'Spotify'}` },
+        { app: 'trophies', icon: 'trophy', color: '#e2a300', title: 'Logros', sub: ds.summary.hasKey ? `${ds.summary.done || 0} de ${ds.summary.total || 0} logros` : 'Conecta tu Steam para verlos' },
         { app: 'consoles', icon: 'swap', color: '#29a8e0', title: 'Cambiar de consola', sub: 'Volver al selector de consolas' },
       ];
     }
     function recentGames() {
-      return [...games].sort((a, b) => (b.lastPlayed || 0) - (a.lastPlayed || 0) || a.name.localeCompare(b.name, 'es'));
+      return [...ds.games].sort((a, b) => (b.lastPlayed || 0) - (a.lastPlayed || 0) || a.name.localeCompare(b.name, 'es'));
     }
     // Orden de tus juegos en la cuadrícula (las apps del sistema van siempre primero)
     const order = U.gameOrder('3ds', { manual: true, def: 'recent' });
     let mv = null; // { list } al mover un ícono (el que se mueve es el elegido)
     function homeGames() {
-      return mv ? mv.list : order.apply(games, summary);
+      return mv ? mv.list : order.apply(ds.games, ds.summary);
     }
     let items = [];
     let sel = 0;
     let firstCol = 0;
 
-    // Imagen cuadrada del juego: tu cuadrado.png → fondo con logo → carátula → portada
-    function squareHtml(g) {
-      if (g.square) return `<span class="sq" style="background-image:url('${esc(g.square)}')"></span>`;
-      if (g.hero && g.heroIsReal && g.logo) return `<span class="sq" style="background-image:url('${esc(g.hero)}')"><img src="${esc(g.logo)}" alt="" draggable="false" /></span>`;
-      if (g.cover) return `<span class="sq top" style="background-image:url('${esc(g.cover)}')"></span>`;
-      const u = g.hero || (g.tileIsVideo ? null : g.tile);
-      if (u) return `<span class="sq" style="background-image:url('${esc(u)}')">${g.logo ? `<img src="${esc(g.logo)}" alt="" draggable="false" />` : ''}</span>`;
-      return `<span class="sq none">${esc(g.name)}</span>`;
-    }
     function itemIconHtml(it) {
       if (it.game) return squareHtml(it.game);
       return `<span class="sq app" style="--c:${it.color}">${ic(it.icon)}</span>`;
@@ -293,9 +489,9 @@
           el.classList.add('full');
           el.dataset.i = i;
           if (it.game) el.dataset.gameId = it.game.id; // clic derecho → cambiar imágenes
-          el.innerHTML = `<div class="b-icon">${itemIconHtml(it)}${it.game && U.isComplete(trophiesOf(it.game)) ? U.completeBadge('star', 'on-icon') : ''}</div>`; // 100 %: estrella
+          el.innerHTML = `<div class="b-icon">${itemIconHtml(it)}${it.game && U.isComplete(trophiesOf(ds, it.game)) ? U.completeBadge('star', 'on-icon') : ''}</div>`; // 100 %: estrella
           el.addEventListener('click', () => {
-            if (view !== 'home' || dlg) return;
+            if (ds.view !== 'home' || ds.dlg) return;
             if (mv) return sel === i ? endMove(true) : moveTo(i);
             if (sel === i) return openItem();
             ctx.sound('move');
@@ -357,8 +553,8 @@
       ctx.sound('page');
     }
     // Botones de tamaño (arriba a la derecha): achicar (más filas) y agrandar (menos filas)
-    root.querySelectorAll('.b-zoom').forEach((b) => b.addEventListener('click', () => view === 'home' && zoom(Number(b.dataset.z))));
-    $('.b-theme').addEventListener('click', () => view === 'home' && openApp('settings', 'theme'));
+    root.querySelectorAll('.b-zoom').forEach((b) => b.addEventListener('click', () => ds.view === 'home' && zoom(Number(b.dataset.z))));
+    $('.b-theme').addEventListener('click', () => ds.view === 'home' && ds.apps.open('settings', 'theme'));
     // Barra de abajo: tocarla o arrastrarla mueve las páginas
     const bar = $('.b-scroll');
     let dragging = false;
@@ -374,7 +570,7 @@
       }
     }
     bar.addEventListener('pointerdown', (e) => {
-      if (view !== 'home' || e.button !== 0) return;
+      if (ds.view !== 'home' || e.button !== 0) return;
       e.preventDefault();
       dragging = true;
       bar.classList.add('drag');
@@ -393,7 +589,7 @@
     bar.addEventListener('pointerup', endDrag);
     bar.addEventListener('pointercancel', endDrag);
     $('.b-gridview').addEventListener('wheel', (e) => {
-      if (view !== 'home' || dlg || Math.abs(e.deltaY) + Math.abs(e.deltaX) < 8) return;
+      if (ds.view !== 'home' || ds.dlg || Math.abs(e.deltaY) + Math.abs(e.deltaX) < 8) return;
       if (Date.now() < wheelLock) return;
       wheelLock = Date.now() + 120;
       moveSel((e.deltaY || e.deltaX) > 0 ? 'ArrowRight' : 'ArrowLeft');
@@ -413,24 +609,23 @@
     $('.b-short').innerHTML = SHORTS.map((s) => `<button data-s="${s.id}" title="${s.label}">${ic(s.icon)}${s.id === 'party' ? '<em hidden></em>' : ''}</button>`).join('');
     $$('.b-short button').forEach((b) =>
       b.addEventListener('click', () => {
-        if (view === 'playing') return;
-        closeDlg();
+        if (ds.view === 'playing') return;
+        ds.ventana.close();
         const id = b.dataset.s;
-        if (id === 'notes') openApp('trophies');
-        else if (id === 'friends') openApp('friends');
-        else if (id === 'party') openApp('party');
-        else if (id === 'notif') openApp('notes');
+        if (id === 'notes') ds.apps.open('trophies');
+        else if (id === 'friends') ds.apps.open('friends');
+        else if (id === 'party') ds.apps.open('party');
+        else if (id === 'notif') ds.apps.open('notes');
         else if (id === 'browser') (call('open', 'steam-activity'), ctx.toast('Se abrió en Steam'));
-        else if (id === 'profile') (call('open', summary.hasKey ? 'steam-profile' : 'setup-steam'), summary.hasKey && ctx.toast('Se abrió en Steam'));
+        else if (id === 'profile') (call('open', ds.summary.hasKey ? 'steam-profile' : 'setup-steam'), ds.summary.hasKey && ctx.toast('Se abrió en Steam'));
       })
     );
     function paintFriendsBadge() {
       const em = $('.b-short [data-s="party"] em');
-      const n = discord.status === 'ok' && discord.channel ? discord.members.length : 0;
+      const n = ds.discord.status === 'ok' && ds.discord.channel ? ds.discord.members.length : 0;
       em.hidden = !n;
       em.textContent = n;
     }
-
     // =====================================================================
     // Pantalla de arriba: banner del icono elegido (con profundidad 3D)
     // =====================================================================
@@ -461,463 +656,24 @@
       ban.offsetWidth;
       ban.classList.add('pop');
     }
-
-    // Profundidad: las capas del banner se mueven un poco con el mouse (más con el deslizador arriba)
-    let mx = 0;
-    let my = 0;
-    function onMouse(e) {
-      const r = $('.d-top').getBoundingClientRect();
-      mx = Math.max(-1, Math.min(1, ((e.clientX - r.left) / r.width - 0.5) * 2));
-      my = Math.max(-1, Math.min(1, ((e.clientY - r.top) / r.height - 0.5) * 2));
-      paintDepth();
-    }
-    function paintDepth() {
-      const d = depth;
-      root.style.setProperty('--px', (mx * d).toFixed(3));
-      root.style.setProperty('--py', (my * d).toFixed(3));
-    }
-    window.addEventListener('mousemove', onMouse);
-    // Deslizador 3D (a la derecha de la pantalla de arriba)
-    const slider = $('.d-slider');
-    function slide(e) {
-      const r = $('.d-slider-track').getBoundingClientRect();
-      depth = Math.max(0, Math.min(1, 1 - (e.clientY - r.top) / r.height));
-      store.set('depth', depth.toFixed(2));
-      applyLook();
-      paintDepth();
-    }
-    slider.addEventListener('pointerdown', (e) => {
-      slider.setPointerCapture(e.pointerId);
-      slide(e);
-      const mv = (ev) => slide(ev);
-      const up = () => (slider.removeEventListener('pointermove', mv), slider.removeEventListener('pointerup', up));
-      slider.addEventListener('pointermove', mv);
-      slider.addEventListener('pointerup', up);
-    });
-
     // =====================================================================
     // Abrir: apps y juegos
     // =====================================================================
     function openItem() {
       const it = items[sel];
       if (!it) return;
-      if (it.game) return startGame(it.game);
+      if (it.game) return ds.jugando.start(it.game);
       if (it.app === 'eshop') return call('open', 'steam-store'), ctx.toast('Se abrió en Steam');
       if (it.app === 'consoles') return ctx.openSelector();
-      openApp(it.app);
-    }
-
-    // ---------- Apps: arriba un panel, abajo una lista táctil ----------
-    let app = null; // { name, list: [{label, value, desc, run, icon, img, dim}], sel, top() }
-    async function openApp(name, sub) {
-      closeDlg();
-      view = name;
-      root.classList.add('in-app');
-      $('.t-home').hidden = true;
-      $('.b-home').hidden = true;
-      $('.t-app').hidden = false;
-      $('.b-app').hidden = false;
-      for (const s of ['.t-app', '.b-app']) {
-        const el = $(s);
-        el.classList.remove('in');
-        el.offsetWidth;
-        el.classList.add('in');
-      }
-      if (name === 'settings') {
-        menuModel = (await call('getMenu')) || menuModel;
-        app = settingsApp(sub);
-      } else if (name === 'activity') app = activityApp();
-      else if (name === 'music') app = musicApp();
-      else if (name === 'trophies') app = trophiesApp();
-      else if (name === 'friends') app = friendsApp();
-      else if (name === 'party') app = partyApp();
-      else if (name === 'notes') app = notesApp();
-      feed.watch(name === 'friends');
-      paintApp();
-      paintHint();
-    }
-    function closeApp() {
-      if (app && app.back && app.back()) return paintApp();
-      app = null;
-      view = 'home';
-      feed.watch(false);
-      root.classList.remove('in-app');
-      $('.t-app').hidden = true;
-      $('.b-app').hidden = true;
-      $('.t-home').hidden = false;
-      $('.b-home').hidden = false;
-      buildItems();
-      renderGrid();
-    }
-    function paintApp() {
-      if (!app) return;
-      const list = app.list();
-      app.sel = Math.max(0, Math.min(list.length - 1, app.sel || 0));
-      $('.t-app').innerHTML = `<div class="ta-head">${ic(app.icon)}<span>${esc(app.title())}</span></div><div class="ta-body">${app.top(list[app.sel])}</div>`;
-      const b = $('.b-app');
-      b.innerHTML = `<div class="ba-list${app.big ? ' big' : ''}">${
-        list.length
-          ? list
-              .map(
-                (r, i) =>
-                  `${r.head ? `<div class="ba-set">${esc(r.head)}</div>` : ''}<button class="ba-row${r.dim ? ' dim' : ''}${r.on ? ' on' : ''}" data-i="${i}">${r.svg ? `<span class="ba-ic np">${r.svg}</span>` : r.img !== undefined ? `<span class="ba-img${r.dot ? ` fr ${r.dot}` : ''}"${r.img ? ` style="background-image:url('${esc(r.img)}')"` : ''}>${r.dot ? '<i></i>' : ''}${r.ini && !r.img ? `<b>${esc(r.ini)}</b>` : ''}</span>` : r.icon ? `<span class="ba-ic">${ic(r.icon)}</span>` : ''}<span class="ba-l">${esc(r.label)}</span>${r.value != null ? `<span class="ba-v${r.badge ? ' nh-done-text' : ''}">${r.badge || ''}${esc(r.value)}</span>` : ''}</button>`
-              )
-              .join('')
-          : `<div class="ba-empty">${app.empty || 'No hay nada aquí.'}</div>`
-      }</div>${app.extra ? app.extra() : ''}<div class="ba-foot"><button class="ba-back">${ic('prev')}<span>${app.back && app.depth ? 'Atrás' : 'Menú HOME'}</span></button></div>`;
-      $$('.ba-row', b).forEach((r) => {
-        const i = Number(r.dataset.i);
-        r.addEventListener('click', () => {
-          if (i === app.sel) pickRow();
-          else (app.sel = i), ctx.sound('move'), paintAppSel();
-        });
-      });
-      $$('[data-x]', b).forEach((x) => x.addEventListener('click', () => app.action && app.action(x.dataset.x)));
-      $('.ba-back', b).addEventListener('click', () => (ctx.sound('back'), closeApp()));
-      paintAppSel();
-    }
-    function paintAppSel() {
-      const list = app.list();
-      $$('.b-app .ba-row').forEach((r) => r.classList.toggle('sel', Number(r.dataset.i) === app.sel));
-      const row = $(`.b-app .ba-row[data-i="${app.sel}"]`);
-      if (row) row.scrollIntoView({ block: 'nearest' });
-      const body = $('.t-app .ta-body');
-      if (body) body.innerHTML = app.top(list[app.sel]);
-    }
-    function pickRow() {
-      const r = app.list()[app.sel];
-      if (r && r.run) r.run();
-    }
-    function appKey(k) {
-      const n = app.list().length;
-      if (k === 'ArrowDown') (app.sel = Math.min(n - 1, app.sel + 1)), paintAppSel();
-      else if (k === 'ArrowUp') (app.sel = Math.max(0, app.sel - 1)), paintAppSel();
-      else if (k === 'ArrowRight' && app.action) app.action('next');
-      else if (k === 'ArrowLeft' && app.action) app.action('prev');
-      else if (k === 'Enter' || k === ' ') pickRow();
-      else if (k === 'Escape' || k === 'Backspace') closeApp();
-    }
-
-    // --- Configuración de la consola ---
-    function settingsApp(sub) {
-      const st = { cat: null, choice: null };
-      const cats = () => [
-        { id: 'theme', title: 'Tema', icon: 'brush', desc: 'El fondo de las dos pantallas. Solo cambia esta consola.' },
-        { id: 'wall', title: 'Fondo personalizado', icon: 'image', desc: 'Una imagen tuya o el arte de un juego en las dos pantallas.' },
-        { id: 'shell', title: 'Color de la consola', icon: 'image', desc: 'El color de la carcasa de la 3DS.' },
-        ...menuModel.map((c) => ({ id: c.id, title: c.title, icon: { general: 'gear', games: 'note', emulators: 'swap', screen: 'image', sound: 'music', accounts: 'person', files: 'note' }[c.id] || 'gear', desc: c.items.map((x) => x.label).slice(0, 3).join(', ') })),
-      ];
-      const self = {
-        icon: 'gear',
-        sel: 0,
-        depth: 0,
-        title: () => (st.choice ? st.choice.it.label : st.cat ? st.cat.title : 'Configuración de la consola'),
-        list() {
-          if (st.choice) return st.choice.it.options.map((o) => ({ label: o.label, on: String(o.value) === String(st.choice.it.value), value: String(o.value) === String(st.choice.it.value) ? '●' : '', run: () => runOption(st.choice.it, o.value).then(() => ((st.choice = null), (self.depth = 1), paintApp())) }));
-          if (st.cat && st.cat.id === 'theme') return THEMES.map((t) => ({ label: t.label, on: t.id === theme, value: t.id === theme ? '●' : '', run: () => ((theme = t.id), store.set('theme', theme), applyLook(), paintApp()) }));
-          if (st.cat && st.cat.id === 'wall')
-            return [
-              ...wall.choices(games).map((c) => ({
-                label: c.value === 'original' ? 'Ninguno (el del tema)' : c.group === 'games' ? `Juego: ${c.label}` : c.label,
-                on: c.value === wall.value,
-                value: c.value === wall.value ? '●' : '',
-                run: () => (wall.set(c.value), applyWall(), paintApp()),
-              })),
-              { label: 'Abrir carpeta de fondos', desc: 'Pon aquí tus imágenes (JPG o PNG) y vuelve a entrar.', run: () => (wall.openFolder(), ctx.toast('Se abrió la carpeta de fondos')) },
-            ];
-          if (st.cat && st.cat.id === 'shell') return SHELLS.map((t) => ({ label: t.label, on: t.id === shell, value: t.id === shell ? '●' : '', run: () => ((shell = t.id), store.set('shell', shell), applyLook(), paintApp()) }));
-          if (st.cat) {
-            const c = menuModel.find((x) => x.id === st.cat.id);
-            return (c ? c.items : []).map((it) => ({ label: it.label, desc: it.desc, value: it.type === 'toggle' || it.type === 'choice' ? U.optionValueText(it) : null, run: () => pickSetting(it) }));
-          }
-          return cats().map((c) => ({
-            label: c.title,
-            icon: c.icon,
-            desc: c.desc,
-            run: () => {
-              st.cat = c;
-              self.depth = 1;
-              self.sel = 0;
-              paintApp();
-              if (c.id === 'wall') wall.load().then(() => view === 'settings' && st.cat === c && paintApp()); // por si agregaste imágenes
-            },
-          }));
-        },
-        top: (r) => `<div class="ta-desc">${r ? `<b>${esc(r.label)}</b>${esc(r.desc || (st.cat && st.cat.id === 'theme' ? 'Toca para ponerlo.' : ''))}` : ''}</div>`,
-        back() {
-          if (st.choice) return (st.choice = null), true;
-          if (st.cat) return (self.sel = cats().findIndex((c) => c.id === st.cat.id)), (st.cat = null), (self.depth = 0), true;
-          return false;
-        },
-      };
-      async function pickSetting(it) {
-        if (it.id === 'consoles') return ctx.openSelector();
-        if (it.confirm) return powerDlg();
-        if (it.type === 'choice') return (st.choice = { it }), (self.depth = 2), (self.sel = Math.max(0, it.options.findIndex((o) => String(o.value) === String(it.value)))), paintApp();
-        if (/^open-|^devtools$/.test(it.id)) ctx.toast('Se abrió en Windows');
-        await runOption(it, it.type === 'toggle' ? !it.value : undefined);
-        if (view === 'settings') paintApp();
-      }
-      if (sub) {
-        const c = cats().find((x) => x.id === sub);
-        if (c) (st.cat = c), (self.depth = 1);
-      }
-      return self;
-    }
-    async function runOption(it, value) {
-      const next = await call('runMenu', it.id, value);
-      if (next) menuModel = next;
-    }
-
-    // --- Registro de actividad ---
-    function activityApp() {
-      const list = () => [...games].filter((g) => g.playtimeMin || g.lastPlayed).sort((a, b) => (b.playtimeMin || 0) - (a.playtimeMin || 0));
-      const total = () => games.reduce((s, g) => s + (g.playtimeMin || 0), 0);
-      return {
-        icon: 'chart',
-        sel: 0,
-        big: true,
-        title: () => 'Registro de actividad',
-        empty: 'Todavía no hay tiempo de juego registrado.',
-        list: () => list().map((g) => ({ img: (g.square || g.cover || g.hero || g.tile || ''), label: g.name, value: U.hours(g.playtimeMin).replace(' jugadas', '').replace(' jugados', '') || '—' })),
-        top(r) {
-          const l = list().slice(0, 6);
-          const max = Math.max(1, ...l.map((g) => g.playtimeMin || 0));
-          const cur = r && list().find((g) => g.name === r.label);
-          return `<div class="ta-chart">${l
-            .map((g) => `<div class="ta-bar${cur && cur.id === g.id ? ' on' : ''}"><span class="ta-bn">${esc(g.name)}</span><span class="ta-track"><i style="width:${((g.playtimeMin || 0) / max) * 100}%"></i></span><em>${esc(U.hours(g.playtimeMin).replace(' jugadas', '').replace(' jugados', ''))}</em></div>`)
-            .join('')}</div><div class="ta-total">En total: <b>${esc(U.hours(total()).replace(' jugadas', '').replace(' jugados', '') || '0 h')}</b>${cur && cur.lastPlayed ? ` · ${esc(cur.name)}: jugado ${esc(U.ago(cur.lastPlayed))}` : ''}</div>`;
-        },
-      };
-    }
-
-    // --- Nintendo 3DS Sonido (Spotify) ---
-    function musicApp() {
-      return {
-        icon: 'music',
-        sel: 1,
-        title: () => 'Nintendo 3DS Sonido',
-        list() {
-          const v = U.spotifyView(spotify || {});
-          const rows = v.on
-            ? [
-                { icon: 'prev', label: 'Anterior', run: () => spotifyCmd('prev') },
-                { icon: v.playing ? 'pause' : 'play', label: v.playing ? 'Pausa' : 'Reproducir', run: () => spotifyCmd('toggle') },
-                { icon: 'next', label: 'Siguiente', run: () => spotifyCmd('next') },
-              ]
-            : [];
-          // Con Spotify conectado: orden, repetir, me gusta, volumen, dispositivo y la cola
-          U.musicActions(v).forEach((a) => rows.push({ svg: U.npIcon(a.icon), on: a.on, label: a.label, value: a.id === 'like' ? '' : a.value, run: () => U.musicRun(api, a.id, v, ctx.toast) }));
-          if (v.appId !== 'auto') rows.push({ icon: 'music', label: `Abrir ${v.app}`, run: () => spotifyCmd('open') });
-          if (v.appId === 'spotify' && !v.api) rows.push({ icon: 'note', label: 'Conectar Spotify (Premium)', run: () => call('open', 'setup-spotify') });
-          return rows;
-        },
-        top() {
-          const v = U.spotifyView(spotify || {});
-          return `<div class="ta-music"><span class="ta-cover"${v.cover ? ` style="background-image:url('${esc(v.cover)}')"` : ''}>${v.cover ? '' : ic('music')}</span><div><small>${v.on ? `${v.playing ? 'Reproduciendo' : 'En pausa'}${v.device && v.deviceType !== 'Computer' ? ` · en ${esc(v.device)}` : ''}` : esc(v.app)}</small><b>${esc(v.title)}</b><span>${esc(v.artist)}</span></div></div>
-            ${U.progressHtml(v, 'ta-mprog')}${v.next ? `<div class="ta-next"><small>Siguiente</small>${esc(U.nextText(v))}</div>` : ''}`;
-        },
-      };
-    }
-    function spotifyCmd(cmd) {
-      call('spotifyControl', cmd);
-      if (cmd === 'toggle' && spotify && spotify.running) spotify = { ...spotify, playing: !spotify.playing };
-      if (view === 'music') paintApp();
-    }
-
-    // --- Logros ---
-    function trophiesApp() {
-      const st = { game: null, list: null, msg: '' };
-      const gamesWith = () => games.filter((g) => trophiesOf(g) && trophiesOf(g).total).sort((a, b) => (b.lastPlayed || 0) - (a.lastPlayed || 0));
-      const self = {
-        icon: 'trophy',
-        sel: 0,
-        depth: 0,
-        big: true,
-        title: () => (st.game ? st.game.name : 'Logros'),
-        get empty() {
-          return st.game ? st.msg || 'Cargando…' : summary.hasKey ? 'Todavía no hay datos de logros. Se cargan solos en unos minutos.' : U.achievementMessage({ status: 'no-key' });
-        },
-        list() {
-          if (st.game)
-            return (st.list || []).map((a, i) => {
-              const t = U.achievementTexts(a);
-              const h = U.achievementSetHead(st.list, i);
-              return { img: a.done ? a.icon : a.iconGray || a.icon, label: t.name, desc: t.description, value: a.done ? t.date : 'Bloqueado', dim: !a.done, head: h && `${h.name}  ·  ${h.done}/${h.total}` };
-            });
-          return gamesWith().map((g) => {
-            const tp = trophiesOf(g);
-            return { img: g.square || g.cover || g.hero || '', label: g.name, value: `${tp.done}/${tp.total}`, badge: U.isComplete(tp) ? U.completeBadge('star') : '', g, run: () => openGameTrophies(g) };
-          });
-        },
-        top(r) {
-          if (st.game) return `<div class="ta-desc">${r ? `<b>${esc(r.label)}</b>${esc(r.desc || '')}` : ''}</div>`;
-          const g = r && r.g;
-          if (!g) return `<div class="ta-desc"><b>${esc(profile.name || 'Jugador')}</b>${summary.hasKey ? `${summary.done || 0} de ${summary.total || 0} logros` : ''}</div>`;
-          const tp = trophiesOf(g);
-          const done = U.isComplete(tp);
-          return `<div class="ta-desc"><b>${esc(g.name)}</b>${done ? `<span class="nh-done-text">${U.completeBadge('star')} ¡Completado! ${tp.done} de ${tp.total} logros</span>` : `${tp.done} de ${tp.total} logros (${Math.round((tp.done / tp.total) * 100)} %)`}<i class="ta-prog${done ? ' done' : ''}"><i style="width:${(tp.done / tp.total) * 100}%"></i></i></div>`;
-        },
-        back() {
-          if (st.game) return (self.sel = Math.max(0, gamesWith().indexOf(st.game))), (st.game = null), (st.list = null), (self.depth = 0), true;
-          return false;
-        },
-      };
-      async function openGameTrophies(g) {
-        st.game = g;
-        st.list = null;
-        st.msg = '';
-        self.depth = 1;
-        self.sel = 0;
-        paintApp();
-        const res = (await call('getAchievements', g.appId)) || { status: 'error' };
-        if (st.game !== g || view !== 'trophies') return;
-        if (res.status !== 'ok') st.msg = U.achievementMessage(res);
-        else st.list = U.sortAchievements(res.list);
-        paintApp();
-      }
-      self.open = openGameTrophies;
-      return self;
-    }
-
-    // --- Lista de amigos (Steam; el Grupo de Discord tiene su propio acceso) ---
-    // Arriba se ve la "tarjeta de amigo" del marcado; abajo la lista. Enter: ver perfil o enviar mensaje.
-    feed.onChange(() => view === 'friends' && app && paintApp());
-    function friendShort(f) {
-      if (f.state === 0) return f.lastSeen ? U.ago(f.lastSeen) : 'Desconectado';
-      if (f.game) return 'Jugando';
-      return { 2: 'Ocupado', 3: 'Ausente', 4: 'Ausente' }[f.state] || 'En línea';
-    }
-    function friendDlg(f) {
-      openDlg(`<b>${esc(f.name)}</b><small>${esc(U.friendStatus(f))}</small>`, [
-        { label: 'Ver perfil', run: () => (feed.profile(f), ctx.toast(`Se abrió el perfil de ${f.name} en Steam`)) },
-        { label: 'Enviar mensaje', run: () => (feed.chat(f), ctx.toast(`Se abrió el chat con ${f.name} en Steam`)) },
-        { label: 'Cancelar' },
-      ]);
-    }
-    function friendsApp() {
-      return {
-        icon: 'smile',
-        sel: 0,
-        big: true,
-        title: () => 'Lista de amigos',
-        list() {
-          const rows = [];
-          const d = feed.data;
-          if (d.status === 'ok') feed.list.forEach((f) => rows.push({ img: f.avatar || '', ini: (f.name || '?').trim().charAt(0).toUpperCase(), dot: U.friendClass(f), dim: f.state === 0, label: f.name, value: friendShort(f), f, run: () => friendDlg(f) }));
-          else {
-            const m = U.friendsMessage(d.status);
-            rows.push({ icon: 'person', label: m.t, desc: m.d, run: m.btn ? () => call('open', m.btn[0]) : null });
-          }
-          return rows;
-        },
-        top(r) {
-          if (r && r.f) {
-            const f = r.f;
-            return `<div class="ta-fcard ${U.friendClass(f)}"><span class="ta-fav"${f.avatar ? ` style="background-image:url('${esc(f.avatar)}')"` : ''}>${f.avatar ? '' : esc((f.name || '?').trim().charAt(0).toUpperCase())}<i></i></span>
-              <div class="ta-finfo"><b>${esc(f.name)}</b><span class="ta-fst">${esc(U.friendStatus(f))}</span><small>A: ver perfil o enviar mensaje</small></div></div>
-              <div class="ta-fcount">${feed.online.length} en línea · ${feed.list.length} ${feed.list.length === 1 ? 'amigo' : 'amigos'}</div>`;
-          }
-          return r ? `<div class="ta-desc"><b>${esc(r.label)}</b>${esc(r.desc || '')}</div>` : '';
-        },
-      };
-    }
-    // --- Grupo: tu canal de voz de Discord ---
-    function partyApp() {
-      return {
-        icon: 'headset',
-        sel: 0,
-        big: true,
-        title: () => 'Grupo',
-        list() {
-          const rows = [];
-          const msg = {
-            'no-config': ['Conectar Discord', () => call('open', 'setup-discord')],
-            'no-discord': ['Abrir Discord', () => call('open', 'discord-app')],
-            'need-auth': ['Dar permiso en Discord', () => call('discordAuthorize').then((s) => s && setDiscord(s))],
-            error: ['Intentar de nuevo', () => call('discordAuthorize').then((s) => s && setDiscord(s))],
-          }[discord.status];
-          if (msg) rows.push({ icon: 'headset', label: msg[0], party: true, run: msg[1] });
-          if (discord.status === 'ok' && discord.channel) {
-            discord.members.forEach((m) => rows.push({ img: m.avatar || '', ini: (m.name || '?').trim().charAt(0).toUpperCase(), label: m.name, value: m.deafened ? 'Sin audio' : m.muted ? 'Silenciado' : m.speaking ? 'Hablando' : '' }));
-            rows.push({ icon: 'headset', label: 'Abrir Discord', run: () => call('open', 'discord-app') });
-          } else if (discord.status === 'ok') rows.push({ icon: 'headset', label: 'No estás en un canal de voz', desc: 'Cuando entres a uno en Discord, aquí vas a ver quiénes están contigo.' });
-          return rows;
-        },
-        top() {
-          const v = U.partyView(discord);
-          if (v.message) return `<div class="ta-desc"><b>Grupo de voz</b>${esc(v.message)}</div>`;
-          return `<div class="ta-desc"><b>${esc(v.channel)}</b>${esc(v.guild)} · ${v.members.length} ${v.members.length === 1 ? 'persona' : 'personas'}</div>`;
-        },
-      };
-    }
-
-    // --- Notificaciones ---
-    function notesApp() {
-      const list = () => {
-        const out = [];
-        recentGames()
-          .filter((g) => g.lastPlayed)
-          .slice(0, 8)
-          .forEach((g) => out.push({ img: g.square || g.cover || g.hero || '', label: `Jugaste ${g.name}`, value: U.ago(g.lastPlayed), g }));
-        if (discord.status === 'ok' && discord.channel) out.unshift({ icon: 'headset', label: `Estás en ${discord.channel.name}`, value: 'ahora' });
-        return out;
-      };
-      return {
-        icon: 'bell',
-        sel: 0,
-        big: true,
-        title: () => 'Notificaciones',
-        empty: 'No hay notificaciones nuevas.',
-        list,
-        top(r) {
-          const g = r && r.g;
-          if (!g) return `<div class="ta-desc">${r ? `<b>${esc(r.label)}</b>` : ''}</div>`;
-          const tp = trophiesOf(g);
-          return `<div class="ta-desc"><b>${esc(g.name)}</b>${esc([U.hours(g.playtimeMin), tp && tp.total ? `${tp.done} de ${tp.total} logros` : ''].filter(Boolean).join(' · '))}</div>`;
-        },
-      };
-    }
-
-    // =====================================================================
-    // Ventanas (abajo): opciones del juego y energía
-    // =====================================================================
-    let dlg = null;
-    function openDlg(title, btns, cls = '') {
-      dlg = { btns, sel: Math.max(0, btns.findIndex((b) => b.on)) };
-      $('.b-dlg-box').className = `b-dlg-box ${cls}`;
-      $('.b-dlg-t').innerHTML = title;
-      $('.b-dlg-btns').innerHTML = btns.map((b, i) => `<button data-i="${i}"${b.on ? ' class="on"' : ''}>${esc(b.label)}</button>`).join('');
-      $$('.b-dlg-btns button').forEach((b) => {
-        b.addEventListener('mouseenter', () => setDlg(Number(b.dataset.i)));
-        b.addEventListener('click', () => chooseDlg(Number(b.dataset.i)));
-      });
-      $('.b-dlg').hidden = false;
-      setDlg(dlg.sel);
-      paintHint();
-    }
-    function setDlg(i) {
-      if (!dlg) return;
-      dlg.sel = (i + dlg.btns.length) % dlg.btns.length;
-      $$('.b-dlg-btns button').forEach((b) => b.classList.toggle('sel', Number(b.dataset.i) === dlg.sel));
-    }
-    function chooseDlg(i) {
-      const b = dlg && dlg.btns[i];
-      closeDlg();
-      if (b && b.run) b.run();
-    }
-    function closeDlg() {
-      dlg = null;
-      $('.b-dlg').hidden = true;
-      paintHint();
+      ds.apps.open(it.app);
     }
     function gameDlg(g) {
-      const tp = trophiesOf(g);
-      openDlg(
+      const tp = trophiesOf(ds, g);
+      ds.ventana.open(
         `<b>${esc(g.name)}</b><small>${esc([U.hours(g.playtimeMin), g.lastPlayed ? `Jugado ${U.ago(g.lastPlayed)}` : '', tp && tp.total ? `${tp.done}/${tp.total} logros` : ''].filter(Boolean).join(' · ') || g.description || '')}</small>`,
         [
-          { label: 'Abrir', run: () => startGame(g) },
-          ...(g.hasAch ? [{ label: 'Logros', run: async () => (await openApp('trophies'), app.open(g)) }] : []),
+          { label: 'Abrir', run: () => ds.jugando.start(g) },
+          ...(g.hasAch ? [{ label: 'Logros', run: async () => (await ds.apps.open('trophies'), ds.app.open(g)) }] : []),
           { label: 'Cambiar imágenes', run: () => window.NostalHubGameEditor && window.NostalHubGameEditor.open(g.id) },
           { label: 'Ordenar', run: () => sortDlg() },
           { label: 'Mover', run: () => startMove() },
@@ -927,7 +683,7 @@
     }
     // ---------- Ordenar y mover íconos ----------
     function sortDlg() {
-      openDlg(
+      ds.ventana.open(
         '<b>Ordenar los íconos</b>',
         [
           ...order.sorts.map((s) => ({
@@ -947,7 +703,7 @@
     }
     function startMove() {
       if (!items[sel] || !items[sel].game) return;
-      const list = order.apply(games, summary);
+      const list = order.apply(ds.games, ds.summary);
       mv = { list };
       root.classList.add('b-moving');
       $('.b-movehint').innerHTML = `Moviendo <b>${esc(items[sel].game.name)}</b> · A: dejarlo · B: cancelar`;
@@ -985,6 +741,465 @@
       buildItems();
       renderGrid();
     }
+    // ---------- Pistas (dentro de la pantalla táctil, abajo) ----------
+    function paintHint() {
+      // la 3DS no muestra pistas: se ven en la carcasa (los botones se iluminan)
+      const it = items[sel];
+      root.classList.toggle('can-opt', ds.view === 'home' && !ds.dlg && !!(it && it.game));
+    }
+    function key(k) {
+      if (mv) return moveKey(k);
+      if (k.startsWith('Arrow')) moveSel(k);
+      else if (k === 'Enter' || k === ' ') openItem();
+      else if (k === 'o' || k === 'O' || k === 'x' || k === 'X') {
+        const it = items[sel];
+        if (it && it.game) gameDlg(it.game);
+      } else if (k === '+' || k === 'y' || k === 'Y') zoom(-1);
+      else if (k === '-') zoom(1);
+      else if (k === 'Escape' || k === 'Backspace') ctx.openSelector();
+    }
+    return {
+      key,
+      zoom,
+      recentGames,
+      paintBanner,
+      paintFriendsBadge,
+      paintHint,
+      build: buildItems,
+      render: renderGrid,
+      cancelMove() {
+        if (mv) endMove(false);
+      },
+      // Cambió la canción: el ícono de la música la muestra en el banner
+      musicChanged() {
+        if (items[sel] && items[sel].app === 'music') (buildItems(), paintBanner());
+      },
+      summaryChanged(changed) {
+        if (ds.view !== 'home' || mv) return;
+        if (changed || order.mode === 'ach') (buildItems(), renderGrid());
+        paintBanner();
+      },
+      // Al entrar queda marcado el último juego que jugaste
+      firstEntry() {
+        buildItems();
+        if (sel === 0 && ds.games.length) sel = apps().length;
+        renderGrid();
+      },
+    };
+  }
+
+  // ---------- Apps: arriba un panel, abajo una lista táctil (cada app está más abajo) ----------
+  function marcoDeApps(ds) {
+    const { $, $$, ctx, root, call } = ds;
+    async function openApp(name, sub) {
+      ds.ventana.close();
+      ds.view = name;
+      root.classList.add('in-app');
+      $('.t-home').hidden = true;
+      $('.b-home').hidden = true;
+      $('.t-app').hidden = false;
+      $('.b-app').hidden = false;
+      for (const s of ['.t-app', '.b-app']) {
+        const el = $(s);
+        el.classList.remove('in');
+        el.offsetWidth;
+        el.classList.add('in');
+      }
+      if (name === 'settings') {
+        ds.menuModel = (await call('getMenu')) || ds.menuModel;
+        ds.app = appAjustes(ds, sub);
+      } else if (name === 'activity') ds.app = appActividad(ds);
+      else if (name === 'music') ds.app = appMusica(ds);
+      else if (name === 'trophies') ds.app = appLogros(ds);
+      else if (name === 'friends') ds.app = appAmigos(ds);
+      else if (name === 'party') ds.app = appGrupo(ds);
+      else if (name === 'notes') ds.app = appNotas(ds);
+      ds.feed.watch(name === 'friends');
+      paintApp();
+      ds.inicio.paintHint();
+    }
+    function closeApp() {
+      if (ds.app && ds.app.back && ds.app.back()) return paintApp();
+      ds.app = null;
+      ds.view = 'home';
+      ds.feed.watch(false);
+      root.classList.remove('in-app');
+      $('.t-app').hidden = true;
+      $('.b-app').hidden = true;
+      $('.t-home').hidden = false;
+      $('.b-home').hidden = false;
+      ds.inicio.build();
+      ds.inicio.render();
+    }
+    function paintApp() {
+      if (!ds.app) return;
+      const list = ds.app.list();
+      ds.app.sel = Math.max(0, Math.min(list.length - 1, ds.app.sel || 0));
+      $('.t-app').innerHTML = `<div class="ta-head">${ic(ds.app.icon)}<span>${esc(ds.app.title())}</span></div><div class="ta-body">${ds.app.top(list[ds.app.sel])}</div>`;
+      const b = $('.b-app');
+      b.innerHTML = `<div class="ba-list${ds.app.big ? ' big' : ''}">${
+        list.length
+          ? list
+              .map(
+                (r, i) =>
+                  `${r.head ? `<div class="ba-set">${esc(r.head)}</div>` : ''}<button class="ba-row${r.dim ? ' dim' : ''}${r.on ? ' on' : ''}" data-i="${i}">${r.svg ? `<span class="ba-ic np">${r.svg}</span>` : r.img !== undefined ? `<span class="ba-img${r.dot ? ` fr ${r.dot}` : ''}"${r.img ? ` style="background-image:url('${esc(r.img)}')"` : ''}>${r.dot ? '<i></i>' : ''}${r.ini && !r.img ? `<b>${esc(r.ini)}</b>` : ''}</span>` : r.icon ? `<span class="ba-ic">${ic(r.icon)}</span>` : ''}<span class="ba-l">${esc(r.label)}</span>${r.value != null ? `<span class="ba-v${r.badge ? ' nh-done-text' : ''}">${r.badge || ''}${esc(r.value)}</span>` : ''}</button>`
+              )
+              .join('')
+          : `<div class="ba-empty">${ds.app.empty || 'No hay nada aquí.'}</div>`
+      }</div>${ds.app.extra ? ds.app.extra() : ''}<div class="ba-foot"><button class="ba-back">${ic('prev')}<span>${ds.app.back && ds.app.depth ? 'Atrás' : 'Menú HOME'}</span></button></div>`;
+      $$('.ba-row', b).forEach((r) => {
+        const i = Number(r.dataset.i);
+        r.addEventListener('click', () => {
+          if (i === ds.app.sel) pickRow();
+          else (ds.app.sel = i), ctx.sound('move'), paintAppSel();
+        });
+      });
+      $$('[data-x]', b).forEach((x) => x.addEventListener('click', () => ds.app.action && ds.app.action(x.dataset.x)));
+      $('.ba-back', b).addEventListener('click', () => (ctx.sound('back'), closeApp()));
+      paintAppSel();
+    }
+    function paintAppSel() {
+      const list = ds.app.list();
+      $$('.b-app .ba-row').forEach((r) => r.classList.toggle('sel', Number(r.dataset.i) === ds.app.sel));
+      const row = $(`.b-app .ba-row[data-i="${ds.app.sel}"]`);
+      if (row) row.scrollIntoView({ block: 'nearest' });
+      const body = $('.t-app .ta-body');
+      if (body) body.innerHTML = ds.app.top(list[ds.app.sel]);
+    }
+    function pickRow() {
+      const r = ds.app.list()[ds.app.sel];
+      if (r && r.run) r.run();
+    }
+    function appKey(k) {
+      const n = ds.app.list().length;
+      if (k === 'ArrowDown') (ds.app.sel = Math.min(n - 1, ds.app.sel + 1)), paintAppSel();
+      else if (k === 'ArrowUp') (ds.app.sel = Math.max(0, ds.app.sel - 1)), paintAppSel();
+      else if (k === 'ArrowRight' && ds.app.action) ds.app.action('next');
+      else if (k === 'ArrowLeft' && ds.app.action) ds.app.action('prev');
+      else if (k === 'Enter' || k === ' ') pickRow();
+      else if (k === 'Escape' || k === 'Backspace') closeApp();
+    }
+    ds.feed.onChange(() => ds.view === 'friends' && ds.app && paintApp());
+    return { open: openApp, close: closeApp, paint: paintApp, key: appKey };
+  }
+
+  // --- Configuración de la consola ---
+  function appAjustes(ds, sub) {
+    const { ctx, call } = ds;
+    async function runOption(it, value) {
+      const next = await call('runMenu', it.id, value);
+      if (next) ds.menuModel = next;
+    }
+    const st = { cat: null, choice: null };
+    const cats = () => [
+      { id: 'theme', title: 'Tema', icon: 'brush', desc: 'El fondo de las dos pantallas. Solo cambia esta consola.' },
+      { id: 'wall', title: 'Fondo personalizado', icon: 'image', desc: 'Una imagen tuya o el arte de un juego en las dos pantallas.' },
+      { id: 'shell', title: 'Color de la consola', icon: 'image', desc: 'El color de la carcasa de la 3DS.' },
+      ...ds.menuModel.map((c) => ({ id: c.id, title: c.title, icon: { general: 'gear', games: 'note', emulators: 'swap', screen: 'image', sound: 'music', accounts: 'person', files: 'note' }[c.id] || 'gear', desc: c.items.map((x) => x.label).slice(0, 3).join(', ') })),
+    ];
+    const self = {
+      icon: 'gear',
+      sel: 0,
+      depth: 0,
+      title: () => (st.choice ? st.choice.it.label : st.cat ? st.cat.title : 'Configuración de la consola'),
+      list() {
+        if (st.choice) return st.choice.it.options.map((o) => ({ label: o.label, on: String(o.value) === String(st.choice.it.value), value: String(o.value) === String(st.choice.it.value) ? '●' : '', run: () => runOption(st.choice.it, o.value).then(() => ((st.choice = null), (self.depth = 1), ds.apps.paint())) }));
+        if (st.cat && st.cat.id === 'theme') return THEMES.map((t) => ({ label: t.label, on: t.id === ds.aspecto.theme(), value: t.id === ds.aspecto.theme() ? '●' : '', run: () => (ds.aspecto.setTheme(t.id), ds.apps.paint()) }));
+        if (st.cat && st.cat.id === 'wall')
+          return [
+            ...ds.wall.choices(ds.games).map((c) => ({
+              label: c.value === 'original' ? 'Ninguno (el del tema)' : c.group === 'games' ? `Juego: ${c.label}` : c.label,
+              on: c.value === ds.wall.value,
+              value: c.value === ds.wall.value ? '●' : '',
+              run: () => (ds.wall.set(c.value), ds.aspecto.applyWall(), ds.apps.paint()),
+            })),
+            { label: 'Abrir carpeta de fondos', desc: 'Pon aquí tus imágenes (JPG o PNG) y vuelve a entrar.', run: () => (ds.wall.openFolder(), ctx.toast('Se abrió la carpeta de fondos')) },
+          ];
+        if (st.cat && st.cat.id === 'shell') return SHELLS.map((t) => ({ label: t.label, on: t.id === ds.aspecto.shell(), value: t.id === ds.aspecto.shell() ? '●' : '', run: () => (ds.aspecto.setShell(t.id), ds.apps.paint()) }));
+        if (st.cat) {
+          const c = ds.menuModel.find((x) => x.id === st.cat.id);
+          return (c ? c.items : []).map((it) => ({ label: it.label, desc: it.desc, value: it.type === 'toggle' || it.type === 'choice' ? U.optionValueText(it) : null, run: () => pickSetting(it) }));
+        }
+        return cats().map((c) => ({
+          label: c.title,
+          icon: c.icon,
+          desc: c.desc,
+          run: () => {
+            st.cat = c;
+            self.depth = 1;
+            self.sel = 0;
+            ds.apps.paint();
+            if (c.id === 'wall') ds.wall.load().then(() => ds.view === 'settings' && st.cat === c && ds.apps.paint()); // por si agregaste imágenes
+          },
+        }));
+      },
+      top: (r) => `<div class="ta-desc">${r ? `<b>${esc(r.label)}</b>${esc(r.desc || (st.cat && st.cat.id === 'theme' ? 'Toca para ponerlo.' : ''))}` : ''}</div>`,
+      back() {
+        if (st.choice) return (st.choice = null), true;
+        if (st.cat) return (self.sel = cats().findIndex((c) => c.id === st.cat.id)), (st.cat = null), (self.depth = 0), true;
+        return false;
+      },
+    };
+    async function pickSetting(it) {
+      if (it.id === 'consoles') return ctx.openSelector();
+      if (it.confirm) return ds.ventana.power();
+      if (it.type === 'choice') return (st.choice = { it }), (self.depth = 2), (self.sel = Math.max(0, it.options.findIndex((o) => String(o.value) === String(it.value)))), ds.apps.paint();
+      if (/^open-|^devtools$/.test(it.id)) ctx.toast('Se abrió en Windows');
+      await runOption(it, it.type === 'toggle' ? !it.value : undefined);
+      if (ds.view === 'settings') ds.apps.paint();
+    }
+    if (sub) {
+      const c = cats().find((x) => x.id === sub);
+      if (c) (st.cat = c), (self.depth = 1);
+    }
+    return self;
+  }
+
+  // --- Registro de actividad ---
+  function appActividad(ds) {
+    const list = () => [...ds.games].filter((g) => g.playtimeMin || g.lastPlayed).sort((a, b) => (b.playtimeMin || 0) - (a.playtimeMin || 0));
+    const total = () => ds.games.reduce((s, g) => s + (g.playtimeMin || 0), 0);
+    return {
+      icon: 'chart',
+      sel: 0,
+      big: true,
+      title: () => 'Registro de actividad',
+      empty: 'Todavía no hay tiempo de juego registrado.',
+      list: () => list().map((g) => ({ img: (g.square || g.cover || g.hero || g.tile || ''), label: g.name, value: U.hours(g.playtimeMin).replace(' jugadas', '').replace(' jugados', '') || '—' })),
+      top(r) {
+        const l = list().slice(0, 6);
+        const max = Math.max(1, ...l.map((g) => g.playtimeMin || 0));
+        const cur = r && list().find((g) => g.name === r.label);
+        return `<div class="ta-chart">${l
+          .map((g) => `<div class="ta-bar${cur && cur.id === g.id ? ' on' : ''}"><span class="ta-bn">${esc(g.name)}</span><span class="ta-track"><i style="width:${((g.playtimeMin || 0) / max) * 100}%"></i></span><em>${esc(U.hours(g.playtimeMin).replace(' jugadas', '').replace(' jugados', ''))}</em></div>`)
+          .join('')}</div><div class="ta-total">En total: <b>${esc(U.hours(total()).replace(' jugadas', '').replace(' jugados', '') || '0 h')}</b>${cur && cur.lastPlayed ? ` · ${esc(cur.name)}: jugado ${esc(U.ago(cur.lastPlayed))}` : ''}</div>`;
+      },
+    };
+  }
+
+  // --- Nintendo 3DS Sonido (Spotify) ---
+  function appMusica(ds) {
+    const { api, ctx, call } = ds;
+    function spotifyCmd(cmd) {
+      call('spotifyControl', cmd);
+      if (cmd === 'toggle' && ds.spotify && ds.spotify.running) ds.spotify = { ...ds.spotify, playing: !ds.spotify.playing };
+      if (ds.view === 'music') ds.apps.paint();
+    }
+    return {
+      icon: 'music',
+      sel: 1,
+      title: () => 'Nintendo 3DS Sonido',
+      list() {
+        const v = U.spotifyView(ds.spotify || {});
+        const rows = v.on
+          ? [
+              { icon: 'prev', label: 'Anterior', run: () => spotifyCmd('prev') },
+              { icon: v.playing ? 'pause' : 'play', label: v.playing ? 'Pausa' : 'Reproducir', run: () => spotifyCmd('toggle') },
+              { icon: 'next', label: 'Siguiente', run: () => spotifyCmd('next') },
+            ]
+          : [];
+        // Con Spotify conectado: orden, repetir, me gusta, volumen, dispositivo y la cola
+        U.musicActions(v).forEach((a) => rows.push({ svg: U.npIcon(a.icon), on: a.on, label: a.label, value: a.id === 'like' ? '' : a.value, run: () => U.musicRun(api, a.id, v, ctx.toast) }));
+        if (v.appId !== 'auto') rows.push({ icon: 'music', label: `Abrir ${v.app}`, run: () => spotifyCmd('open') });
+        if (v.appId === 'spotify' && !v.api) rows.push({ icon: 'note', label: 'Conectar Spotify (Premium)', run: () => call('open', 'setup-spotify') });
+        return rows;
+      },
+      top() {
+        const v = U.spotifyView(ds.spotify || {});
+        return `<div class="ta-music"><span class="ta-cover"${v.cover ? ` style="background-image:url('${esc(v.cover)}')"` : ''}>${v.cover ? '' : ic('music')}</span><div><small>${v.on ? `${v.playing ? 'Reproduciendo' : 'En pausa'}${v.device && v.deviceType !== 'Computer' ? ` · en ${esc(v.device)}` : ''}` : esc(v.app)}</small><b>${esc(v.title)}</b><span>${esc(v.artist)}</span></div></div>
+          ${U.progressHtml(v, 'ta-mprog')}${v.next ? `<div class="ta-next"><small>Siguiente</small>${esc(U.nextText(v))}</div>` : ''}`;
+      },
+    };
+  }
+
+  // --- Logros ---
+  function appLogros(ds) {
+    const { call } = ds;
+    const st = { game: null, list: null, msg: '' };
+    const gamesWith = () => ds.games.filter((g) => trophiesOf(ds, g) && trophiesOf(ds, g).total).sort((a, b) => (b.lastPlayed || 0) - (a.lastPlayed || 0));
+    const self = {
+      icon: 'trophy',
+      sel: 0,
+      depth: 0,
+      big: true,
+      title: () => (st.game ? st.game.name : 'Logros'),
+      get empty() {
+        return st.game ? st.msg || 'Cargando…' : ds.summary.hasKey ? 'Todavía no hay datos de logros. Se cargan solos en unos minutos.' : U.achievementMessage({ status: 'no-key' });
+      },
+      list() {
+        if (st.game)
+          return (st.list || []).map((a, i) => {
+            const t = U.achievementTexts(a);
+            const h = U.achievementSetHead(st.list, i);
+            return { img: a.done ? a.icon : a.iconGray || a.icon, label: t.name, desc: t.description, value: a.done ? t.date : 'Bloqueado', dim: !a.done, head: h && `${h.name}  ·  ${h.done}/${h.total}` };
+          });
+        return gamesWith().map((g) => {
+          const tp = trophiesOf(ds, g);
+          return { img: g.square || g.cover || g.hero || '', label: g.name, value: `${tp.done}/${tp.total}`, badge: U.isComplete(tp) ? U.completeBadge('star') : '', g, run: () => openGameTrophies(g) };
+        });
+      },
+      top(r) {
+        if (st.game) return `<div class="ta-desc">${r ? `<b>${esc(r.label)}</b>${esc(r.desc || '')}` : ''}</div>`;
+        const g = r && r.g;
+        if (!g) return `<div class="ta-desc"><b>${esc(ds.profile.name || 'Jugador')}</b>${ds.summary.hasKey ? `${ds.summary.done || 0} de ${ds.summary.total || 0} logros` : ''}</div>`;
+        const tp = trophiesOf(ds, g);
+        const done = U.isComplete(tp);
+        return `<div class="ta-desc"><b>${esc(g.name)}</b>${done ? `<span class="nh-done-text">${U.completeBadge('star')} ¡Completado! ${tp.done} de ${tp.total} logros</span>` : `${tp.done} de ${tp.total} logros (${Math.round((tp.done / tp.total) * 100)} %)`}<i class="ta-prog${done ? ' done' : ''}"><i style="width:${(tp.done / tp.total) * 100}%"></i></i></div>`;
+      },
+      back() {
+        if (st.game) return (self.sel = Math.max(0, gamesWith().indexOf(st.game))), (st.game = null), (st.list = null), (self.depth = 0), true;
+        return false;
+      },
+    };
+    async function openGameTrophies(g) {
+      st.game = g;
+      st.list = null;
+      st.msg = '';
+      self.depth = 1;
+      self.sel = 0;
+      ds.apps.paint();
+      const res = (await call('getAchievements', g.appId)) || { status: 'error' };
+      if (st.game !== g || ds.view !== 'trophies') return;
+      if (res.status !== 'ok') st.msg = U.achievementMessage(res);
+      else st.list = U.sortAchievements(res.list);
+      ds.apps.paint();
+    }
+    self.open = openGameTrophies;
+    return self;
+  }
+
+  // --- Lista de amigos (Steam; el Grupo de Discord tiene su propio acceso) ---
+  // Arriba se ve la "tarjeta de amigo" del marcado; abajo la lista. Enter: ver perfil o enviar mensaje.
+  function appAmigos(ds) {
+    const { ctx, call } = ds;
+    function friendShort(f) {
+      if (f.state === 0) return f.lastSeen ? U.ago(f.lastSeen) : 'Desconectado';
+      if (f.game) return 'Jugando';
+      return { 2: 'Ocupado', 3: 'Ausente', 4: 'Ausente' }[f.state] || 'En línea';
+    }
+    function friendDlg(f) {
+      ds.ventana.open(`<b>${esc(f.name)}</b><small>${esc(U.friendStatus(f))}</small>`, [
+        { label: 'Ver perfil', run: () => (ds.feed.profile(f), ctx.toast(`Se abrió el perfil de ${f.name} en Steam`)) },
+        { label: 'Enviar mensaje', run: () => (ds.feed.chat(f), ctx.toast(`Se abrió el chat con ${f.name} en Steam`)) },
+        { label: 'Cancelar' },
+      ]);
+    }
+    return {
+      icon: 'smile',
+      sel: 0,
+      big: true,
+      title: () => 'Lista de amigos',
+      list() {
+        const rows = [];
+        const d = ds.feed.data;
+        if (d.status === 'ok') ds.feed.list.forEach((f) => rows.push({ img: f.avatar || '', ini: (f.name || '?').trim().charAt(0).toUpperCase(), dot: U.friendClass(f), dim: f.state === 0, label: f.name, value: friendShort(f), f, run: () => friendDlg(f) }));
+        else {
+          const m = U.friendsMessage(d.status);
+          rows.push({ icon: 'person', label: m.t, desc: m.d, run: m.btn ? () => call('open', m.btn[0]) : null });
+        }
+        return rows;
+      },
+      top(r) {
+        if (r && r.f) {
+          const f = r.f;
+          return `<div class="ta-fcard ${U.friendClass(f)}"><span class="ta-fav"${f.avatar ? ` style="background-image:url('${esc(f.avatar)}')"` : ''}>${f.avatar ? '' : esc((f.name || '?').trim().charAt(0).toUpperCase())}<i></i></span>
+            <div class="ta-finfo"><b>${esc(f.name)}</b><span class="ta-fst">${esc(U.friendStatus(f))}</span><small>A: ver perfil o enviar mensaje</small></div></div>
+            <div class="ta-fcount">${ds.feed.online.length} en línea · ${ds.feed.list.length} ${ds.feed.list.length === 1 ? 'amigo' : 'amigos'}</div>`;
+        }
+        return r ? `<div class="ta-desc"><b>${esc(r.label)}</b>${esc(r.desc || '')}</div>` : '';
+      },
+    };
+  }
+
+  // --- Grupo: tu canal de voz de Discord ---
+  function appGrupo(ds) {
+    const { call } = ds;
+    return {
+      icon: 'headset',
+      sel: 0,
+      big: true,
+      title: () => 'Grupo',
+      list() {
+        const rows = [];
+        const msg = {
+          'no-config': ['Conectar Discord', () => call('open', 'setup-discord')],
+          'no-discord': ['Abrir Discord', () => call('open', 'discord-app')],
+          'need-auth': ['Dar permiso en Discord', () => call('discordAuthorize').then((s) => s && ds.setDiscord(s))],
+          error: ['Intentar de nuevo', () => call('discordAuthorize').then((s) => s && ds.setDiscord(s))],
+        }[ds.discord.status];
+        if (msg) rows.push({ icon: 'headset', label: msg[0], party: true, run: msg[1] });
+        if (ds.discord.status === 'ok' && ds.discord.channel) {
+          ds.discord.members.forEach((m) => rows.push({ img: m.avatar || '', ini: (m.name || '?').trim().charAt(0).toUpperCase(), label: m.name, value: m.deafened ? 'Sin audio' : m.muted ? 'Silenciado' : m.speaking ? 'Hablando' : '' }));
+          rows.push({ icon: 'headset', label: 'Abrir Discord', run: () => call('open', 'discord-app') });
+        } else if (ds.discord.status === 'ok') rows.push({ icon: 'headset', label: 'No estás en un canal de voz', desc: 'Cuando entres a uno en Discord, aquí vas a ver quiénes están contigo.' });
+        return rows;
+      },
+      top() {
+        const v = U.partyView(ds.discord);
+        if (v.message) return `<div class="ta-desc"><b>Grupo de voz</b>${esc(v.message)}</div>`;
+        return `<div class="ta-desc"><b>${esc(v.channel)}</b>${esc(v.guild)} · ${v.members.length} ${v.members.length === 1 ? 'persona' : 'personas'}</div>`;
+      },
+    };
+  }
+
+  // --- Notificaciones ---
+  function appNotas(ds) {
+    const list = () => {
+      const out = [];
+      ds.inicio.recentGames()
+        .filter((g) => g.lastPlayed)
+        .slice(0, 8)
+        .forEach((g) => out.push({ img: g.square || g.cover || g.hero || '', label: `Jugaste ${g.name}`, value: U.ago(g.lastPlayed), g }));
+      if (ds.discord.status === 'ok' && ds.discord.channel) out.unshift({ icon: 'headset', label: `Estás en ${ds.discord.channel.name}`, value: 'ahora' });
+      return out;
+    };
+    return {
+      icon: 'bell',
+      sel: 0,
+      big: true,
+      title: () => 'Notificaciones',
+      empty: 'No hay notificaciones nuevas.',
+      list,
+      top(r) {
+        const g = r && r.g;
+        if (!g) return `<div class="ta-desc">${r ? `<b>${esc(r.label)}</b>` : ''}</div>`;
+        const tp = trophiesOf(ds, g);
+        return `<div class="ta-desc"><b>${esc(g.name)}</b>${esc([U.hours(g.playtimeMin), tp && tp.total ? `${tp.done} de ${tp.total} logros` : ''].filter(Boolean).join(' · '))}</div>`;
+      },
+    };
+  }
+
+  // ---------- Ventanas (abajo): opciones del juego, de un amigo y energía ----------
+  function ventana(ds) {
+    const { $, $$, ctx, call } = ds;
+    function openDlg(title, btns, cls = '') {
+      ds.dlg = { btns, sel: Math.max(0, btns.findIndex((b) => b.on)) };
+      $('.b-dlg-box').className = `b-dlg-box ${cls}`;
+      $('.b-dlg-t').innerHTML = title;
+      $('.b-dlg-btns').innerHTML = btns.map((b, i) => `<button data-i="${i}"${b.on ? ' class="on"' : ''}>${esc(b.label)}</button>`).join('');
+      $$('.b-dlg-btns button').forEach((b) => {
+        b.addEventListener('mouseenter', () => setDlg(Number(b.dataset.i)));
+        b.addEventListener('click', () => chooseDlg(Number(b.dataset.i)));
+      });
+      $('.b-dlg').hidden = false;
+      setDlg(ds.dlg.sel);
+      ds.inicio.paintHint();
+    }
+    function setDlg(i) {
+      if (!ds.dlg) return;
+      ds.dlg.sel = (i + ds.dlg.btns.length) % ds.dlg.btns.length;
+      $$('.b-dlg-btns button').forEach((b) => b.classList.toggle('sel', Number(b.dataset.i) === ds.dlg.sel));
+    }
+    function chooseDlg(i) {
+      const b = ds.dlg && ds.dlg.btns[i];
+      closeDlg();
+      if (b && b.run) b.run();
+    }
+    function closeDlg() {
+      ds.dlg = null;
+      $('.b-dlg').hidden = true;
+      ds.inicio.paintHint();
+    }
     function powerDlg() {
       openDlg('<b>¿Qué quieres hacer?</b>', [
         { label: 'Cambiar de consola', run: () => ctx.openSelector() },
@@ -992,26 +1207,27 @@
         { label: 'Cancelar' },
       ]);
     }
-
-    // ---------- Pistas (dentro de la pantalla táctil, abajo) ----------
-    function paintHint() {
-      // la 3DS no muestra pistas: se ven en la carcasa (los botones se iluminan)
-      const it = items[sel];
-      root.classList.toggle('can-opt', view === 'home' && !dlg && !!(it && it.game));
+    function key(k) {
+      if (k === 'ArrowDown' || k === 'ArrowRight') setDlg(ds.dlg.sel + 1);
+      else if (k === 'ArrowUp' || k === 'ArrowLeft') setDlg(ds.dlg.sel - 1);
+      else if (k === 'Enter' || k === ' ') chooseDlg(ds.dlg.sel);
+      else if (k === 'Escape' || k === 'Backspace') closeDlg();
     }
+    return { key, open: openDlg, close: closeDlg, power: powerDlg };
+  }
 
-    // =====================================================================
-    // Abrir un juego: el icono crece, las pantallas se ponen blancas y "Jugando a…"
-    // =====================================================================
+  // ---------- Abrir un juego: el icono crece, las pantallas se ponen blancas y "Jugando a…" ----------
+  function pantallaJugando(ds) {
+    const { $, api, ctx, root, call } = ds;
     let playTimer = null;
     async function startGame(g) {
-      if (!g || view === 'playing' || view === 'launching') return;
-      const prev = view;
-      view = 'launching';
-      closeDlg();
+      if (!g || ds.view === 'playing' || ds.view === 'launching') return;
+      const prev = ds.view;
+      ds.view = 'launching';
+      ds.ventana.close();
       const res = await api.launch(g.id);
       if (!res || !res.ok) {
-        view = prev;
+        ds.view = prev;
         ctx.sound('error');
         return ctx.toast(`No se pudo abrir: ${(res && res.error) || 'error desconocido'}`);
       }
@@ -1022,7 +1238,7 @@
       root.classList.remove('launching');
     }
     function showPlaying(g) {
-      view = 'playing';
+      ds.view = 'playing';
       const p = $('.d-playing');
       p.hidden = false;
       root.classList.add('is-playing');
@@ -1053,164 +1269,34 @@
       playTimer = setInterval(upd, 1000);
     }
     async function endPlaying(reason) {
-      if (view !== 'playing') return;
+      if (ds.view !== 'playing') return;
       nowPlaying.stop();
       clearInterval(playTimer);
       document.body.classList.remove('playing');
       root.classList.remove('is-playing');
       $('.d-playing').hidden = true;
-      view = 'home';
-      app = null;
+      ds.view = 'home';
+      ds.app = null;
       root.classList.remove('in-app');
       $('.t-app').hidden = true;
       $('.b-app').hidden = true;
       $('.t-home').hidden = false;
       $('.b-home').hidden = false;
-      buildItems();
-      renderGrid();
+      ds.inicio.build();
+      ds.inicio.render();
       if (reason === 'not-started') ctx.toast('No se detectó que el juego abriera');
     }
     // Spotify y Grupo a los costados de la consola mientras juegas
     const nowPlaying = U.nowPlaying($('.d-playing'), api, ctx.toast);
-
-    // =====================================================================
-    // Teclado y botones de la carcasa
-    // =====================================================================
-    function onKey(e) {
-      const k = e.key;
-      if (k === 'Enter' || k === ' ' || k.startsWith('Arrow')) e.preventDefault();
-      handleKey(k);
-    }
-    function handleKey(k) {
-      if (view === 'launching') return;
-      if (view === 'playing') {
-        if (k === 'Enter') $('.b-app .bp-btn') && $('.b-app .bp-btn').click();
-        return;
-      }
-      if (k === 'Home') {
-        if (dlg) closeDlg();
-        if (view !== 'home') {
-          app = null;
-          closeApp();
-        }
-        return;
-      }
-      if (k === 'Power') return powerDlg();
-      if (dlg) {
-        if (k === 'ArrowDown' || k === 'ArrowRight') setDlg(dlg.sel + 1);
-        else if (k === 'ArrowUp' || k === 'ArrowLeft') setDlg(dlg.sel - 1);
-        else if (k === 'Enter' || k === ' ') chooseDlg(dlg.sel);
-        else if (k === 'Escape' || k === 'Backspace') closeDlg();
-        return;
-      }
-      if (view !== 'home') return app && appKey(k);
-      if (mv) return moveKey(k);
-      if (k.startsWith('Arrow')) moveSel(k);
-      else if (k === 'Enter' || k === ' ') openItem();
-      else if (k === 'o' || k === 'O' || k === 'x' || k === 'X') {
-        const it = items[sel];
-        if (it && it.game) gameDlg(it.game);
-      } else if (k === '+' || k === 'y' || k === 'Y') zoom(-1);
-      else if (k === '-') zoom(1);
-      else if (k === 'Escape' || k === 'Backspace') ctx.openSelector();
-    }
-    window.addEventListener('keydown', onKey);
-    // Los botones dibujados de la consola hacen lo mismo que las teclas
-    $$('.d-base [data-k]').forEach((b) =>
-      b.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const k = b.dataset.k;
-        if (k.startsWith('Arrow') || k === 'Home') ctx.sound(k === 'Home' ? 'back' : 'move');
-        if (k === 'Enter') ctx.sound('select');
-        if (k === 'Escape') ctx.sound('back');
-        if (k === 'y') return view === 'home' && zoom(-1);
-        if (k === 'Select') return view === 'home' && zoom(1);
-        handleKey(k);
-      })
-    );
-
-    // =====================================================================
-    // Datos
-    // =====================================================================
-    function setDiscord(s) {
-      discord = s || discord;
-      paintFriendsBadge();
-      if (view === 'party' || view === 'notes') paintApp();
-    }
-    function setSpotify(s) {
-      spotify = s || spotify;
-      if (view === 'music') paintApp();
-      else if (view === 'home' && items[sel] && items[sel].app === 'music') (buildItems(), paintBanner());
-    }
-    function setGames(list) {
-      games = list || [];
-      if (mv) endMove(false);
-      if (wall.value.startsWith('game:')) applyWall(); // el arte del juego elegido como fondo
-      if (view === 'home') {
-        buildItems();
-        renderGrid();
-      } else if (view === 'activity' || view === 'trophies' || view === 'notes') paintApp();
-    }
-    offs.push(api.onGamesUpdated(setGames));
-    offs.push(api.onGameEnded(({ reason }) => endPlaying(reason)));
-    if (api.onSpotify) offs.push(api.onSpotify(setSpotify));
-    if (api.onDiscord) offs.push(api.onDiscord(setDiscord));
-    // Juegos al 100 %: si cambian, se vuelven a dibujar los íconos con su estrella
-    let doneKey = '';
-    function onSummary(s) {
-      summary = s || summary;
-      const k = U.completeKey(summary);
-      const changed = k !== doneKey;
-      doneKey = k;
-      if (view !== 'home' || mv) return;
-      if (changed || order.mode === 'ach') (buildItems(), renderGrid());
-      paintBanner();
-    }
-    if (api.onSteamSummary) offs.push(api.onSteamSummary(onSummary));
-    if (api.onSteamChanged)
-      offs.push(
-        api.onSteamChanged(async () => {
-          profile = (await call('getSteamProfile')) || profile;
-          summary = (await call('getAchievementSummary')) || summary;
-        })
-      );
-    call('spotifyWatch', true).then((s) => s && setSpotify(s));
-    call('discordWatch', true).then((s) => s && setDiscord(s));
-    call('getMenu').then((m) => (menuModel = m || []));
-    call('getSteamProfile').then((p) => p && (profile = p));
-    call('getAchievementSummary').then((s) => s && onSummary(s));
-    buildItems();
-    renderGrid();
-    api.getState().then((s) => {
-      games = s.games || [];
-      buildItems();
-      if (sel === 0 && games.length) sel = apps().length; // al entrar queda marcado el último juego que jugaste
-      renderGrid();
-    });
-    // Encendido: las pantallas se prenden desde blanco
-    root.classList.add('boot');
-    setTimeout(() => root.classList.remove('boot'), 900);
-
     return {
-      unmount() {
-        feed.dispose();
-        clearInterval(clockTimer);
+      start: startGame,
+      end: endPlaying,
+      key(k) {
+        if (k === 'Enter') $('.b-app .bp-btn') && $('.b-app .bp-btn').click();
+      },
+      dispose() {
         clearInterval(playTimer);
         nowPlaying.dispose();
-        window.removeEventListener('keydown', onKey);
-        window.removeEventListener('mousemove', onMouse);
-        offs.forEach((off) => off && off());
-        call('spotifyWatch', false);
-        call('discordWatch', false);
-        document.body.classList.remove('playing');
-        root.removeAttribute('data-t');
-        root.removeAttribute('data-s');
-        root.removeAttribute('data-rows');
-        root.style.removeProperty('--wall');
-        root.style.removeProperty('--px');
-        root.style.removeProperty('--py');
-        root.className = root.className.replace(/\b(in-app|is-playing|launching|boot|d3|can-opt)\b/g, '').trim();
-        root.innerHTML = '';
       },
     };
   }
