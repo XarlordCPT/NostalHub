@@ -77,7 +77,7 @@
 }
 .p4-st-left { flex: 1; min-width: 0; }
 .p4-st-mid { display: flex; align-items: center; gap: 56px; }
-.p4-st-clock { flex: 1; text-align: right; font-size: 44px; font-weight: 300; letter-spacing: 1px; }
+.p4-st-clock { flex: 1; text-align: right; font-size: 36px; font-weight: 300; letter-spacing: 1px; }
 .p4-st-music,
 .p4-st-party,
 .p4-st-troph,
@@ -151,7 +151,12 @@
 }
 .p4-tstrip .p4-ic { width: 30px; height: 30px; }
 .p4-tile.sel .p4-tstrip { height: 72px; }
-.p4-tile.sel { box-shadow: 0 0 0 4px #fff, 0 16px 44px rgba(0, 0, 0, 0.4); z-index: 2; }
+/* El elegido: borde fino celeste que brilla y late despacio, como en la PS4 */
+.p4-tile.sel { box-shadow: 0 0 0 3px #d6ebff, 0 0 30px 4px rgba(120, 190, 255, 0.75), 0 16px 44px rgba(0, 0, 0, 0.4); z-index: 2; animation: p4-sel-glow 2.6s ease-in-out infinite; }
+@keyframes p4-sel-glow {
+  0%, 100% { box-shadow: 0 0 0 3px #d6ebff, 0 0 30px 4px rgba(120, 190, 255, 0.75), 0 16px 44px rgba(0, 0, 0, 0.4); }
+  50% { box-shadow: 0 0 0 3px #ffffff, 0 0 44px 10px rgba(150, 210, 255, 0.95), 0 16px 44px rgba(0, 0, 0, 0.4); }
+}
 .p4-tile:not(.sel):hover .p4-tface { box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.6); }
 
 /* Arte cuadrado del juego: su fondo + el logo encima */
@@ -217,39 +222,47 @@
 .p4-bar { height: 10px; margin-top: 16px; background: rgba(255, 255, 255, 0.2); overflow: hidden; }
 .p4-bar i { display: block; height: 100%; width: 0; background: linear-gradient(to right, #6fbaff, #ffffff); transition: width 0.6s ease; }
 
-/* Fila de funciones (al subir) */
+/* Fila de funciones (al subir), como en la PS4: íconos chicos y tenues en una fila a media pantalla; el elegido crece,
+   brilla y muestra su nombre debajo (sin recuadro). Los juegos bajan y quedan asomados en el borde de abajo. */
 .p4-func {
   position: absolute;
   left: 0;
   right: 0;
-  top: 190px;
+  top: 690px;
   opacity: 0;
-  transform: translateY(-80px);
+  transform: translateY(-600px);
   pointer-events: none;
-  transition: opacity 0.4s ease, transform 0.45s var(--p4-ease);
+  transition: opacity 0.35s ease, transform 0.5s var(--p4-ease);
 }
 .theme-ps4.in-func .p4-func { opacity: 1; transform: none; pointer-events: auto; }
-.theme-ps4.in-func .p4-row,
+.theme-ps4.in-func .p4-row { transform: translateY(700px); opacity: 0.6; pointer-events: none; }
 .theme-ps4.in-func .p4-row-label,
-.theme-ps4.in-func .p4-teaser { transform: translateY(400px); opacity: 0.3; pointer-events: none; }
-.p4-func-row { display: flex; justify-content: center; gap: 34px; }
+.theme-ps4.in-func .p4-teaser { transform: translateY(700px); opacity: 0; pointer-events: none; }
+.theme-ps4.in-func .p4-tile.sel { box-shadow: 0 8px 22px rgba(0, 0, 0, 0.25); animation: none; }
+/* arriba solo queda la hora */
+.p4-st-left,
+.p4-st-mid { transition: opacity 0.3s ease; }
+.theme-ps4.in-func .p4-st-left,
+.theme-ps4.in-func .p4-st-mid { opacity: 0; }
+.p4-func-row { display: flex; justify-content: center; }
 .p4-fn {
-  width: 190px;
-  height: 220px;
-  padding: 26px 0 0;
+  position: relative;
+  width: 188px;
+  height: 190px;
+  padding: 0;
   border: none;
   background: none;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 22px;
-  color: rgba(255, 255, 255, 0.72);
-  transition: transform 0.2s ease, background 0.2s ease, color 0.2s ease;
+  color: rgba(255, 255, 255, 0.5);
+  transition: color 0.2s ease;
 }
-.p4-fn .p4-ic { width: 100px; height: 100px; transition: transform 0.25s var(--p4-ease); }
-.p4-fn span { font-size: 30px; opacity: 0; transition: opacity 0.2s ease; }
-.p4-fn.sel { color: #fff; background: rgba(255, 255, 255, 0.12); box-shadow: 0 0 0 4px #fff; }
-.p4-fn.sel .p4-ic { transform: scale(1.12); }
+.p4-fn .p4-ic { width: 56px; height: 56px; margin-top: 34px; transition: transform 0.25s var(--p4-ease), filter 0.25s ease; }
+.p4-fn span { position: absolute; top: 132px; left: 50%; transform: translateX(-50%); white-space: nowrap; font-size: 28px; opacity: 0; transition: opacity 0.2s ease; }
+.p4-fn:not(.sel):hover { color: rgba(255, 255, 255, 0.85); }
+.p4-fn.sel { color: #fff; }
+.p4-fn.sel .p4-ic { transform: scale(1.85); filter: drop-shadow(0 0 14px rgba(150, 205, 255, 0.9)); }
 .p4-fn.sel span { opacity: 1; }
 
 /* ============ Pantallas ============ */
@@ -754,6 +767,7 @@ body.playing .theme-ps4 .p4-spin { animation-play-state: paused; }
 /* ============ Ordenar el inicio ============ */
 .p4-foot { display: flex; gap: 46px; }
 .theme-ps4.in-func .p4-home-sort { opacity: 0; pointer-events: none; }
+.theme-ps4.in-func .p4-qm-btn { opacity: 0; pointer-events: none; }
 
 /* ============ Fondo propio (Ajustes → Temas) ============ */
 .p4-wall { position: absolute; inset: 0; display: none; background: #000 center / cover no-repeat; }
