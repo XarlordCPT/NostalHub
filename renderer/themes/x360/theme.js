@@ -240,8 +240,9 @@
 `;
 
   const PANEL_SHIFT = 1474;
-  const { wait, pad2 } = window.NostalHubUtil;
-  const { ago, hours, escapeHtml } = window.NostalHubUtil;
+  const U = window.NostalHubUtil;
+  const { wait, pad2 } = U;
+  const { ago, hours, escapeHtml } = U;
 
   // Caja del juego: carátula vertical, o una armada con el fondo y el logo si no hay
   let doneIds = new Set(); // appId de los juegos al 100 % (lo pone loadSummary): su caja lleva medalla dorada
@@ -278,39 +279,161 @@
   window.Themes.x360 = { mount };
 
   // root: contenedor del tema. ctx: { api, stage, stageRect, toast, openSelector }
+  // El tema va separado por pantallas (una función cada una, más abajo). Todas reciben `s`, que tiene lo que es de
+  // todas (en qué vista se está y las anteriores, la pestaña, los juegos, el resumen de logros, la música, qué está
+  // marcado) y las otras pantallas (s.inicio, s.estante, s.ficha, s.logros…). Lo de una sola queda en su función.
   function mount(root, ctx) {
     root.innerHTML = MARKUP;
     const api = ctx.api;
-    const $ = (s) => root.querySelector(s);
-    const $$ = (s) => [...root.querySelectorAll(s)];
+    const $ = (sel) => root.querySelector(sel);
+    const $$ = (sel) => [...root.querySelectorAll(sel)];
     const call = (fn, ...a) => (typeof api[fn] === 'function' ? api[fn](...a) : Promise.resolve(null));
-
-    let games = [];
-    let tab = 0;
-    let view = 'home'; // home | shelf | detail | ach | playing | confirm | guide
-    const stack = []; // vistas anteriores, para volver con Esc
-    let shelfList = [];
-    let shelfSel = 0;
-    let shelfMode = 'games';
-    let current = null; // juego en la ficha
-    let achList = [];
-    let achSel = 0;
-    let achToken = 0;
-    let summary = { done: 0, total: 0, perGame: {}, hasKey: false };
-    let spotify = null;
-    let playTimer = null;
-    let clockTimer = null;
-    let focused = null;
+    const s = {
+      root,
+      ctx,
+      api,
+      $,
+      $$,
+      call,
+      view: 'home', // home | shelf | detail | ach | playing | confirm | guide | party | friends
+      stack: [], // vistas anteriores, para volver con Esc
+      tab: 0, // pestaña del inicio
+      games: [],
+      summary: { done: 0, total: 0, perGame: {}, hasKey: false },
+      spotify: null,
+      focused: null, // el botón marcado
+    };
     const offs = [];
-    const nowPlaying = window.NostalHubUtil.nowPlaying($('.xb-playing'), api, ctx.toast);
+    // Hora de las pantallas de logros, Grupo y amigos
+    s.tickClock = () => {
+      const d = new Date();
+      $$('.xb-ach-hclock').forEach((el) => (el.textContent = `${pad2(d.getHours())}:${pad2(d.getMinutes())}`));
+    };
 
+    s.jugando = pantallaJugando(s);
+    navegacion(s);
+    s.inicio = pantallaInicio(s);
+    s.estante = pantallaEstante(s);
+    s.ficha = pantallaFicha(s);
+    s.logros = pantallaLogros(s);
+    s.confirmar = confirmarApagado(s);
+    s.guia = pantallaGuia(s);
+    s.grupo = pantallaGrupo(s);
+    s.amigos = pantallaAmigos(s);
+
+    // ---------- Teclado ----------
+    function onKey(e) {
+      const k = e.key;
+      const dir = { ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'up', ArrowDown: 'down' }[k];
+      // Enter/espacio no deben "apretar" además el último botón clickeado con el mouse
+      if (k === 'Enter' || k === ' ') e.preventDefault();
+      if (s.view === 'guide') return s.guia.key(e);
+      if ((k === 'g' || k === 'G') && (s.view === 'home' || s.view === 'shelf' || s.view === 'detail')) return s.guia.open();
+      if (s.view === 'home') s.inicio.key(k, dir);
+      else if (s.view === 'shelf') s.estante.key(k, dir);
+      else if (s.view === 'detail' || s.view === 'confirm' || s.view === 'playing' || s.view === 'party') {
+        if (dir) s.move(dir);
+        else if (k === 'Enter' && s.focused) s.focused.click();
+        else if (k === 'Escape' || k === 'Backspace') {
+          if (s.view === 'detail' || s.view === 'party') s.back();
+          else if (s.view === 'confirm') s.confirmar.close();
+        }
+      } else if (s.view === 'friends') s.amigos.key(k);
+      else if (s.view === 'ach') s.logros.key(k, dir);
+    }
+    window.addEventListener('keydown', onKey);
+
+    // ---------- Datos ----------
+    let doneKey = '';
+    async function loadSummary(sum) {
+      s.summary = sum || (await call('getAchievementSummary')) || s.summary;
+      // Juegos al 100 %: si cambian, se vuelven a dibujar las cajas con su medalla
+      const k = U.completeKey(s.summary);
+      if (k !== doneKey) {
+        doneKey = k;
+        doneIds = new Set(k ? k.split(',') : []);
+        setGames(s.games);
+        if (s.view === 'shelf') s.estante.render();
+      }
+      s.ficha.refresh();
+      const el = $('.xb-me-score');
+      if (!s.summary.hasKey) {
+        el.innerHTML = `<button class="xb-link" data-nav data-open="apikey">${icon('key')} Agrega tu clave de Steam para ver tus logros</button>`;
+        el.querySelector('button').addEventListener('click', () => call('open', 'apikey'));
+      } else {
+        el.innerHTML = `${icon('trophy')}<b>${s.summary.done}</b><span>de ${s.summary.total} logros</span>`;
+      }
+    }
+    function setGames(list) {
+      s.games = list || [];
+      s.ficha.gamesChanged();
+      s.ficha.refresh();
+      s.inicio.renderHome();
+      s.inicio.renderRecent();
+      s.estante.gamesChanged();
+    }
+
+    offs.push(api.onGamesUpdated(setGames));
+    offs.push(api.onGameEnded(({ reason }) => s.jugando.end(reason)));
+    if (api.onSpotify) offs.push(api.onSpotify(s.inicio.renderSpotify));
+    if (api.onSteamSummary)
+      offs.push(
+        api.onSteamSummary((sum) => {
+          loadSummary(sum);
+          s.inicio.renderRecent();
+        })
+      );
+    if (api.onSteamChanged)
+      offs.push(
+        api.onSteamChanged(() => {
+          s.inicio.loadProfile();
+          loadSummary();
+        })
+      );
+
+    s.inicio.setTab(0, false);
+    s.homeHints();
+    s.inicio.renderSpotify({ supported: true, running: false });
+    call('spotifyWatch', true).then((data) => data && s.inicio.renderSpotify(data));
+    call('discordWatch', true).then((data) => data && s.grupo.renderDiscord(data));
+    if (api.onDiscord) offs.push(api.onDiscord(s.grupo.renderDiscord));
+    s.inicio.loadProfile();
+    loadSummary().then(s.inicio.renderRecent);
+    s.amigos.load(); // para el "N amigos en línea" del mosaico
+    const clockTimer = setInterval(s.tickClock, 15000);
+    api.getState().then((st) => {
+      setGames(st.games);
+      root.classList.add('intro');
+      setTimeout(() => root.classList.remove('intro'), 1500);
+      s.setFocus(s.firstIn(s.scope()));
+    });
+
+    return {
+      unmount() {
+        s.jugando.dispose();
+        clearInterval(clockTimer);
+        s.amigos.dispose();
+        window.removeEventListener('keydown', onKey);
+        offs.forEach((off) => off && off());
+        call('spotifyWatch', false);
+        call('discordWatch', false);
+        document.body.classList.remove('playing');
+        root.classList.remove('in-view', 'intro');
+        root.innerHTML = '';
+      },
+    };
+  }
+
+  // ---------- Lo que usan todas: qué está marcado, moverse con las flechas, pistas de teclas y cambiar de vista ----------
+  function navegacion(s) {
+    const { $, $$, root } = s;
     // ---------- Foco y navegación con flechas ----------
     function scope() {
-      if (view === 'confirm') return $('.xb-confirm');
-      if (view === 'home') return $(`.xb-panel[data-panel="${tab}"]`);
-      if (view === 'detail') return $('.xb-detail');
-      if (view === 'playing') return $('.xb-playing');
-      if (view === 'party') return $('.xb-party');
+      if (s.view === 'confirm') return $('.xb-confirm');
+      if (s.view === 'home') return $(`.xb-panel[data-panel="${s.tab}"]`);
+      if (s.view === 'detail') return $('.xb-detail');
+      if (s.view === 'playing') return $('.xb-playing');
+      if (s.view === 'party') return $('.xb-party');
       return null;
     }
     function visible(el) {
@@ -318,9 +441,9 @@
       return r.width > 0 && r.height > 0;
     }
     function setFocus(el) {
-      if (focused) focused.classList.remove('focus');
-      focused = el || null;
-      if (focused) focused.classList.add('focus');
+      if (s.focused) s.focused.classList.remove('focus');
+      s.focused = el || null;
+      if (s.focused) s.focused.classList.add('focus');
     }
     function firstIn(sc) {
       const els = sc ? [...sc.querySelectorAll('[data-nav]')].filter(visible) : [];
@@ -330,17 +453,17 @@
       const sc = scope();
       if (!sc) return false;
       const els = [...sc.querySelectorAll('[data-nav]')].filter(visible);
-      if (!focused || !sc.contains(focused)) {
+      if (!s.focused || !sc.contains(s.focused)) {
         setFocus(els[0]);
         return true;
       }
-      const a = focused.getBoundingClientRect();
+      const a = s.focused.getBoundingClientRect();
       const ax = a.left + a.width / 2;
       const ay = a.top + a.height / 2;
       let best = null;
       let bestScore = Infinity;
       for (const el of els) {
-        if (el === focused) continue;
+        if (el === s.focused) continue;
         const b = el.getBoundingClientRect();
         const dx = b.left + b.width / 2 - ax;
         const dy = b.top + b.height / 2 - ay;
@@ -372,13 +495,45 @@
       hints([['Enter', 'Seleccionar'], ['Q / E', 'Cambiar pestaña'], ['G', 'Guía'], ['Esc', 'Consolas']]);
     }
 
+    // ---------- Vistas (estante, ficha, logros, jugando) ----------
+    function showView(name, title = '') {
+      if (s.view !== name) s.stack.push(s.view);
+      s.view = name;
+      root.classList.toggle('in-view', name !== 'home');
+      $$('.xb-view').forEach((v) => (v.hidden = !v.classList.contains(`xb-${name}`)));
+      $('.xb-viewtitle').textContent = title;
+    }
+    function back() {
+      const prev = s.stack.pop() || 'home';
+      $$('.xb-view').forEach((v) => (v.hidden = true));
+      s.view = prev;
+      root.classList.toggle('in-view', prev !== 'home');
+      if (prev === 'home') {
+        $('.xb-viewtitle').textContent = '';
+        s.homeHints();
+        s.setFocus(s.firstIn(s.scope()));
+      } else if (prev === 'shelf') {
+        s.estante.showAgain();
+      } else if (prev === 'detail') {
+        $('.xb-detail').hidden = false;
+        $('.xb-viewtitle').textContent = '';
+        s.ficha.hints();
+        s.setFocus(root.querySelector('[data-dact="ach"]'));
+      }
+    }
+    Object.assign(s, { scope, setFocus, firstIn, move, hints, homeHints, showView, back });
+  }
+
+  // ---------- Inicio: las 3 pestañas con sus mosaicos, la música, el perfil y los juegos recientes ----------
+  function pantallaInicio(s) {
+    const { $, $$, api, ctx, call } = s;
     // ---------- Pestañas (panorama) ----------
     function setTab(t, animate = true) {
-      tab = (t + 3) % 3;
-      $$('.xb-tab').forEach((b) => b.classList.toggle('on', Number(b.dataset.tab) === tab));
+      s.tab = (t + 3) % 3;
+      $$('.xb-tab').forEach((b) => b.classList.toggle('on', Number(b.dataset.tab) === s.tab));
       $$('.xb-panel').forEach((p) => {
         const i = Number(p.dataset.panel);
-        let d = i - tab;
+        let d = i - s.tab;
         if (d > 1) d -= 3;
         if (d < -1) d += 3;
         p.style.transition = animate ? '' : 'none';
@@ -386,15 +541,15 @@
         p.classList.toggle('on', d === 0);
         p.classList.toggle('far', Math.abs(d) > 1);
       });
-      if (view === 'home') setFocus(firstIn(scope()));
+      if (s.view === 'home') s.setFocus(s.firstIn(s.scope()));
     }
-    $$('.xb-tab').forEach((b) => b.addEventListener('click', () => view === 'home' && setTab(Number(b.dataset.tab))));
+    $$('.xb-tab').forEach((b) => b.addEventListener('click', () => s.view === 'home' && setTab(Number(b.dataset.tab))));
     // Clic en un panel vecino (el que se asoma) = ir a esa pestaña
     $$('.xb-panel').forEach((p) =>
       p.addEventListener(
         'click',
         (e) => {
-          if (view !== 'home' || p.classList.contains('on')) return;
+          if (s.view !== 'home' || p.classList.contains('on')) return;
           e.stopPropagation();
           e.preventDefault();
           setTab(Number(p.dataset.panel));
@@ -402,38 +557,11 @@
         true
       )
     );
-    $('.xb-profile').addEventListener('click', () => view === 'home' && setTab(1));
-
-    // ---------- Vistas (estante, ficha, logros, jugando) ----------
-    function showView(name, title = '') {
-      if (view !== name) stack.push(view);
-      view = name;
-      root.classList.toggle('in-view', name !== 'home');
-      $$('.xb-view').forEach((v) => (v.hidden = !v.classList.contains(`xb-${name}`)));
-      $('.xb-viewtitle').textContent = title;
-    }
-    function back() {
-      const prev = stack.pop() || 'home';
-      $$('.xb-view').forEach((v) => (v.hidden = true));
-      view = prev;
-      root.classList.toggle('in-view', prev !== 'home');
-      if (prev === 'home') {
-        $('.xb-viewtitle').textContent = '';
-        homeHints();
-        setFocus(firstIn(scope()));
-      } else if (prev === 'shelf') {
-        showShelfAgain();
-      } else if (prev === 'detail') {
-        $('.xb-detail').hidden = false;
-        $('.xb-viewtitle').textContent = '';
-        detailHints();
-        setFocus(root.querySelector('[data-dact="ach"]'));
-      }
-    }
+    $('.xb-profile').addEventListener('click', () => s.view === 'home' && setTab(1));
 
     // ---------- Home ----------
     function lastGame() {
-      return [...games].filter((g) => g.lastPlayed).sort((a, b) => b.lastPlayed - a.lastPlayed)[0] || games[0] || null;
+      return [...s.games].filter((g) => g.lastPlayed).sort((a, b) => b.lastPlayed - a.lastPlayed)[0] || s.games[0] || null;
     }
     function renderHome() {
       const g = lastGame();
@@ -455,26 +583,26 @@
     function act(name) {
       if (name === 'last') {
         const g = lastGame();
-        if (g) openDetail(g);
+        if (g) s.ficha.open(g);
       } else if (name === 'random') {
-        if (games.length) openDetail(games[Math.floor(Math.random() * games.length)]);
-      } else if (name === 'recent') openShelf('recent');
-      else if (name === 'games') openShelf('games');
-      else if (name === 'profile') setTab(1);
-      else if (name === 'party') openParty();
-      else if (name === 'friends') openFriends();
-      else if (name === 'menu') openGuide();
+        if (s.games.length) s.ficha.open(s.games[Math.floor(Math.random() * s.games.length)]);
+      } else if (name === 'recent') s.estante.open('recent');
+      else if (name === 'games') s.estante.open('games');
+      else if (name === 'profile') s.inicio.setTab(1);
+      else if (name === 'party') s.grupo.open();
+      else if (name === 'friends') s.amigos.open();
+      else if (name === 'menu') s.guia.open();
       else if (name === 'consoles') ctx.openSelector();
-      else if (name === 'quit') openConfirm();
+      else if (name === 'quit') s.confirmar.open();
     }
-    $$('[data-act]').forEach((b) => b.addEventListener('click', () => view === 'home' && act(b.dataset.act)));
-    $$('[data-open]').forEach((b) => b.addEventListener('click', () => view === 'home' && call('open', b.dataset.open)));
+    $$('[data-act]').forEach((b) => b.addEventListener('click', () => s.view === 'home' && act(b.dataset.act)));
+    $$('[data-open]').forEach((b) => b.addEventListener('click', () => s.view === 'home' && call('open', b.dataset.open)));
 
     // ---------- Spotify ----------
-    function renderSpotify(s) {
-      spotify = s || spotify;
+    function renderSpotify(data) {
+      s.spotify = data || s.spotify;
       const box = $('.xb-spotify');
-      const st = spotify || {};
+      const st = s.spotify || {};
       const v = U.spotifyView(st);
       box.classList.toggle('playing', !!v.playing);
       box.classList.toggle('off', !v.on);
@@ -501,7 +629,7 @@
         b.title = `${a.label}${a.value ? `: ${a.value}` : ''}`;
         b.innerHTML = `${U.npIcon(a.icon)}${a.id === 'volup' || a.id === 'voldown' ? '' : ''}`;
       });
-      if (focused && focused.hidden) setFocus(firstIn(scope()));
+      if (s.focused && s.focused.hidden) s.setFocus(s.firstIn(s.scope()));
       // Portada del álbum en la etiqueta del disco
       const label = $('.sp-disc-center');
       const cover = v.on && v.cover ? v.cover : null;
@@ -511,18 +639,18 @@
     $$('.sp-x').forEach((b) =>
       b.addEventListener('click', (e) => {
         e.stopPropagation();
-        if (view !== 'home') return;
-        U.musicRun(api, b.dataset.mx, U.spotifyView(spotify), ctx.toast);
+        if (s.view !== 'home') return;
+        U.musicRun(api, b.dataset.mx, U.spotifyView(s.spotify), ctx.toast);
       })
     );
     $$('[data-sp]').forEach((b) =>
       b.addEventListener('click', (e) => {
         e.stopPropagation();
-        if (view !== 'home') return;
+        if (s.view !== 'home') return;
         const cmd = b.dataset.sp;
         call('spotifyControl', cmd);
         // respuesta inmediata en pantalla mientras llega el estado real
-        if (cmd === 'toggle' && spotify && spotify.running) renderSpotify({ ...spotify, playing: !spotify.playing });
+        if (cmd === 'toggle' && s.spotify && s.spotify.running) renderSpotify({ ...s.spotify, playing: !s.spotify.playing });
       })
     );
 
@@ -539,30 +667,10 @@
       }
       $('.xb-me-ph').hidden = !!p.avatar;
     }
-    let doneKey = '';
-    async function loadSummary(s) {
-      summary = s || (await call('getAchievementSummary')) || summary;
-      // Juegos al 100 %: si cambian, se vuelven a dibujar las cajas con su medalla
-      const k = window.NostalHubUtil.completeKey(summary);
-      if (k !== doneKey) {
-        doneKey = k;
-        doneIds = new Set(k ? k.split(',') : []);
-        setGames(games);
-        if (view === 'shelf') renderShelf();
-      }
-      if (current && (view === 'detail' || stack.includes('detail'))) paintDetailInfo(current);
-      const el = $('.xb-me-score');
-      if (!summary.hasKey) {
-        el.innerHTML = `<button class="xb-link" data-nav data-open="apikey">${icon('key')} Agrega tu clave de Steam para ver tus logros</button>`;
-        el.querySelector('button').addEventListener('click', () => call('open', 'apikey'));
-      } else {
-        el.innerHTML = `${icon('trophy')}<b>${summary.done}</b><span>de ${summary.total} logros</span>`;
-      }
-    }
     function renderRecent() {
       const list = $('.xb-recent-list');
       list.innerHTML = '';
-      [...games]
+      [...s.games]
         .filter((g) => g.lastPlayed)
         .sort((a, b) => b.lastPlayed - a.lastPlayed)
         .slice(0, 4)
@@ -572,25 +680,40 @@
           row.dataset.nav = '';
           row.appendChild(buildCase(g, 'mini'));
           const t = document.createElement('div');
-          const per = summary.perGame && g.appId && summary.perGame[g.appId];
+          const per = s.summary.perGame && g.appId && s.summary.perGame[g.appId];
           t.innerHTML = `<div class="xb-recent-name">${escapeHtml(g.name)}</div><div class="xb-recent-meta">${escapeHtml(
             [ago(g.lastPlayed), per && per.total ? `${per.done}/${per.total} logros` : ''].filter(Boolean).join(' · ')
-          )}${window.NostalHubUtil.isComplete(per) ? ` <span class="nh-done-text">${window.NostalHubUtil.completeBadge('medal')} Completado</span>` : ''}</div>`;
+          )}${U.isComplete(per) ? ` <span class="nh-done-text">${U.completeBadge('medal')} Completado</span>` : ''}</div>`;
           row.appendChild(t);
-          row.addEventListener('click', () => view === 'home' && openDetail(g));
+          row.addEventListener('click', () => s.view === 'home' && s.ficha.open(g));
           list.appendChild(row);
         });
       if (!list.children.length) list.innerHTML = '<div class="xb-recent-empty">Todavía no hay juegos recientes</div>';
     }
+    function key(k, dir) {
+      if (k === 'q' || k === 'Q' || k === 'PageUp') setTab(s.tab - 1);
+      else if (k === 'e' || k === 'E' || k === 'PageDown') setTab(s.tab + 1);
+      else if (dir) {
+        if (!s.move(dir) && (dir === 'left' || dir === 'right')) setTab(s.tab + (dir === 'right' ? 1 : -1));
+      } else if (k === 'Enter' && s.focused) s.focused.click();
+      else if (k === 'Escape') ctx.openSelector();
+    }
+    return { key, setTab, renderHome, renderRecent, renderSpotify, loadProfile };
+  }
 
-    // ---------- Estante de carátulas ----------
+  // ---------- Estante de carátulas ----------
+  function pantallaEstante(s) {
+    const { $, $$, ctx } = s;
+    let shelfList = [];
+    let shelfSel = 0;
+    let shelfMode = 'games';
     // Mis juegos: Nombre, Jugado recientemente, Horas jugadas o % de logros (tecla O / botón Y)
-    const order = window.NostalHubUtil.gameOrder('x360', { def: 'name' });
+    const order = U.gameOrder('x360', { def: 'name' });
     function shelfGames(mode) {
-      return mode === 'recent' ? [...games].filter((g) => g.lastPlayed).sort((a, b) => b.lastPlayed - a.lastPlayed) : order.apply(games, summary);
+      return mode === 'recent' ? [...s.games].filter((g) => g.lastPlayed).sort((a, b) => b.lastPlayed - a.lastPlayed) : order.apply(s.games, s.summary);
     }
     function nextSort() {
-      if (view !== 'shelf' || shelfMode === 'recent') return;
+      if (s.view !== 'shelf' || shelfMode === 'recent') return;
       const keep = shelfList[shelfSel] && shelfList[shelfSel].id;
       order.next();
       shelfList = shelfGames(shelfMode);
@@ -607,10 +730,10 @@
         return;
       }
       shelfSel = 0;
-      showView('shelf', mode === 'recent' ? 'recientes' : 'mis juegos');
+      s.showView('shelf', mode === 'recent' ? 'recientes' : 'mis juegos');
       renderShelf(false);
       shelfHints();
-      setFocus(null);
+      s.setFocus(null);
     }
     function showShelfAgain() {
       $('.xb-shelf').hidden = false;
@@ -619,8 +742,8 @@
       shelfHints();
     }
     function shelfHints() {
-      if (shelfMode === 'recent') return hints([['← →', 'Elegir'], ['Enter', 'Abrir'], ['Esc', 'Atrás']]);
-      hints([['← →', 'Elegir'], ['Enter', 'Abrir'], ['O', `Ordenar: ${order.label()}`], ['Esc', 'Atrás']]);
+      if (shelfMode === 'recent') return s.hints([['← →', 'Elegir'], ['Enter', 'Abrir'], ['Esc', 'Atrás']]);
+      s.hints([['← →', 'Elegir'], ['Enter', 'Abrir'], ['O', `Ordenar: ${order.label()}`], ['Esc', 'Atrás']]);
       const h = $$('.xb-hints .xb-hint')[2];
       if (h) {
         h.classList.add('xb-hint-btn');
@@ -636,8 +759,8 @@
         item.dataset.i = i;
         item.appendChild(buildCase(g));
         item.addEventListener('click', () => {
-          if (view !== 'shelf') return;
-          if (i === shelfSel) openDetail(g);
+          if (s.view !== 'shelf') return;
+          if (i === shelfSel) s.ficha.open(g);
           else setShelf(i);
         });
         flow.appendChild(item);
@@ -670,7 +793,7 @@
       const g = shelfList[shelfSel];
       if (!g) return;
       $('.xb-flow-name').textContent = g.name;
-      const per = summary.perGame && g.appId && summary.perGame[g.appId];
+      const per = s.summary.perGame && g.appId && s.summary.perGame[g.appId];
       const meta = [
         g.lastPlayed ? `Jugado ${ago(g.lastPlayed)}` : 'Sin jugar todavía',
         hours(g.playtimeMin),
@@ -678,25 +801,46 @@
       ]
         .filter(Boolean)
         .join('   ·   ');
-      $('.xb-flow-meta').innerHTML = escapeHtml(meta) + (window.NostalHubUtil.isComplete(per) ? `   ·   <span class="nh-done-text">${window.NostalHubUtil.completeBadge('medal')} Completado</span>` : '');
+      $('.xb-flow-meta').innerHTML = escapeHtml(meta) + (U.isComplete(per) ? `   ·   <span class="nh-done-text">${U.completeBadge('medal')} Completado</span>` : '');
       $('.xb-flow-count').textContent = `${shelfSel + 1} de ${shelfList.length}`;
     }
     let wheelLock = 0;
     $('.xb-shelf').addEventListener('wheel', (e) => {
-      if (view !== 'shelf' || Date.now() < wheelLock) return;
+      if (s.view !== 'shelf' || Date.now() < wheelLock) return;
       const d = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
       if (Math.abs(d) < 8) return;
       setShelf(shelfSel + (d > 0 ? 1 : -1));
       wheelLock = Date.now() + 120;
     });
+    function key(k, dir) {
+      if (dir === 'left') setShelf(shelfSel - 1);
+      else if (dir === 'right') setShelf(shelfSel + 1);
+      else if (k === 'Enter') s.ficha.open(shelfList[shelfSel]);
+      else if (k === 'o' || k === 'O') nextSort();
+      else if (k === 'Escape' || k === 'Backspace') s.back();
+    }
+    // Llegó la lista de juegos de nuevo: se mantiene marcado el mismo
+    function gamesChanged() {
+      if (s.view !== 'shelf') return;
+      const keepId = shelfList[shelfSel] && shelfList[shelfSel].id;
+      shelfList = shelfList.map((g) => s.games.find((x) => x.id === g.id) || g);
+      const idx = shelfList.findIndex((g) => g.id === keepId);
+      if (idx >= 0) shelfSel = idx;
+      layoutShelf(false);
+    }
+    return { key, gamesChanged, open: openShelf, showAgain: showShelfAgain, render: renderShelf };
+  }
 
-    // ---------- Ficha del juego ----------
+  // ---------- Ficha del juego ----------
+  function pantallaFicha(s) {
+    const { $, $$, ctx, root } = s;
+    let current = null; // juego en la ficha
     function detailHints() {
-      hints([['Enter', 'Seleccionar'], ['Esc', 'Atrás']]);
+      s.hints([['Enter', 'Seleccionar'], ['Esc', 'Atrás']]);
     }
     function openDetail(g) {
       current = g;
-      showView('detail');
+      s.showView('detail');
       $('.xb-detail').dataset.gameCurrent = g.id; // clic derecho / tecla I → imágenes de este juego
       const box = $('.xb-detail-case');
       box.innerHTML = '';
@@ -710,7 +854,7 @@
       void $('.xb-detail').offsetWidth;
       $('.xb-detail').classList.add('enter');
       detailHints();
-      setFocus(root.querySelector('[data-dact="play"]'));
+      s.setFocus(root.querySelector('[data-dact="play"]'));
     }
     // Horas, "jugado hace…" y logros de la ficha (también cuando llegan datos nuevos con la ficha abierta)
     function paintDetailInfo(g) {
@@ -721,39 +865,52 @@
       ]
         .filter(Boolean)
         .join('   ·   ');
-      const per = summary.perGame && g.appId && summary.perGame[g.appId];
+      const per = s.summary.perGame && g.appId && s.summary.perGame[g.appId];
       const prog = $('.xb-detail-progress');
       prog.hidden = !(per && per.total);
       if (per && per.total) {
-        const done = window.NostalHubUtil.isComplete(per);
+        const done = U.isComplete(per);
         prog.classList.toggle('done', done); // 100 %: barra y texto dorados, con medalla
         prog.querySelector('i').style.width = `${(per.done / per.total) * 100}%`;
-        prog.querySelector('span').innerHTML = done ? `${window.NostalHubUtil.completeBadge('medal')} Completado · ${per.done} de ${per.total} logros` : `${per.done} de ${per.total} logros`;
+        prog.querySelector('span').innerHTML = done ? `${U.completeBadge('medal')} Completado · ${per.done} de ${per.total} logros` : `${per.done} de ${per.total} logros`;
         prog.querySelector('span').classList.toggle('nh-done-text', done);
       }
     }
     $$('[data-dact]').forEach((b) =>
       b.addEventListener('click', () => {
-        if (view !== 'detail' || !current) return;
+        if (s.view !== 'detail' || !current) return;
         const a = b.dataset.dact;
-        if (a === 'play') startGame(current);
+        if (a === 'play') s.jugando.start(current);
         else if (a === 'ach') {
           if (!current.hasAch) ctx.toast('Este juego no tiene lista de logros');
-          else openAchievements(current);
-        } else back();
+          else s.logros.open(current);
+        } else s.back();
       })
     );
+    return {
+      open: openDetail,
+      hints: detailHints,
+      // Horas y logros al día (después de jugar o cuando llega un resumen nuevo), también con los logros encima
+      refresh() {
+        if (current && (s.view === 'detail' || s.stack.includes('detail'))) paintDetailInfo(current);
+      },
+      gamesChanged() {
+        if (current) current = s.games.find((g) => g.id === current.id) || current;
+      },
+    };
+  }
 
-    // ---------- Logros ----------
-    function tickClock() {
-      const d = new Date();
-      $$('.xb-ach-hclock').forEach((el) => (el.textContent = `${pad2(d.getHours())}:${pad2(d.getMinutes())}`));
-    }
+  // ---------- Logros ----------
+  function pantallaLogros(s) {
+    const { $, $$, root, call } = s;
+    let achList = [];
+    let achSel = 0;
+    let achToken = 0;
     async function openAchievements(g) {
-      showView('ach');
-      hints([['Flechas', 'Mover'], ['Esc', 'Atrás']]);
-      setFocus(null);
-      tickClock();
+      s.showView('ach');
+      s.hints([['Flechas', 'Mover'], ['Esc', 'Atrás']]);
+      s.setFocus(null);
+      s.tickClock();
       $('.xb-ach-hgame').textContent = g.name;
       const grid = $('.xb-ach-grid');
       const msg = $('.xb-ach-msg');
@@ -764,22 +921,22 @@
       msg.innerHTML = '<div class="xb-spinner"></div>Cargando logros…';
       const token = ++achToken;
       const res = (await call('getAchievements', g.appId)) || { status: 'error', list: [] };
-      if (token !== achToken || view !== 'ach') return;
+      if (token !== achToken || s.view !== 'ach') return;
 
       if (res.status !== 'ok') {
         // El de "conecta tu Steam" dice dónde está en la Xbox (el mosaico Clave de Steam); los demás son los de siempre
         msg.innerHTML =
           res.status === 'no-key'
             ? 'Para ver tus logros, conecta tu Steam.<br><small>settings → "Clave de Steam" (se hace aquí mismo, en 1 minuto).</small>'
-            : window.NostalHubUtil.achievementMessage(res);
+            : U.achievementMessage(res);
         return;
       }
       msg.hidden = true;
       // Por set; en cada uno, desbloqueados primero (más recientes arriba) y después los bloqueados
-      achList = window.NostalHubUtil.sortAchievements(res.list);
+      achList = U.sortAchievements(res.list);
       achList.forEach((a, i) => {
-        const head = window.NostalHubUtil.achievementSetHead(achList, i);
-        if (head) grid.insertAdjacentHTML('beforeend', window.NostalHubUtil.setHeadHtml('xb-ach-set', head));
+        const head = U.achievementSetHead(achList, i);
+        if (head) grid.insertAdjacentHTML('beforeend', U.setHeadHtml('xb-ach-set', head));
         const cell = document.createElement('button');
         cell.className = `xb-ach-cell${a.done ? '' : ' locked'}`;
         cell.dataset.i = i;
@@ -807,78 +964,104 @@
         if (cell) cell.scrollIntoView({ block: 'nearest' });
       }
     }
+    function key(k, dir) {
+      if (dir === 'left') setAch(achSel - 1);
+      else if (dir === 'right') setAch(achSel + 1);
+      else if (dir === 'up') setAch(U.gridMove($$('.xb-ach-cell'), achSel, -1));
+      else if (dir === 'down') setAch(U.gridMove($$('.xb-ach-cell'), achSel, 1));
+      else if (k === 'Escape' || k === 'Backspace') s.back();
+    }
+    return { key, open: openAchievements };
+  }
 
-    // ---------- Iniciar y "Jugando a…" ----------
+  // ---------- Iniciar y "Jugando a…" ----------
+  function pantallaJugando(s) {
+    const { $, api, ctx, root, call } = s;
+    const nowPlaying = U.nowPlaying($('.xb-playing'), api, ctx.toast);
+    let playTimer = null;
     async function startGame(g) {
       const res = await api.launch(g.id);
       if (!res || !res.ok) {
         ctx.toast(`No se pudo abrir: ${(res && res.error) || 'error desconocido'}`);
         return;
       }
-      showView('playing');
+      s.showView('playing');
       const box = $('.xb-play-case');
       box.innerHTML = '';
       box.appendChild(buildCase(g, 'mid'));
       $('.xb-play-name').textContent = g.name;
       nowPlaying.start(); // Spotify y Grupo a los lados
-      hints([['Enter', 'Volver al menú']]);
-      setFocus(root.querySelector('[data-pact="stop"]'));
+      s.hints([['Enter', 'Volver al menú']]);
+      s.setFocus(root.querySelector('[data-pact="stop"]'));
       document.body.classList.add('playing');
       const started = Date.now();
       const upd = () => {
-        const s = Math.floor((Date.now() - started) / 1000);
-        const h = Math.floor(s / 3600);
-        const m = Math.floor((s % 3600) / 60);
-        $('.xb-play-time').textContent = h ? `${h}:${pad2(m)}:${pad2(s % 60)}` : `${m}:${pad2(s % 60)}`;
+        const t = Math.floor((Date.now() - started) / 1000);
+        const h = Math.floor(t / 3600);
+        const m = Math.floor((t % 3600) / 60);
+        $('.xb-play-time').textContent = h ? `${h}:${pad2(m)}:${pad2(t % 60)}` : `${m}:${pad2(t % 60)}`;
       };
       upd();
       clearInterval(playTimer);
       playTimer = setInterval(upd, 1000);
     }
     function endPlaying(reason) {
-      if (view === 'playing') nowPlaying.stop();
-      if (view !== 'playing') return;
+      if (s.view === 'playing') nowPlaying.stop();
+      if (s.view !== 'playing') return;
       clearInterval(playTimer);
       document.body.classList.remove('playing');
-      back(); // vuelve a la ficha
+      s.back(); // vuelve a la ficha
       if (reason === 'not-started') ctx.toast('No se detectó que el juego abriera');
     }
     root.querySelector('[data-pact="stop"]').addEventListener('click', () => {
       call('dismissPlaying');
       endPlaying('manual');
     });
+    return {
+      start: startGame,
+      end: endPlaying,
+      dispose() {
+        nowPlaying.dispose();
+        clearInterval(playTimer);
+      },
+    };
+  }
 
-    // ---------- Confirmación de apagado ----------
+  // ---------- Confirmación de apagado ----------
+  function confirmarApagado(s) {
+    const { $, $$, root, call } = s;
     function openConfirm() {
-      stack.push(view);
-      view = 'confirm';
+      s.stack.push(s.view);
+      s.view = 'confirm';
       $('.xb-confirm').hidden = false;
-      setFocus(root.querySelector('[data-cact="no"]'));
+      s.setFocus(root.querySelector('[data-cact="no"]'));
     }
     function closeConfirm() {
       $('.xb-confirm').hidden = true;
-      view = stack.pop() || 'home';
-      setFocus(firstIn(scope()));
+      s.view = s.stack.pop() || 'home';
+      s.setFocus(s.firstIn(s.scope()));
     }
     $$('[data-cact]').forEach((b) =>
       b.addEventListener('click', () => (b.dataset.cact === 'yes' ? call('quitApp') : closeConfirm()))
     );
+    return { open: openConfirm, close: closeConfirm };
+  }
 
-
-    // ---------- La Guía (ajustes) ----------
-    // Las opciones vienen de main.js (las mismas del menú de la bandeja); aquí se dibujan como la Guía.
-    const U = window.NostalHubUtil;
+  // ---------- La Guía (ajustes) ----------
+  // Las opciones vienen de main.js (las mismas del menú de la bandeja); aquí se dibujan como la Guía.
+  function pantallaGuia(s) {
+    const { $, $$, ctx, call } = s;
     const TAB_ICONS = { general: 'gear', games: 'pad', emulators: 'pad', screen: 'screen', sound: 'speaker', accounts: 'person', files: 'folder' };
     let gModel = [];
     let gTab = 0;
     let gSel = 0;
 
     async function openGuide() {
-      if (view === 'guide' || view === 'confirm' || view === 'playing') return;
+      if (s.view === 'guide' || s.view === 'confirm' || s.view === 'playing') return;
       gModel = (await call('getMenu')) || [];
       if (!gModel.length) return;
-      stack.push(view);
-      view = 'guide';
+      s.stack.push(s.view);
+      s.view = 'guide';
       gSel = 0;
       const p = (await call('getSteamProfile')) || {};
       $('.xg-name').textContent = p.name || 'Jugador';
@@ -893,15 +1076,15 @@
     }
 
     async function closeGuide(then) {
-      if (view !== 'guide') return;
+      if (s.view !== 'guide') return;
       const g = $('.xb-guide');
       g.classList.add('leave');
-      view = stack.pop() || 'home';
+      s.view = s.stack.pop() || 'home';
       await wait(200);
       g.hidden = true;
       g.classList.remove('leave');
       if (then) then();
-      else setFocus(firstIn(scope()));
+      else s.setFocus(s.firstIn(s.scope()));
     }
 
     function renderGuide() {
@@ -963,12 +1146,12 @@
       if (!it) return;
       setGuideSel(i);
       if (it.id === 'consoles') return closeGuide(() => ctx.openSelector());
-      if (it.confirm) return closeGuide(() => openConfirm());
+      if (it.confirm) return closeGuide(() => s.confirmar.open());
       if (it.closes) await closeGuide(() => {});
       if (/^open-|^devtools$/.test(it.id)) ctx.toast('Se abrió en Windows');
       const value = it.type === 'action' ? undefined : U.optionNextValue(it, 1);
       const next = await call('runMenu', it.id, value);
-      if (next && view === 'guide') {
+      if (next && s.view === 'guide') {
         gModel = next;
         renderGuide();
       }
@@ -992,11 +1175,13 @@
       if (downOnBackdrop && e.target === e.currentTarget) closeGuide();
       downOnBackdrop = false;
     });
+    return { open: openGuide, key: guideKey };
+  }
 
-
-    // ---------- Grupo (canal de voz de Discord) ----------
+  // ---------- Grupo (canal de voz de Discord) ----------
+  function pantallaGrupo(s) {
+    const { $, call } = s;
     let discord = { status: 'off', channel: null, members: [] };
-    const escHtml = escapeHtml;
     function partyStatus() {
       switch (discord.status) {
         case 'no-config':
@@ -1027,35 +1212,35 @@
         $('.xb-party-tile').classList.remove('talking');
       }
     }
-    function renderDiscord(s) {
-      discord = s || discord;
+    function renderDiscord(data) {
+      discord = data || discord;
       renderPartyTile();
-      if (view === 'party') renderParty();
+      if (s.view === 'party') renderParty();
     }
     function openParty() {
-      showView('party', '');
-      hints([['Flechas', 'Mover'], ['Enter', 'Seleccionar'], ['Esc', 'Volver']]);
-      tickClock();
+      s.showView('party', '');
+      s.hints([['Flechas', 'Mover'], ['Enter', 'Seleccionar'], ['Esc', 'Volver']]);
+      s.tickClock();
       renderParty(true);
     }
     function renderParty(first) {
       const body = $('.xb-party-body');
-      const keep = focused && focused.dataset.pb;
+      const keep = s.focused && s.focused.dataset.pb;
       const st = partyStatus();
       $('.xb-party-hname').textContent = discord.status === 'ok' && discord.channel ? discord.channel.guild || 'Mensaje directo' : 'Discord';
       if (st) {
-        body.innerHTML = `<div class="xb-party-empty">${icon('headset')}<div class="xb-party-t">${escHtml(st.t)}</div><div class="xb-party-d">${escHtml(st.d)}</div>
+        body.innerHTML = `<div class="xb-party-empty">${icon('headset')}<div class="xb-party-t">${escapeHtml(st.t)}</div><div class="xb-party-d">${escapeHtml(st.d)}</div>
           <div class="xb-party-btns">${st.btns.map(([id, label]) => `<button class="xb-tile act green" data-nav data-pb="${id}"><span class="xb-label">${label}</span></button>`).join('')}</div></div>`;
       } else if (!discord.channel) {
         body.innerHTML = `<div class="xb-party-empty">${icon('headset')}<div class="xb-party-t">No estás en un canal de voz</div><div class="xb-party-d">Cuando entres a un canal de voz en Discord, aquí vas a ver quiénes están contigo.</div></div>`;
       } else {
         const n = discord.members.length;
-        body.innerHTML = `<div class="xb-ach-sel xb-party-chan">${icon('headset')}<div><div class="xb-ach-name">${escHtml(discord.channel.name)}</div><div class="xb-ach-sub">${escHtml(discord.channel.guild || 'Mensaje directo')} · ${n} ${n === 1 ? 'persona' : 'personas'} en el grupo</div></div></div>
+        body.innerHTML = `<div class="xb-ach-sel xb-party-chan">${icon('headset')}<div><div class="xb-ach-name">${escapeHtml(discord.channel.name)}</div><div class="xb-ach-sub">${escapeHtml(discord.channel.guild || 'Mensaje directo')} · ${n} ${n === 1 ? 'persona' : 'personas'} en el grupo</div></div></div>
           <div class="xb-party-list">${discord.members
             .map(
               (m) => `<div class="xb-party-m${m.speaking ? ' talking' : ''}">
                 <span class="xb-party-av" style="background-image:url('${m.avatar}')"></span>
-                <span class="xb-party-n">${escHtml(m.name)}</span>
+                <span class="xb-party-n">${escapeHtml(m.name)}</span>
                 <span class="xb-party-state">${m.deafened ? `${icon('deaf')}Sin audio` : m.muted ? `${icon('micOff')}Silenciado` : m.speaking ? `${icon('headset')}Hablando` : ''}</span>
               </div>`
             )
@@ -1064,22 +1249,26 @@
       body.querySelectorAll('[data-pb]').forEach((b) =>
         b.addEventListener('click', () => {
           const id = b.dataset.pb;
-          if (id === 'auth') call('discordAuthorize').then((s) => s && renderDiscord(s));
+          if (id === 'auth') call('discordAuthorize').then((d) => d && renderDiscord(d));
           else call('open', id);
         })
       );
       const again = keep && body.querySelector(`[data-pb="${keep}"]`);
-      if (again) setFocus(again);
-      else if (first || !focused || !body.contains(focused)) setFocus(firstIn(scope()));
+      if (again) s.setFocus(again);
+      else if (first || !s.focused || !body.contains(s.focused)) s.setFocus(s.firstIn(s.scope()));
     }
+    return { renderDiscord, open: openParty };
+  }
 
-    // ---------- Amigos (de Steam) ----------
+  // ---------- Amigos (de Steam) ----------
+  function pantallaAmigos(s) {
+    const { $, $$, ctx, call } = s;
     // Se piden a Steam al entrar y cada 30 segundos mientras miras la lista.
     let friends = { status: 'loading', list: [] };
     let frSel = 0;
     let frTimer = null;
     function gamerpic(f, cls = '') {
-      return `<span class="xb-fr-pic ${cls} ${U.friendClass(f)}">${f.avatar ? `<img src="${escHtml(f.avatar)}" alt="" />` : `<b>${escHtml((f.name || '?').trim().charAt(0).toUpperCase())}</b>`}</span>`;
+      return `<span class="xb-fr-pic ${cls} ${U.friendClass(f)}">${f.avatar ? `<img src="${escapeHtml(f.avatar)}" alt="" />` : `<b>${escapeHtml((f.name || '?').trim().charAt(0).toUpperCase())}</b>`}</span>`;
     }
     function renderFriendsTile() {
       const online = (friends.list || []).filter((f) => f.state !== 0).length;
@@ -1090,19 +1279,19 @@
       // Si falla una actualización, se queda la última lista buena
       if (res.status === 'ok' || friends.status !== 'ok' || res.status !== 'error') friends = res;
       renderFriendsTile();
-      if (view === 'friends') renderFriends();
+      if (s.view === 'friends') renderFriends();
     }
     function openFriends() {
-      showView('friends', '');
-      hints([['↑ ↓', 'Amigo'], ['← →', 'Perfil / Mensaje'], ['Enter', 'Abrir'], ['Esc', 'Volver']]);
-      tickClock();
+      s.showView('friends', '');
+      s.hints([['↑ ↓', 'Amigo'], ['← →', 'Perfil / Mensaje'], ['Enter', 'Abrir'], ['Esc', 'Volver']]);
+      s.tickClock();
       frSel = 0;
       frBtn = 0;
       $('.xb-fr-list').scrollTop = 0;
       renderFriends();
       loadFriends();
       clearInterval(frTimer);
-      frTimer = setInterval(() => (view === 'friends' ? loadFriends() : clearInterval(frTimer)), 30000);
+      frTimer = setInterval(() => (s.view === 'friends' ? loadFriends() : clearInterval(frTimer)), 30000);
     }
     function renderFriends() {
       const rows = friends.list || [];
@@ -1115,12 +1304,12 @@
         list.innerHTML = '';
         $('.xb-fr-card').innerHTML = '';
         msg.hidden = false;
-        msg.innerHTML = `<div class="xb-party-empty">${icon('people')}<div class="xb-party-t">${escHtml(m.t)}</div><div class="xb-party-d">${escHtml(m.d)}</div>
+        msg.innerHTML = `<div class="xb-party-empty">${icon('people')}<div class="xb-party-t">${escapeHtml(m.t)}</div><div class="xb-party-d">${escapeHtml(m.d)}</div>
           ${m.btn ? `<div class="xb-party-btns"><button class="xb-tile act green" data-fb="${m.btn[0]}"><span class="xb-label">${m.btn[1]}</span></button></div>` : ''}</div>`;
         const b = msg.querySelector('[data-fb]');
         if (b) {
           b.addEventListener('click', () => call('open', b.dataset.fb));
-          setFocus(b);
+          s.setFocus(b);
         }
         return;
       }
@@ -1132,7 +1321,7 @@
         if (!items.length) continue;
         html += `<div class="xb-fr-head">${title} (${items.length})</div>`;
         html += items
-          .map(([f, i]) => `<button class="xb-fr-row ${U.friendClass(f)}" data-i="${i}" data-id="${escHtml(f.id)}">${gamerpic(f)}<span class="xb-fr-tx"><span class="xb-fr-n">${escHtml(f.name)}</span><span class="xb-fr-s">${escHtml(U.friendStatus(f))}</span></span><i class="xb-fr-dot"></i></button>`)
+          .map(([f, i]) => `<button class="xb-fr-row ${U.friendClass(f)}" data-i="${i}" data-id="${escapeHtml(f.id)}">${gamerpic(f)}<span class="xb-fr-tx"><span class="xb-fr-n">${escapeHtml(f.name)}</span><span class="xb-fr-s">${escapeHtml(U.friendStatus(f))}</span></span><i class="xb-fr-dot"></i></button>`)
           .join('');
       }
       list.innerHTML = html;
@@ -1153,13 +1342,13 @@
         r.classList.toggle('sel', on);
         if (on) el = r;
       });
-      setFocus(null);
+      s.setFocus(null);
       if (scroll && el) el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
       const f = rows[frSel];
       // "Tarjeta de jugador" del amigo marcado
-      $('.xb-fr-card').innerHTML = `<div class="xb-fr-cardtop"><div class="xb-fr-cname">${escHtml(f.name)}</div></div>
-        <div class="xb-fr-cardmid">${gamerpic(f, 'big')}<div class="xb-fr-cinfo"><div class="xb-fr-cstate ${U.friendClass(f)}"><i class="xb-fr-dot"></i>${escHtml(f.state === 0 ? 'Desconectado' : f.game ? 'Jugando' : U.friendStatus(f))}</div>
-        <div class="xb-fr-cgame">${escHtml(f.game || (f.state === 0 && f.lastSeen ? `Visto ${U.ago(f.lastSeen)}` : ''))}</div></div></div>
+      $('.xb-fr-card').innerHTML = `<div class="xb-fr-cardtop"><div class="xb-fr-cname">${escapeHtml(f.name)}</div></div>
+        <div class="xb-fr-cardmid">${gamerpic(f, 'big')}<div class="xb-fr-cinfo"><div class="xb-fr-cstate ${U.friendClass(f)}"><i class="xb-fr-dot"></i>${escapeHtml(f.state === 0 ? 'Desconectado' : f.game ? 'Jugando' : U.friendStatus(f))}</div>
+        <div class="xb-fr-cgame">${escapeHtml(f.game || (f.state === 0 && f.lastSeen ? `Visto ${U.ago(f.lastSeen)}` : ''))}</div></div></div>
         <div class="xb-fr-btns">
           <button class="xb-tile act green xb-fr-btn${frBtn === 0 ? ' focus' : ''}" data-fp="0">${icon('person')}<span class="xb-label">Ver perfil</span></button>
           <button class="xb-tile act green xb-fr-btn${frBtn === 1 ? ' focus' : ''}" data-fp="1">${icon('chat')}<span class="xb-label">Mensaje</span></button>
@@ -1195,118 +1384,12 @@
       else if (k === 'ArrowLeft') setFrBtn(0);
       else if (k === 'Enter') {
         if (friends.status === 'ok' && rows.length) (frBtn ? openFriendChat : openFriendProfile)(rows[frSel]);
-        else if (focused) focused.click();
+        else if (s.focused) s.focused.click();
       } else if (k === 'Escape' || k === 'Backspace') {
         clearInterval(frTimer);
-        back();
+        s.back();
       }
     }
-
-    // ---------- Teclado ----------
-    function onKey(e) {
-      const k = e.key;
-      const dir = { ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'up', ArrowDown: 'down' }[k];
-      // Enter/espacio no deben "apretar" además el último botón clickeado con el mouse
-      if (k === 'Enter' || k === ' ') e.preventDefault();
-      if (view === 'guide') return guideKey(e);
-      if ((k === 'g' || k === 'G') && (view === 'home' || view === 'shelf' || view === 'detail')) return openGuide();
-      if (view === 'home') {
-        if (k === 'q' || k === 'Q' || k === 'PageUp') setTab(tab - 1);
-        else if (k === 'e' || k === 'E' || k === 'PageDown') setTab(tab + 1);
-        else if (dir) {
-          if (!move(dir) && (dir === 'left' || dir === 'right')) setTab(tab + (dir === 'right' ? 1 : -1));
-        } else if (k === 'Enter' && focused) focused.click();
-        else if (k === 'Escape') ctx.openSelector();
-      } else if (view === 'shelf') {
-        if (dir === 'left') setShelf(shelfSel - 1);
-        else if (dir === 'right') setShelf(shelfSel + 1);
-        else if (k === 'Enter') openDetail(shelfList[shelfSel]);
-        else if (k === 'o' || k === 'O') nextSort();
-        else if (k === 'Escape' || k === 'Backspace') back();
-      } else if (view === 'detail' || view === 'confirm' || view === 'playing' || view === 'party') {
-        if (dir) move(dir);
-        else if (k === 'Enter' && focused) focused.click();
-        else if (k === 'Escape' || k === 'Backspace') {
-          if (view === 'detail' || view === 'party') back();
-          else if (view === 'confirm') closeConfirm();
-        }
-      } else if (view === 'friends') {
-        friendsKey(k);
-      } else if (view === 'ach') {
-        if (dir === 'left') setAch(achSel - 1);
-        else if (dir === 'right') setAch(achSel + 1);
-        else if (dir === 'up') setAch(window.NostalHubUtil.gridMove($$('.xb-ach-cell'), achSel, -1));
-        else if (dir === 'down') setAch(window.NostalHubUtil.gridMove($$('.xb-ach-cell'), achSel, 1));
-        else if (k === 'Escape' || k === 'Backspace') back();
-      }
-    }
-    window.addEventListener('keydown', onKey);
-
-    // ---------- Datos ----------
-    function setGames(list) {
-      games = list || [];
-      if (current) current = games.find((g) => g.id === current.id) || current;
-      if (current && (view === 'detail' || stack.includes('detail'))) paintDetailInfo(current);
-      renderHome();
-      renderRecent();
-      if (view === 'shelf') {
-        const keepId = shelfList[shelfSel] && shelfList[shelfSel].id;
-        shelfList = shelfList.map((g) => games.find((x) => x.id === g.id) || g);
-        const idx = shelfList.findIndex((g) => g.id === keepId);
-        if (idx >= 0) shelfSel = idx;
-        layoutShelf(false);
-      }
-    }
-
-    offs.push(api.onGamesUpdated(setGames));
-    offs.push(api.onGameEnded(({ reason }) => endPlaying(reason)));
-    if (api.onSpotify) offs.push(api.onSpotify(renderSpotify));
-    if (api.onSteamSummary)
-      offs.push(
-        api.onSteamSummary((s) => {
-          loadSummary(s);
-          renderRecent();
-        })
-      );
-    if (api.onSteamChanged)
-      offs.push(
-        api.onSteamChanged(() => {
-          loadProfile();
-          loadSummary();
-        })
-      );
-
-    setTab(0, false);
-    homeHints();
-    renderSpotify({ supported: true, running: false });
-    call('spotifyWatch', true).then((s) => s && renderSpotify(s));
-    call('discordWatch', true).then((s) => s && renderDiscord(s));
-    if (api.onDiscord) offs.push(api.onDiscord(renderDiscord));
-    loadProfile();
-    loadSummary().then(renderRecent);
-    loadFriends(); // para el "N amigos en línea" del mosaico
-    clockTimer = setInterval(tickClock, 15000);
-    api.getState().then((s) => {
-      setGames(s.games);
-      root.classList.add('intro');
-      setTimeout(() => root.classList.remove('intro'), 1500);
-      setFocus(firstIn(scope()));
-    });
-
-    return {
-      unmount() {
-        nowPlaying.dispose();
-        clearInterval(playTimer);
-        clearInterval(clockTimer);
-        clearInterval(frTimer);
-        window.removeEventListener('keydown', onKey);
-        offs.forEach((off) => off && off());
-        call('spotifyWatch', false);
-        call('discordWatch', false);
-        document.body.classList.remove('playing');
-        root.classList.remove('in-view', 'intro');
-        root.innerHTML = '';
-      },
-    };
+    return { open: openFriends, load: loadFriends, key: friendsKey, dispose: () => clearInterval(frTimer) };
   }
 })();

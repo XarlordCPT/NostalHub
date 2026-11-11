@@ -66,6 +66,13 @@ const PANTALLAS = {
     guia: { pasos: [k('g')], ve: '[class*="guide"], [class*="xg-"]' },
     'guia-juegos': { pasos: [k('g'), espera(700), k('e'), espera(500), k('ArrowDown', 6)], ve: '.xg-item.sel' }, // la sección más larga: la lista no tapa la descripción
     social: { pasos: [k('e')], ve: '[data-act]' },
+    // Lo que faltaba: jugar y volver, Grupo, amigos y apagar (con el mouse y con teclas)
+    jugando: { pasos: [clic('[data-act="games"]'), espera(900), k('Enter'), espera(900), clic('[data-dact="play"]')], ve: '.xb-playing:not([hidden]) [data-pact="stop"]' },
+    'vuelta-con-mouse': { pasos: [clic('[data-act="games"]'), espera(900), k('Enter'), espera(900), clic('[data-dact="play"]'), espera(700), clic('[data-pact="stop"]'), espera(600), k('Escape'), espera(500), k('ArrowRight')], ve: '.xb-flow-item.sel' },
+    grupo: { pasos: [k('e'), espera(700), clic('[data-act="party"]')], ve: '.xb-party-body > *' },
+    amigos: { pasos: [k('e'), espera(700), clic('[data-act="friends"]'), espera(600), k('ArrowDown', 2), k('ArrowRight')], ve: '.xb-fr-row.sel' },
+    apagar: { pasos: [k('q'), espera(700), clic('[data-act="quit"]')], ve: '.xb-confirm:not([hidden]) [data-cact="no"]' },
+    'apagar-no': { pasos: [k('q'), espera(700), clic('[data-act="quit"]'), espera(300), k('Enter'), espera(300), k('g')], ve: '.xg-item.sel' },
   },
   ps3: {
     inicio: { pasos: [], ve: '.p3-row, [class*="p3-"]' },
