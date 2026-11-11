@@ -101,12 +101,29 @@ Rama: `limpieza`. `main` no se toca hasta que Cristóbal la junte. Un commit por
       del tema (`.theme-x button`): el reset pasó a `:where(.theme-x) button` (sin peso, como dice CLAUDE.md) y se quitaron
       los que no tienen otra regla compitiendo. En la Switch se quitaron 2 declaraciones que nunca se aplicaron (el color de
       `.sw-sort` y el `padding-top` de `.sw-fr-cell`), para que se vea igual que antes.
-- [ ] HTML larguísimo en una línea → partido en piezas que se lean, y siempre con `esc` en los textos de los juegos.
+- [x] Siempre con `esc`: se revisaron las 8 consolas y `common.js`. Los nombres de juegos, amigos y canciones ya iban
+      escapados; se escaparon las 27 direcciones de imágenes que iban directo al HTML (`url('…')` y `src="…"`).
+- [ ] HTML larguísimo en una línea → partido en piezas que se lean. **Se deja para cuando se toque cada pantalla**: es solo
+      para leer mejor, son muchas líneas, y un espacio de más puede mover cosas en pantalla.
 
 ## Etapa 6: cierre
 
-- [ ] Prueba completa con la app real y una lista de 5 minutos para Cristóbal (Steam, Spotify, Discord, control y sonidos).
-- [ ] Cómo juntar `limpieza` con `main`.
+- [x] Prueba con la app real (`npm run test:app-real:consolas`): 8 consolas, 0 errores (hecha después de separar las 8 y
+      del cambio de CSS; falta repetirla después del último commit de `esc`).
+- [ ] **Lista de 5 minutos para Cristóbal** (lo que las pruebas automáticas no pueden ver). Con `npm start`, en `limpieza`:
+      1. **Steam**: entra a 2 consolas distintas, abre un juego y sus logros; que salgan las horas y los logros de verdad.
+      2. **Jugar y volver**: inicia un juego corto, vuelve con "Volver al menú" y revisa que las horas se actualicen.
+      3. **Spotify**: abre la música en una consola (por ejemplo Wii y PS4): pausa, siguiente y que la portada cambie.
+      4. **Discord**: entra a un canal de voz y abre Grupo en una consola; que aparezcan los que están contigo.
+      5. **Control**: recorre una consola solo con el control (flechas, ✕, ○) y abre el menú de opciones de un juego.
+      6. **Sonidos**: que suenen al moverte y al elegir, y la música propia de un juego en la Wii y la PS3.
+      7. **Editor de imágenes**: clic derecho en un juego (en la Vita, la Switch y la PS3, por el cambio de CSS): que se vea bien.
+      8. **PS4 → Ajustes → Temas → Fondo**: que la lista se vea bien (una prueba la mostró corrida unos píxeles, una vez).
+      9. **Logro de prueba**: Ctrl + Alt + Shift + L.
+- [ ] Cómo juntar `limpieza` con `main` (lo hace Cristóbal, cuando la lista de arriba esté bien):
+      `git switch main` → `git merge limpieza` → `npm test` → `git push`. Si algo sale mal antes del push:
+      `git merge --abort` (o `git reset --hard origin/main` si ya se juntó). Cada consola es un commit aparte: si una sola
+      da problemas, se puede deshacer esa con `git revert <commit>` sin perder las demás.
 - [ ] Preguntar antes de borrar `dist/` (778 MB) y `_to_delete/` (272 MB).
 
 ## Avance

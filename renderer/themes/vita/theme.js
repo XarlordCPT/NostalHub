@@ -1156,8 +1156,8 @@
       main.innerHTML = `
         <div class="v-gate">
           <button class="v-gate-frame" data-f="start">
-            <div class="v-gate-art"${gateArt ? ` style="background-image:url('${gateArt}')"` : ''}></div>
-            ${logo ? `<img class="v-gate-logo" src="${g.logo}" alt="" />` : showName ? `<div class="v-gate-name">${esc(g.name)}</div>` : ''}
+            <div class="v-gate-art"${gateArt ? ` style="background-image:url('${esc(gateArt)}')"` : ''}></div>
+            ${logo ? `<img class="v-gate-logo" src="${esc(g.logo)}" alt="" />` : showName ? `<div class="v-gate-name">${esc(g.name)}</div>` : ''}
             <span class="v-gate-btn">Iniciar</span>
           </button>
         </div>
@@ -1209,7 +1209,7 @@
       const acts = U.musicActions(v);
       main.innerHTML = `
         <div class="v-mu${acts.length ? ' has-api' : ''}">
-          <div class="v-mu-disc${v.playing ? ' spin' : ''}"><div class="v-mu-cover"${v.cover ? ` style="background-image:url('${v.cover}')"` : ''}>${v.cover ? '' : icon('music')}</div></div>
+          <div class="v-mu-disc${v.playing ? ' spin' : ''}"><div class="v-mu-cover"${v.cover ? ` style="background-image:url('${esc(v.cover)}')"` : ''}>${v.cover ? '' : icon('music')}</div></div>
           <div class="v-mu-info">
             <div class="v-mu-state">${v.on ? `${v.playing ? 'Reproduciendo' : 'En pausa'}${v.device && v.deviceType !== 'Computer' ? ` · en ${esc(v.device)}` : ''}` : esc(v.app)}</div>
             <div class="v-mu-title">${esc(v.title)}</div>
@@ -1387,7 +1387,7 @@
             <div class="v-pa-list">${vita.discord.members
               .map(
                 (m) => `<div class="v-pa-m${m.speaking ? ' talking' : ''}">
-                  <span class="v-pa-av" style="background-image:url('${m.avatar}')"></span>
+                  <span class="v-pa-av" style="background-image:url('${esc(m.avatar)}')"></span>
                   <span class="v-pa-n">${esc(m.name)}</span>
                   <span class="v-pa-st">${m.deafened ? icon('deaf') : m.muted ? icon('micOff') : `<i class="v-pa-wave"></i>`}</span>
                 </div>`
@@ -1424,7 +1424,7 @@
       main.innerHTML = `
         <div class="v-tr">
           <div class="v-tr-side">
-            <div class="v-tr-av"${vita.profile.avatar ? ` style="background-image:url('${vita.profile.avatar}')"` : ''}>${vita.profile.avatar ? '' : esc((vita.profile.name || '?').charAt(0))}</div>
+            <div class="v-tr-av"${vita.profile.avatar ? ` style="background-image:url('${esc(vita.profile.avatar)}')"` : ''}>${vita.profile.avatar ? '' : esc((vita.profile.name || '?').charAt(0))}</div>
             <div class="v-tr-name">${esc(vita.profile.name || 'Jugador')}</div>
             <div class="v-tr-cup">${ART.trophies}</div>
             <div class="v-tr-total">${vita.summary.hasKey ? `${vita.summary.done || 0}` : '—'}<small>${vita.summary.hasKey ? `de ${vita.summary.total || 0} · ${pct} %` : 'Sin clave de Steam'}</small></div>
@@ -1474,7 +1474,7 @@
           const r = document.createElement('div');
           r.className = `v-tr-row ach${a.done ? '' : ' locked'}`;
           r.dataset.f = 'ach';
-          r.innerHTML = `<div class="v-tr-aic" style="background-image:url('${a.done ? a.icon : a.iconGray || a.icon}')"></div>
+          r.innerHTML = `<div class="v-tr-aic" style="background-image:url('${esc(a.done ? a.icon : a.iconGray || a.icon)}')"></div>
             <div class="v-tr-info"><div class="v-tr-gn"></div><div class="v-tr-ad"></div></div>
             <div class="v-tr-when"><div></div><small></small></div>`;
           r.querySelector('.v-tr-gn').textContent = t.name;
@@ -1810,7 +1810,7 @@
       const snd = soundItem('sounds');
       panel.innerHTML = `
         <div class="v-qm-song">
-          <div class="v-qm-cover"${v.cover ? ` style="background-image:url('${v.cover}')"` : ''}>${v.cover ? '' : icon('music')}</div>
+          <div class="v-qm-cover"${v.cover ? ` style="background-image:url('${esc(v.cover)}')"` : ''}>${v.cover ? '' : icon('music')}</div>
           <div class="v-qm-st"><div class="v-qm-t">${esc(v.title)}</div><div class="v-qm-a">${esc(v.artist)}</div></div>
           <div class="v-qm-ctrl">
             ${v.on ? `<button class="v-round" data-q="prev">${icon('prev')}</button><button class="v-round big" data-q="toggle">${icon(v.playing ? 'pause' : 'play')}</button><button class="v-round" data-q="next">${icon('next')}</button>` : `<button class="v-pill" data-q="open"><span>Abrir ${esc(v.app)}</span></button>`}
@@ -1933,7 +1933,7 @@
       list.innerHTML = notes.length
         ? notes
             .map(
-              (x) => `<div class="v-np-it"><div class="v-np-art"${x.art ? ` style="background-image:url('${x.art}')"` : ''}>${x.art ? '' : icon('bell')}</div>
+              (x) => `<div class="v-np-it"><div class="v-np-art"${x.art ? ` style="background-image:url('${esc(x.art)}')"` : ''}>${x.art ? '' : icon('bell')}</div>
                 <div><div class="v-np-t">${esc(x.text)}</div><div class="v-np-s">${esc(x.sub)}${x.sub ? ' · ' : ''}${esc(U.ago(x.when))}</div></div></div>`
             )
             .join('')

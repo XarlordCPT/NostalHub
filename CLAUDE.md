@@ -127,10 +127,15 @@ tests/                  `npm test`: logica/*.test.js (node --test) y pantallas.j
   todo** (listeners, timers, `nowPlaying.dispose()`, `feed.dispose()`, WebGL…).
 - `ctx = { api, stage, stageRect, toast, openSelector, sound, duckMusic, soundSettings, hasAsset }`.
   `api` es `window.nostalhub` (o el mock).
+- **Cada tema va separado por pantallas** dentro de su `theme.js`: `mount` arma un objeto con lo que es de todas (en qué
+  pantalla se está, los juegos, el resumen de logros…) y crea cada pantalla con una función aparte (`pantallaInicio`,
+  `pantallaLogros`, `pantallaAmigos`…), que guarda lo suyo adentro y devuelve solo lo que usan las otras (`open`, `key`…).
+  El objeto se llama `s` (PS2, Switch, Xbox 360), `ds` (3DS), `ps` (PS3), `wii`, `p4` (PS4) o `vita`. `onKey` queda en
+  `mount` y reparte la tecla. Una pantalla nueva = una función nueva, no más código suelto en `mount`.
 - Escenario fijo de **1920×1080** (lo escala `shell.js`). La 3DS dibuja sus pantallas nativas de 400×240 y
   320×240 escaladas 1,75 veces (700×420 y 560×420) en su CSS.
 - Todo el CSS con prefijo `.theme-<id>`. Si un overlay usa `display:grid/flex`, agrega
-  `.theme-<id> [hidden] { display:none !important }`. Reset de botones con `:where(.theme-<id>) button`.
+  `.theme-<id> [hidden] { display:none !important }`. Reset de botones con `:where(.theme-<id>) button`. Con ese reset no hace falta `!important` para dar color, fondo, borde o relleno a un botón.
 - Las opciones de Ajustes se escriben **una sola vez** en `menuSections()` de `main.js`; cada tema las pinta con
   `api.getMenu()` / `api.runMenu()` y `NostalHubUtil.optionValueText / optionNextValue`.
 - **Helpers de `NostalHubUtil`** (úsalos, no los dupliques):

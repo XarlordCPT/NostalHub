@@ -482,7 +482,7 @@
       if (kind === 'queue') {
         const v = spotifyView(st);
         rows = v.queue.map((t, i) => ({ cover: t.cover, title: t.title, sub: t.artist, tag: i === 0 ? 'Siguiente' : '', run: () => run('skipto', i, `Saltando a "${t.title}"…`) }));
-        const now = v.on ? `<div class="ms-now">${v.cover ? `<span class="ms-cov" style="background-image:url('${v.cover}')"></span>` : `<span class="ms-cov">${npIcon('music')}</span>`}<span class="ms-tx"><small>Sonando ahora</small><b>${escapeHtml(v.title)}</b><em>${escapeHtml(v.artist)}</em></span></div>` : '';
+        const now = v.on ? `<div class="ms-now">${v.cover ? `<span class="ms-cov" style="background-image:url('${escapeHtml(v.cover)}')"></span>` : `<span class="ms-cov">${npIcon('music')}</span>`}<span class="ms-tx"><small>Sonando ahora</small><b>${escapeHtml(v.title)}</b><em>${escapeHtml(v.artist)}</em></span></div>` : '';
         list.innerHTML = now + (rows.length ? rows.map((r, i) => rowHtml(r, i)).join('') : `<div class="ms-empty">${v.api ? 'No hay canciones en la cola.' : 'Conecta Spotify para ver la cola.'}</div>`);
       } else {
         list.innerHTML = rows.length ? rows.map((r, i) => rowHtml(r, i)).join('') : '<div class="ms-empty">Buscando dispositivos… Si no aparece, abre Spotify en él.</div>';
@@ -494,7 +494,7 @@
       setSel(Math.min(sel, Math.max(0, rows.length - 1)), false);
     }
     function rowHtml(r, i) {
-      return `<button class="ms-row${r.on ? ' on' : ''}" data-i="${i}">${r.cover !== undefined ? `<span class="ms-cov"${r.cover ? ` style="background-image:url('${r.cover}')"` : ''}>${r.cover ? '' : npIcon(r.icon || 'music')}</span>` : `<span class="ms-cov ic">${npIcon(r.icon || 'device')}</span>`}<span class="ms-tx"><b>${escapeHtml(r.title)}</b><em>${escapeHtml(r.sub || '')}</em></span>${r.tag ? `<span class="ms-tag">${escapeHtml(r.tag)}</span>` : ''}</button>`;
+      return `<button class="ms-row${r.on ? ' on' : ''}" data-i="${i}">${r.cover !== undefined ? `<span class="ms-cov"${r.cover ? ` style="background-image:url('${escapeHtml(r.cover)}')"` : ''}>${r.cover ? '' : npIcon(r.icon || 'music')}</span>` : `<span class="ms-cov ic">${npIcon(r.icon || 'device')}</span>`}<span class="ms-tx"><b>${escapeHtml(r.title)}</b><em>${escapeHtml(r.sub || '')}</em></span>${r.tag ? `<span class="ms-tag">${escapeHtml(r.tag)}</span>` : ''}</button>`;
     }
     function setSel(i, scroll = true) {
       if (!rows.length) return;
@@ -632,7 +632,7 @@
         : '';
       music.innerHTML = `
         <div class="np-head">${npIcon('music')}<span>${escapeHtml(v.app)}</span><em>${v.on ? (v.playing ? 'Sonando' : 'En pausa') : ''}</em></div>
-        <div class="np-cover"${v.cover ? ` style="background-image:url('${v.cover}')"` : ''}>${v.cover ? '' : npIcon('music')}</div>
+        <div class="np-cover"${v.cover ? ` style="background-image:url('${escapeHtml(v.cover)}')"` : ''}>${v.cover ? '' : npIcon('music')}</div>
         <div class="np-title">${escapeHtml(v.title)}</div>
         <div class="np-artist">${escapeHtml(v.artist)}</div>
         ${progressHtml(v, 'np-prog')}
@@ -680,7 +680,7 @@
                <div class="np-list">${v.members
                  .map(
                    (m) => `<div class="np-m${m.speaking ? ' talking' : ''}">
-                     <span class="np-av" style="background-image:url('${m.avatar}')"></span>
+                     <span class="np-av" style="background-image:url('${escapeHtml(m.avatar)}')"></span>
                      <span class="np-n">${escapeHtml(m.name)}</span>
                      ${m.deafened ? npIcon('deaf') : m.muted ? npIcon('micOff') : ''}
                    </div>`

@@ -1034,7 +1034,7 @@
         cell.className = `pa-cell${a.done ? '' : ' locked'}`;
         cell.dataset.i = i;
         cell.style.setProperty('--bob', `${-Math.random() * 3}s`);
-        cell.innerHTML = `<span style="background-image:url('${a.done ? a.icon : a.iconGray || a.icon}')"></span>`;
+        cell.innerHTML = `<span style="background-image:url('${U.escapeHtml(a.done ? a.icon : a.iconGray || a.icon)}')"></span>`;
         cell.addEventListener('mouseenter', () => setAch(i, false));
         cell.addEventListener('click', () => setAch(i, false));
         gridEl.appendChild(cell);

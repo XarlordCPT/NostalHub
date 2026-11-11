@@ -310,12 +310,12 @@
       el.style.backgroundImage = `url("${g.square}")`;
     } else if (g.hero && g.heroIsReal && g.logo) {
       el.style.backgroundImage = `url("${g.hero}")`;
-      el.innerHTML = `<img src="${g.logo}" alt="" draggable="false" />`;
+      el.innerHTML = `<img src="${esc(g.logo)}" alt="" draggable="false" />`;
     } else if (g.cover) {
       el.style.backgroundImage = `url("${g.cover}")`;
     } else if (g.hero || g.tile) {
       el.style.backgroundImage = `url("${g.hero || g.tile}")`;
-      if (g.logo) el.innerHTML = `<img src="${g.logo}" alt="" draggable="false" />`;
+      if (g.logo) el.innerHTML = `<img src="${esc(g.logo)}" alt="" draggable="false" />`;
       else if (!g.heroIsReal) el.classList.add('fit');
       else el.innerHTML = `<div class="sw-art-name">${esc(g.name)}</div>`;
     } else el.innerHTML = `<div class="sw-art-name">${esc(g.name)}</div>`;
@@ -350,8 +350,8 @@
       const box = $('.sw-users');
       const others = s.discord.status === 'ok' && s.discord.channel ? s.discord.members.slice(0, 4) : [];
       box.innerHTML =
-        `<span class="sw-av me"${s.profile.avatar ? ` style="background-image:url('${s.profile.avatar}')"` : ''}>${s.profile.avatar ? '' : esc((s.profile.name || '?').charAt(0))}</span>` +
-        others.map((m) => `<span class="sw-av${m.speaking ? ' talking' : ''}" title="${esc(m.name)}" style="background-image:url('${m.avatar}')"></span>`).join('');
+        `<span class="sw-av me"${s.profile.avatar ? ` style="background-image:url('${esc(s.profile.avatar)}')"` : ''}>${s.profile.avatar ? '' : esc((s.profile.name || '?').charAt(0))}</span>` +
+        others.map((m) => `<span class="sw-av${m.speaking ? ' talking' : ''}" title="${esc(m.name)}" style="background-image:url('${esc(m.avatar)}')"></span>`).join('');
     }
     s.setLight = setLight;
     return { paintUsers, dispose: () => clearInterval(clockTimer) };
@@ -634,7 +634,7 @@
           .map((a, j) => {
             if (a.sep) return `<div class="sw-ach-row sep" data-i="${j}"><span class="sw-ach-tx"><b>${esc(a.name)}</b></span><span class="sw-ach-when">${a.done} / ${a.total}</span></div>`;
             const t = U.achievementTexts(a);
-            return `<div class="sw-ach-row${a.done ? '' : ' locked'}" data-i="${j}"><span class="sw-ach-ic" style="background-image:url('${a.done ? a.icon : a.iconGray || a.icon}')"></span>
+            return `<div class="sw-ach-row${a.done ? '' : ' locked'}" data-i="${j}"><span class="sw-ach-ic" style="background-image:url('${esc(a.done ? a.icon : a.iconGray || a.icon)}')"></span>
               <span class="sw-ach-tx"><b>${esc(t.name)}</b><small>${esc(t.description)}</small></span><span class="sw-ach-when">${a.done ? esc(t.date) : 'Bloqueado'}</span></div>`;
           })
           .join('')}</div></div>`;
@@ -740,7 +740,7 @@
         .map((a, j) => {
           if (a.sep) return `<div class="sw-ach-row sep" data-i="${j}"><span class="sw-ach-tx"><b>${esc(a.name)}</b></span><span class="sw-ach-when">${a.done} / ${a.total}</span></div>`;
           const t = U.achievementTexts(a);
-          return `<div class="sw-ach-row${a.done ? '' : ' locked'}" data-i="${j}"><span class="sw-ach-ic" style="background-image:url('${a.done ? a.icon : a.iconGray || a.icon}')"></span>
+          return `<div class="sw-ach-row${a.done ? '' : ' locked'}" data-i="${j}"><span class="sw-ach-ic" style="background-image:url('${esc(a.done ? a.icon : a.iconGray || a.icon)}')"></span>
             <span class="sw-ach-tx"><b>${esc(t.name)}</b><small>${esc(t.description)}</small></span><span class="sw-ach-when">${a.done ? esc(t.date) : 'Bloqueado'}</span></div>`;
         })
         .join('');
@@ -811,7 +811,7 @@
         body.innerHTML = `<div class="sw-party-head"><b>${esc(s.discord.channel.name)}</b><span>${esc(s.discord.channel.guild || 'Mensaje directo')} · ${n} ${n === 1 ? 'persona' : 'personas'}</span></div>
           <div class="sw-members">${s.discord.members
             .map(
-              (m) => `<div class="sw-mem${m.speaking ? ' talking' : ''}"><span class="sw-av" style="background-image:url('${m.avatar}')"></span><span class="sw-mem-n">${esc(m.name)}</span>${m.deafened ? icon('deaf') : m.muted ? icon('micOff') : ''}</div>`
+              (m) => `<div class="sw-mem${m.speaking ? ' talking' : ''}"><span class="sw-av" style="background-image:url('${esc(m.avatar)}')"></span><span class="sw-mem-n">${esc(m.name)}</span>${m.deafened ? icon('deaf') : m.muted ? icon('micOff') : ''}</div>`
             )
             .join('')}</div>`;
       }
@@ -937,7 +937,7 @@
       $('.sw-music .sw-sh-r').textContent = v.app;
       const acts = U.musicActions(v);
       body.innerHTML = `<div class="sw-mu">
-          <div class="sw-mu-cover"${v.cover ? ` style="background-image:url('${v.cover}')"` : ''}>${v.cover ? '' : icon('music')}</div>
+          <div class="sw-mu-cover"${v.cover ? ` style="background-image:url('${esc(v.cover)}')"` : ''}>${v.cover ? '' : icon('music')}</div>
           <div class="sw-mu-info"><div class="sw-mu-st">${v.on ? `${v.playing ? 'Reproduciendo' : 'En pausa'}${v.device && v.deviceType !== 'Computer' ? ` · en ${esc(v.device)}` : ''}` : esc(v.app)}</div><div class="sw-mu-t">${esc(v.title)}</div><div class="sw-mu-a">${esc(v.artist)}</div>
             ${U.progressHtml(v, 'sw-mu-prog')}
             <div class="sw-btnrow" data-row="0">${

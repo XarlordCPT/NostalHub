@@ -569,7 +569,7 @@
       const label = $('.xb-last .xb-label');
       if (g) {
         art.style.backgroundImage = g.hero || g.tile ? `url("${g.hero || g.tile}")` : '';
-        art.innerHTML = g.logo ? `<img src="${g.logo}" alt="" />` : '';
+        art.innerHTML = g.logo ? `<img src="${escapeHtml(g.logo)}" alt="" />` : '';
         label.textContent = `Jugar ${g.name}`;
         $('.xb-last').dataset.gameId = g.id; // clic derecho / tecla I → imágenes de este juego
       } else {
@@ -940,7 +940,7 @@
         const cell = document.createElement('button');
         cell.className = `xb-ach-cell${a.done ? '' : ' locked'}`;
         cell.dataset.i = i;
-        cell.innerHTML = `<img src="${a.done ? a.icon : a.iconGray || a.icon}" alt="" />${a.done ? '' : `<span class="xb-ach-lock">${icon('lock')}</span>`}`;
+        cell.innerHTML = `<img src="${escapeHtml(a.done ? a.icon : a.iconGray || a.icon)}" alt="" />${a.done ? '' : `<span class="xb-ach-lock">${icon('lock')}</span>`}`;
         cell.addEventListener('mouseenter', () => setAch(i, false));
         cell.addEventListener('click', () => setAch(i, false));
         grid.appendChild(cell);
@@ -1239,7 +1239,7 @@
           <div class="xb-party-list">${discord.members
             .map(
               (m) => `<div class="xb-party-m${m.speaking ? ' talking' : ''}">
-                <span class="xb-party-av" style="background-image:url('${m.avatar}')"></span>
+                <span class="xb-party-av" style="background-image:url('${escapeHtml(m.avatar)}')"></span>
                 <span class="xb-party-n">${escapeHtml(m.name)}</span>
                 <span class="xb-party-state">${m.deafened ? `${icon('deaf')}Sin audio` : m.muted ? `${icon('micOff')}Silenciado` : m.speaking ? `${icon('headset')}Hablando` : ''}</span>
               </div>`

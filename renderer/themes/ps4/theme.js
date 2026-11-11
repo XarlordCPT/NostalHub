@@ -1065,7 +1065,7 @@
         const r = document.createElement('div');
         r.className = `p4t-row ach${a.done ? '' : ' locked'}`;
         r.dataset.i = i;
-        r.innerHTML = `<div class="p4t-aic" style="background-image:url('${a.done ? a.icon : a.iconGray || a.icon}')"></div>
+        r.innerHTML = `<div class="p4t-aic" style="background-image:url('${esc(a.done ? a.icon : a.iconGray || a.icon)}')"></div>
           <div class="p4t-info"><div class="p4t-gname"></div><div class="p4t-adesc"></div></div>
           <div class="p4t-when"><div></div><small></small></div>`;
         r.querySelector('.p4t-gname').textContent = t.name;
@@ -1266,7 +1266,7 @@
       return p4.discord.members
         .map(
           (m) => `<div class="p4p-m${m.speaking ? ' talking' : ''}${big ? '' : ' small'}">
-            <span class="p4p-av" style="background-image:url('${m.avatar}')"></span>
+            <span class="p4p-av" style="background-image:url('${esc(m.avatar)}')"></span>
             <span class="p4p-n">${esc(m.name)}</span>
             ${m.deafened ? icon('deaf', 'p4p-flag') : m.muted ? icon('micOff', 'p4p-flag') : ''}
           </div>`
@@ -1608,7 +1608,7 @@
         const v = U.spotifyView(p4.spotify);
         const info = document.createElement('div');
         info.className = 'p4-qm-song';
-        info.innerHTML = `<div class="p4-qm-cover"${v.cover ? ` style="background-image:url('${v.cover}')"` : ''}>${v.cover ? '' : icon('music')}</div><div class="p4-qm-stx"><div class="p4-qm-app">${esc(v.app)}</div><div class="p4-qm-st">${esc(v.title)}</div><div class="p4-qm-sa">${esc(v.artist)}</div>${U.progressHtml(v, 'p4-qm-prog')}</div>`;
+        info.innerHTML = `<div class="p4-qm-cover"${v.cover ? ` style="background-image:url('${esc(v.cover)}')"` : ''}>${v.cover ? '' : icon('music')}</div><div class="p4-qm-stx"><div class="p4-qm-app">${esc(v.app)}</div><div class="p4-qm-st">${esc(v.title)}</div><div class="p4-qm-sa">${esc(v.artist)}</div>${U.progressHtml(v, 'p4-qm-prog')}</div>`;
         box.appendChild(info);
         if (v.next) {
           const nx = document.createElement('div');
