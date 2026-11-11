@@ -95,6 +95,14 @@ const PANTALLAS = {
     logros: { pasos: [k('ArrowDown'), k('ArrowRight', 3), k('Enter'), espera(1400), k('ArrowRight')], ve: '.sw-ach-row' },
     amigos: { pasos: [k('ArrowDown'), k('ArrowRight', 5), k('Enter')], ve: '[class*="sw-"]' },
     ajustes: { pasos: [k('ArrowDown'), k('ArrowRight', 6), k('Enter')], ve: '[class*="sw-"]' },
+    // Lo que faltaba: Todo el software, la ficha, jugar y volver, y los botones con el mouse
+    software: { pasos: [k('ArrowRight', 5), k('Enter')], ve: '.sw-cell.sel' },
+    ficha: { pasos: [k('ArrowRight', 5), k('Enter'), espera(600), clic('.sw-cell[data-i="1"]'), clic('.sw-cell[data-i="1"]'), espera(600), k('ArrowDown'), espera(900)], ve: '.sw-g-list .sw-li.sel' },
+    opciones: { pasos: [k('o')], ve: '.sw-pop-it.sel' },
+    jugando: { pasos: [k('Enter')], ve: '.is-playing [data-p="stop"]' },
+    'vuelta-con-mouse': { pasos: [k('Enter'), espera(700), clic('[data-p="stop"]'), espera(900), clic('.sw-rb[data-i="1"]')], ve: '.sw-mu' },
+    grupo: { pasos: [clic('.sw-rb[data-i="0"]')], ve: '.sw-party-body > *' },
+    energia: { pasos: [clic('.sw-rb[data-i="7"]')], ve: '.sw-pop-it.sel' },
   },
   '3ds': {
     inicio: { pasos: [], ve: '.b-slot.full' },

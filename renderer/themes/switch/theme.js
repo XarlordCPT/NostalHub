@@ -46,7 +46,9 @@
   const STRIDE = 418; // ancho de cada cuadro + separación
   const LIB_COLS = 6;
   const LIB_ROW = 300;
-  const { wait, pad2 } = window.NostalHubUtil;
+  const U = window.NostalHubUtil;
+  const esc = U.escapeHtml;
+  const { wait, pad2 } = U;
 
   const MARKUP = `
 <header class="sw-top">
@@ -123,44 +125,218 @@
   window.Themes = window.Themes || {};
   window.Themes.switch = { mount };
 
+  // El tema va separado por pantallas (una función cada una, más abajo). Todas reciben `s`, que tiene lo que es de
+  // todas (en qué pantalla se está, los juegos, el perfil, el resumen de logros, la música, Discord, las opciones)
+  // y las otras pantallas (s.inicio, s.software, s.ficha, s.logros…). Lo de una sola pantalla queda en su función.
   function mount(root, ctx) {
     root.innerHTML = MARKUP;
     const api = ctx.api;
-    const U = window.NostalHubUtil;
-    const feed = U.friendsFeed(api); // amigos de Steam
-    const esc = U.escapeHtml;
-    const $ = (s, el = root) => el.querySelector(s);
-    const $$ = (s, el = root) => [...el.querySelectorAll(s)];
+    const $ = (sel, el = root) => el.querySelector(sel);
+    const $$ = (sel, el = root) => [...el.querySelectorAll(sel)];
     const call = (fn, ...a) => (typeof api[fn] === 'function' ? api[fn](...a) : Promise.resolve(null));
-
-    let games = [];
-    let view = 'home'; // home | library | trophies | party | music | settings | playing
-    let area = 'row'; // row | btns (en el inicio)
-    let rowSel = 0;
-    let btnSel = 0;
-    let rowItems = [];
-    let profile = { name: 'Jugador', avatar: null };
-    let summary = { perGame: {}, hasKey: false };
-    let spotify = null;
-    let discord = { status: 'off', channel: null, members: [] };
-    let menuModel = [];
-    let playTimer = null;
+    const s = {
+      root,
+      ctx,
+      api,
+      $,
+      $$,
+      call,
+      feed: U.friendsFeed(api), // amigos de Steam
+      view: 'home', // home | library | game | trophies | friends | party | music | settings | playing
+      games: [],
+      profile: { name: 'Jugador', avatar: null },
+      summary: { perGame: {}, hasKey: false },
+      spotify: null,
+      discord: { status: 'off', channel: null, members: [] },
+      menuModel: [],
+      light: false, // tema claro (Ajustes → Tema)
+    };
     const offs = [];
-    const nowPlaying = U.nowPlaying($('.sw-playing'), api, ctx.toast);
 
-    // ---------- Tema claro u oscuro (Ajustes → Tema) ----------
-    let light = false;
+    // ---------- Pantallas: abrir una y volver ----------
+    const SCREEN = { friends: '.sw-friends', game: '.sw-game', library: '.sw-lib', trophies: '.sw-ach', party: '.sw-party', music: '.sw-music', settings: '.sw-set' };
+    s.openScreen = (name) => {
+      s.view = name;
+      root.classList.add('in-screen');
+      $$('.sw-screen').forEach((x) => (x.hidden = true));
+      const scr = $(SCREEN[name]);
+      scr.hidden = false;
+      scr.classList.remove('enter');
+      scr.offsetWidth;
+      scr.classList.add('enter');
+      if (name === 'party') s.grupo.render();
+      if (name === 'music') s.musica.render();
+      s.paintHints();
+    };
+    s.back = () => {
+      // de la ficha de un juego se vuelve a Todo el software (si se vino de ahí)
+      if (s.view === 'game' && s.ficha.backToLibrary()) {
+        s.openScreen('library');
+        return s.software.reselect();
+      }
+      s.view = 'home';
+      s.feed.watch(false);
+      root.classList.remove('in-screen');
+      $$('.sw-screen').forEach((x) => (x.hidden = true));
+      s.inicio.repaint();
+    };
+    // Pistas de teclas (abajo a la derecha)
+    s.paintHints = () => {
+      const h = (k, t) => `<span class="sw-hint"><b>${k}</b>${t}</span>`;
+      let html;
+      if (s.view === 'home') html = s.inicio.selectedGame() ? h('O', 'Opciones') + h('Enter', 'Iniciar') : h('Enter', 'Abrir');
+      else if (s.view === 'library') html = h('O', 'Opciones') + h('Esc', 'Atrás') + h('Enter', 'Ver');
+      else if (s.view === 'friends') html = h('Esc', 'Atrás') + h('Enter', 'Opciones');
+      else if (s.view === 'game') html = h('Esc', 'Atrás') + h('Enter', 'Aceptar');
+      else html = h('Esc', 'Atrás') + h('Enter', 'Aceptar');
+      $('.sw-hints').innerHTML = html;
+    };
+
+    s.jugando = pantallaJugando(s);
+    s.barra = barraSuperior(s);
+    s.inicio = pantallaInicio(s);
+    s.software = pantallaSoftware(s);
+    s.ficha = pantallaFicha(s);
+    s.logros = pantallaLogros(s);
+    s.grupo = pantallaGrupo(s);
+    s.amigos = pantallaAmigos(s);
+    s.musica = pantallaMusica(s);
+    s.ajustes = pantallaAjustes(s);
+    s.ventanita = ventanita(s);
+
+    // ---------- Teclado ----------
+    function onKey(e) {
+      const k = e.key;
+      if (k === 'Enter' || k === ' ') e.preventDefault();
+      if (s.view === 'playing') return s.jugando.key(k);
+      if (s.ventanita.isOpen()) return s.ventanita.key(k);
+      if (k === 'o' || k === 'O' || k === '+') {
+        if (s.view === 'home' && s.inicio.selectedGame()) return s.ventanita.gameOptions(s.inicio.selectedGame());
+        if (s.view === 'library' && s.software.selected()) return s.ventanita.gameOptions(s.software.selected());
+      }
+      if (s.view === 'home') s.inicio.key(k);
+      else if (s.view === 'library') s.software.key(k);
+      else if (s.view === 'friends') s.amigos.key(k);
+      else if (s.view === 'trophies') s.logros.key(k);
+      else if (s.view === 'settings') s.ajustes.key(k);
+      else if (s.view === 'game') s.ficha.key(k);
+      else if (s.view === 'party') s.grupo.key(k);
+      else if (s.view === 'music') s.musica.key(k);
+    }
+    window.addEventListener('keydown', onKey);
+
+    // ---------- Datos ----------
+    async function loadProfile() {
+      s.profile = (await call('getSteamProfile')) || s.profile;
+      s.barra.paintUsers();
+    }
+    let doneKey = ''; // juegos al 100 % (si cambia, se redibujan los cuadros con su corona)
+    async function loadSummary(sum) {
+      s.summary = sum || (await call('getAchievementSummary')) || s.summary;
+      const k = U.completeKey(s.summary);
+      if (k !== doneKey) {
+        doneKey = k;
+        setGames(s.games);
+        return;
+      }
+      s.ficha.refresh();
+    }
+    function renderSpotify(data) {
+      s.spotify = data || s.spotify;
+      if (s.view === 'music') s.musica.render();
+    }
+    s.renderDiscord = (data) => {
+      s.discord = data || s.discord;
+      s.barra.paintUsers();
+      if (s.view === 'party') s.grupo.render();
+    };
+    function setGames(list) {
+      s.games = list || [];
+      s.ficha.gamesChanged();
+      s.inicio.render();
+      if (s.view === 'library') s.software.paint();
+      s.ficha.refresh();
+    }
+    offs.push(api.onGamesUpdated(setGames));
+    offs.push(api.onGameEnded(({ reason }) => s.jugando.end(reason)));
+    if (api.onSpotify) offs.push(api.onSpotify(renderSpotify));
+    if (api.onDiscord) offs.push(api.onDiscord(s.renderDiscord));
+    if (api.onSteamSummary) offs.push(api.onSteamSummary((sum) => loadSummary(sum)));
+    if (api.onSteamChanged)
+      offs.push(
+        api.onSteamChanged(() => {
+          loadProfile();
+          loadSummary();
+        })
+      );
+    call('spotifyWatch', true).then((data) => data && renderSpotify(data));
+    call('discordWatch', true).then((data) => data && s.renderDiscord(data));
+    call('getMenu').then((m) => (s.menuModel = m || []));
+    loadProfile();
+    loadSummary();
+    api.getState().then((st) => {
+      setGames(st.games);
+      root.classList.add('intro');
+      setTimeout(() => root.classList.remove('intro'), 1200);
+    });
+
+    return {
+      unmount() {
+        s.jugando.dispose();
+        s.feed.dispose();
+        s.barra.dispose();
+        window.removeEventListener('keydown', onKey);
+        offs.forEach((off) => off && off());
+        call('spotifyWatch', false);
+        call('discordWatch', false);
+        document.body.classList.remove('playing');
+        root.classList.remove('light', 'in-screen', 'is-playing', 'intro', 'all-sel');
+        root.innerHTML = '';
+      },
+    };
+  }
+
+  // Logros de un juego según el resumen ({ done, total }), o nada
+  function trophiesOf(s, g) {
+    return (g && g.appId && s.summary.perGame && s.summary.perGame[g.appId]) || null;
+  }
+
+  // Arte cuadrado de cada juego
+  function squareArt(s, g) {
+    const el = document.createElement('div');
+    el.className = 'sw-art';
+    // 1) tu imagen cuadrada  2) el fondo con el logo encima, centrados  3) la carátula  4) la portada
+    if (g.square) {
+      el.style.backgroundImage = `url("${g.square}")`;
+    } else if (g.hero && g.heroIsReal && g.logo) {
+      el.style.backgroundImage = `url("${g.hero}")`;
+      el.innerHTML = `<img src="${g.logo}" alt="" draggable="false" />`;
+    } else if (g.cover) {
+      el.style.backgroundImage = `url("${g.cover}")`;
+    } else if (g.hero || g.tile) {
+      el.style.backgroundImage = `url("${g.hero || g.tile}")`;
+      if (g.logo) el.innerHTML = `<img src="${g.logo}" alt="" draggable="false" />`;
+      else if (!g.heroIsReal) el.classList.add('fit');
+      else el.innerHTML = `<div class="sw-art-name">${esc(g.name)}</div>`;
+    } else el.innerHTML = `<div class="sw-art-name">${esc(g.name)}</div>`;
+    if (U.isComplete(trophiesOf(s, g))) el.insertAdjacentHTML('beforeend', U.completeBadge('crown', 'on-icon')); // 100 %: corona
+    return el;
+  }
+
+  // ---------- Barra de arriba (hora, tú y tu Grupo) y tema claro u oscuro (Ajustes → Tema) ----------
+  function barraSuperior(s) {
+    const { $, root } = s;
     try {
-      light = localStorage.getItem('nostalhub.switch.theme') === 'light';
+      s.light = localStorage.getItem('nostalhub.switch.theme') === 'light';
     } catch {}
     function setLight(on) {
-      light = !!on;
-      root.classList.toggle('light', light);
+      s.light = !!on;
+      root.classList.toggle('light', s.light);
       try {
-        localStorage.setItem('nostalhub.switch.theme', light ? 'light' : 'dark');
+        localStorage.setItem('nostalhub.switch.theme', s.light ? 'light' : 'dark');
       } catch {}
     }
-    setLight(light);
+    setLight(s.light);
 
     // ---------- Barra de arriba ----------
     function tickClock() {
@@ -172,38 +348,25 @@
     function paintUsers() {
       // Tú (Steam) y, si estás en un canal de voz de Discord, quiénes están contigo
       const box = $('.sw-users');
-      const others = discord.status === 'ok' && discord.channel ? discord.members.slice(0, 4) : [];
+      const others = s.discord.status === 'ok' && s.discord.channel ? s.discord.members.slice(0, 4) : [];
       box.innerHTML =
-        `<span class="sw-av me"${profile.avatar ? ` style="background-image:url('${profile.avatar}')"` : ''}>${profile.avatar ? '' : esc((profile.name || '?').charAt(0))}</span>` +
+        `<span class="sw-av me"${s.profile.avatar ? ` style="background-image:url('${s.profile.avatar}')"` : ''}>${s.profile.avatar ? '' : esc((s.profile.name || '?').charAt(0))}</span>` +
         others.map((m) => `<span class="sw-av${m.speaking ? ' talking' : ''}" title="${esc(m.name)}" style="background-image:url('${m.avatar}')"></span>`).join('');
     }
+    s.setLight = setLight;
+    return { paintUsers, dispose: () => clearInterval(clockTimer) };
+  }
 
-    // ---------- Arte cuadrado de cada juego ----------
-    function squareArt(g) {
-      const el = document.createElement('div');
-      el.className = 'sw-art';
-      // 1) tu imagen cuadrada  2) el fondo con el logo encima, centrados  3) la carátula  4) la portada
-      if (g.square) {
-        el.style.backgroundImage = `url("${g.square}")`;
-      } else if (g.hero && g.heroIsReal && g.logo) {
-        el.style.backgroundImage = `url("${g.hero}")`;
-        el.innerHTML = `<img src="${g.logo}" alt="" draggable="false" />`;
-      } else if (g.cover) {
-        el.style.backgroundImage = `url("${g.cover}")`;
-      } else if (g.hero || g.tile) {
-        el.style.backgroundImage = `url("${g.hero || g.tile}")`;
-        if (g.logo) el.innerHTML = `<img src="${g.logo}" alt="" draggable="false" />`;
-        else if (!g.heroIsReal) el.classList.add('fit');
-        else el.innerHTML = `<div class="sw-art-name">${esc(g.name)}</div>`;
-      } else el.innerHTML = `<div class="sw-art-name">${esc(g.name)}</div>`;
-      if (U.isComplete(trophiesOf(g))) el.insertAdjacentHTML('beforeend', U.completeBadge('crown', 'on-icon')); // 100 %: corona
-      return el;
-    }
-
-    // ---------- Inicio: 5 recientes + "Todo el software" ----------
+  // ---------- Inicio: 5 recientes + "Todo el software" y la fila de botones redondos ----------
+  function pantallaInicio(s) {
+    const { $, $$, ctx, root, call } = s;
+    let area = 'row'; // row | btns
+    let rowSel = 0;
+    let btnSel = 0;
+    let rowItems = [];
     function recent() {
-      const played = games.filter((g) => g.lastPlayed).sort((a, b) => b.lastPlayed - a.lastPlayed);
-      const rest = games.filter((g) => !g.lastPlayed);
+      const played = s.games.filter((g) => g.lastPlayed).sort((a, b) => b.lastPlayed - a.lastPlayed);
+      const rest = s.games.filter((g) => !g.lastPlayed);
       return [...played, ...rest].slice(0, 5);
     }
     function renderRow() {
@@ -218,10 +381,10 @@
         if (it.all) b.innerHTML = `<span class="sw-all-c">${icon('grid')}</span>`;
         else {
           b.dataset.gameId = it.game.id; // clic derecho → cambiar imágenes
-          b.appendChild(squareArt(it.game));
+          b.appendChild(squareArt(s, it.game));
         }
         b.addEventListener('click', () => {
-          if (view !== 'home') return;
+          if (s.view !== 'home') return;
           if (area !== 'row' || rowSel !== i) return setRow(i, 'row');
           activateRow();
         });
@@ -255,16 +418,16 @@
         bl.style.left = `${150 + rowSel * STRIDE - shift + 200}px`;
         bl.style.top = '232px';
       }
-      paintHints();
+      s.paintHints();
     }
     function activateRow() {
       const it = rowItems[rowSel];
       if (!it) return;
-      if (it.all) openLibrary();
-      else startGame(it.game);
+      if (it.all) s.software.open();
+      else s.jugando.start(it.game);
     }
     $$('.sw-rb').forEach((b) => {
-      b.addEventListener('mouseenter', () => view === 'home' && ((btnSel = Number(b.dataset.i)), setRow(rowSel, 'btns')));
+      b.addEventListener('mouseenter', () => s.view === 'home' && ((btnSel = Number(b.dataset.i)), setRow(rowSel, 'btns')));
       b.addEventListener('click', () => {
         btnSel = Number(b.dataset.i);
         setRow(rowSel, 'btns');
@@ -276,57 +439,62 @@
       if (id === 'store') {
         call('open', 'steam-store');
         ctx.toast('Se abrió en Steam');
-      } else if (id === 'friends') openFriends();
-      else if (id === 'party') openScreen('party');
-      else if (id === 'music') openScreen('music');
-      else if (id === 'trophies') openTrophies();
-      else if (id === 'library') openLibrary();
-      else if (id === 'settings') openSettings();
-      else if (id === 'power') openPower();
+      } else if (id === 'friends') s.amigos.open();
+      else if (id === 'party') s.openScreen('party');
+      else if (id === 'music') s.openScreen('music');
+      else if (id === 'trophies') s.logros.open();
+      else if (id === 'library') s.software.open();
+      else if (id === 'settings') s.ajustes.open();
+      else if (id === 'power') s.ventanita.power();
     }
-
-    // ---------- Pantallas ----------
-    const SCREEN = { friends: '.sw-friends', game: '.sw-game', library: '.sw-lib', trophies: '.sw-ach', party: '.sw-party', music: '.sw-music', settings: '.sw-set' };
-    function openScreen(name) {
-      view = name;
-      root.classList.add('in-screen');
-      $$('.sw-screen').forEach((s) => (s.hidden = true));
-      const s = $(SCREEN[name]);
-      s.hidden = false;
-      s.classList.remove('enter');
-      s.offsetWidth;
-      s.classList.add('enter');
-      if (name === 'party') renderParty();
-      if (name === 'music') renderMusic();
-      paintHints();
-    }
-    function back() {
-      // de la ficha de un juego se vuelve a Todo el software (si se vino de ahí)
-      if (view === 'game' && gameFrom === 'library') {
-        gameFrom = null;
-        openScreen('library');
-        return setLib(libSel);
+    // Rueda: moverse por la fila
+    let wheelLock = 0;
+    $('.sw-row').addEventListener('wheel', (e) => {
+      if (s.view !== 'home' || Date.now() < wheelLock) return;
+      const d = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
+      if (Math.abs(d) < 10) return;
+      setRow(rowSel + (d > 0 ? 1 : -1));
+      wheelLock = Date.now() + 160;
+    });
+    function key(k) {
+      if (area === 'row') {
+        if (k === 'ArrowRight') rowSel >= rowItems.length - 1 ? ctx.sound('border') : setRow(rowSel + 1);
+        else if (k === 'ArrowLeft') rowSel <= 0 ? ctx.sound('border') : setRow(rowSel - 1);
+        else if (k === 'ArrowDown') setRow(rowSel, 'btns');
+        else if (k === 'Enter') activateRow();
+        else if (k === 'Escape') ctx.openSelector();
+      } else {
+        if (k === 'ArrowRight') btnSel >= BTNS.length - 1 ? ctx.sound('border') : ((btnSel += 1), setRow(rowSel, 'btns'));
+        else if (k === 'ArrowLeft') btnSel <= 0 ? ctx.sound('border') : ((btnSel -= 1), setRow(rowSel, 'btns'));
+        else if (k === 'ArrowUp') setRow(rowSel, 'row');
+        else if (k === 'Enter') runBtn(BTNS[btnSel].id);
+        else if (k === 'Escape') setRow(rowSel, 'row');
       }
-      view = 'home';
-      feed.watch(false);
-      root.classList.remove('in-screen');
-      $$('.sw-screen').forEach((s) => (s.hidden = true));
-      setRow(rowSel, area);
     }
+    return {
+      key,
+      render: renderRow,
+      repaint: () => setRow(rowSel, area),
+      // El juego marcado en la fila (nada si está marcado "Todo el software" o un botón)
+      selectedGame: () => (area === 'row' && rowItems[rowSel] && rowItems[rowSel].game) || null,
+    };
+  }
 
-    // --- Todo el software ---
+  // ---------- Todo el software ----------
+  function pantallaSoftware(s) {
+    const { $, $$ } = s;
     const libOrder = U.gameOrder('switch', { def: 'recent' }); // Jugado recientemente, Nombre, Horas o % de logros
     let libSel = 0;
     let libFirst = 0;
     let libList = [];
     function openLibrary() {
-      openScreen('library');
+      s.openScreen('library');
       libSel = 0;
       libFirst = 0;
       paintLib();
     }
     function paintLib() {
-      libList = libOrder.apply(games, summary);
+      libList = libOrder.apply(s.games, s.summary);
       $('.sw-sort').innerHTML = `<b>S</b>${esc(libOrder.label())}`;
       const grid = $('.sw-lib-grid');
       grid.innerHTML = '';
@@ -335,10 +503,10 @@
         c.className = 'sw-cell';
         c.dataset.i = i;
         c.dataset.gameId = g.id;
-        c.appendChild(squareArt(g));
+        c.appendChild(squareArt(s, g));
         c.insertAdjacentHTML('beforeend', `<span class="sw-cell-name">${esc(g.name)}</span>`);
         c.addEventListener('mouseenter', () => setLib(i, false));
-        c.addEventListener('click', () => (i === libSel ? openGame(g, 'library') : setLib(i)));
+        c.addEventListener('click', () => (i === libSel ? s.ficha.open(g, 'library') : setLib(i)));
         grid.appendChild(c);
       });
       if (!libList.length) grid.innerHTML = '<div class="sw-empty">Todavía no hay juegos.</div>';
@@ -357,7 +525,7 @@
       paintLib();
     });
     $('.sw-lib-view').addEventListener('wheel', (e) => {
-      if (view !== 'library' || Math.abs(e.deltaY) < 10) return;
+      if (s.view !== 'library' || Math.abs(e.deltaY) < 10) return;
       const rows = Math.ceil(libList.length / LIB_COLS);
       libFirst = Math.max(0, Math.min(Math.max(0, rows - 2), libFirst + (e.deltaY > 0 ? 1 : -1)));
       $('.sw-lib-grid').style.transform = `translateY(${-libFirst * LIB_ROW}px)`;
@@ -367,12 +535,16 @@
       else if (k === 'ArrowLeft') setLib(libSel - 1);
       else if (k === 'ArrowDown') setLib(Math.min(libList.length - 1, libSel + LIB_COLS));
       else if (k === 'ArrowUp') libSel >= LIB_COLS && setLib(libSel - LIB_COLS);
-      else if (k === 'Enter' && libList[libSel]) openGame(libList[libSel], 'library');
+      else if (k === 'Enter' && libList[libSel]) s.ficha.open(libList[libSel], 'library');
       else if (k === 's' || k === 'S') $('.sw-sort').click();
-      else if (k === 'Escape' || k === 'Backspace') back();
+      else if (k === 'Escape' || k === 'Backspace') s.back();
     }
+    return { open: openLibrary, paint: paintLib, key: libKey, reselect: () => setLib(libSel), selected: () => libList[libSel] };
+  }
 
-    // --- Ficha del juego: lista a la izquierda (Iniciar, Información, Logros, Imágenes), detalle a la derecha ---
+  // ---------- Ficha del juego: lista a la izquierda (Iniciar, Información, Logros, Imágenes), detalle a la derecha ----------
+  function pantallaFicha(s) {
+    const { $, $$, call } = s;
     let gameCur = null;
     let gameFrom = null;
     let gTabs = [];
@@ -387,11 +559,11 @@
       if (!g) return;
       gameCur = g;
       gameFrom = from;
-      openScreen('game');
+      s.openScreen('game');
       $('.sw-game').dataset.gameCurrent = g.id; // clic derecho / tecla I → imágenes de este juego
       const art = $('.sw-g-art');
       art.innerHTML = '';
-      art.appendChild(squareArt(g));
+      art.appendChild(squareArt(s, g));
       $('.sw-g-name').textContent = g.name;
       $('.sw-g-type').textContent = typeLabel(g);
       gTabs = [
@@ -413,7 +585,7 @@
         });
         b.addEventListener('click', () => {
           const i = Number(b.dataset.i);
-          if (gTabs[i].id === 'play') return startGame(gameCur);
+          if (gTabs[i].id === 'play') return s.jugando.start(gameCur);
           if (gTabs[i].id === 'img') return window.NostalHubGameEditor && window.NostalHubGameEditor.open(gameCur.id);
           pickTab(i);
         });
@@ -433,13 +605,13 @@
       const g = gameCur;
       const main = $('.sw-g-main');
       const tab = gTabs[gSel] ? gTabs[gSel].id : 'info';
-      const tp = trophiesOf(g);
+      const tp = trophiesOf(s, g);
       if (tab === 'info' || tab === 'play') {
         main.innerHTML = `
           <div class="sw-g-h">Actividad de juego</div>
           ${infoLine('Tiempo de juego', U.hours(g.playtimeMin) || 'Todavía no lo juegas')}
           ${infoLine('Última vez', g.lastPlayed ? U.ago(g.lastPlayed) : 'Nunca')}
-          ${g.hasAch && U.isComplete(tp) ? `<div class="sw-g-line"><span>Logros</span><b class="nh-done-text">${U.completeBadge('crown')} Completado · ${tp.done} de ${tp.total}</b></div>` : g.type === 'steam' ? infoLine('Logros', tp && tp.total ? `${tp.done} de ${tp.total} (${Math.round((tp.done / tp.total) * 100)} %)` : summary.hasKey ? 'Sin datos todavía' : 'Conecta tu Steam para verlos') : ''}
+          ${g.hasAch && U.isComplete(tp) ? `<div class="sw-g-line"><span>Logros</span><b class="nh-done-text">${U.completeBadge('crown')} Completado · ${tp.done} de ${tp.total}</b></div>` : g.type === 'steam' ? infoLine('Logros', tp && tp.total ? `${tp.done} de ${tp.total} (${Math.round((tp.done / tp.total) * 100)} %)` : s.summary.hasKey ? 'Sin datos todavía' : 'Conecta tu Steam para verlos') : ''}
           ${tp && tp.total ? `<div class="sw-bar${U.isComplete(tp) ? ' done' : ''}"><i style="width:${(tp.done / tp.total) * 100}%"></i></div>` : ''}
           <div class="sw-g-h">Información del software</div>
           ${infoLine('Tipo', typeLabel(g))}
@@ -455,7 +627,7 @@
       main.innerHTML = '<div class="sw-msg">Cargando…</div>';
       const token = ++gToken;
       const res = (await call('getAchievements', g.appId)) || { status: 'error' };
-      if (token !== gToken || view !== 'game' || gameCur !== g || gTabs[gSel].id !== 'ach') return;
+      if (token !== gToken || s.view !== 'game' || gameCur !== g || gTabs[gSel].id !== 'ach') return;
       if (res.status !== 'ok') return (main.innerHTML = `<div class="sw-msg">${U.achievementMessage(res)}</div>`);
       main.innerHTML = `<div class="sw-g-h">Logros · ${res.done} de ${res.total}</div><div class="sw-bar"><i style="width:${res.total ? (res.done / res.total) * 100 : 0}%"></i></div>
         <div class="sw-g-achview"><div class="sw-ach-list">${U.withSetHeads(U.sortAchievements(res.list))
@@ -488,31 +660,48 @@
       if (k === 'ArrowDown') (gSel = Math.min(gTabs.length - 1, gSel + 1)), (gRow = 0), paintGameTabs();
       else if (k === 'ArrowUp') (gSel = Math.max(0, gSel - 1)), (gRow = 0), paintGameTabs();
       else if (k === 'Enter') {
-        if (tab === 'play') startGame(gameCur);
+        if (tab === 'play') s.jugando.start(gameCur);
         else if (tab === 'img') window.NostalHubGameEditor && window.NostalHubGameEditor.open(gameCur.id);
         else if (tab === 'ach' && $$('.sw-g-main .sw-ach-row').length) (gFocus = 'list'), paintGameRows();
       } else if (k === 'ArrowRight' && tab === 'ach' && $$('.sw-g-main .sw-ach-row').length) (gFocus = 'list'), paintGameRows();
-      else if (k === 'Escape' || k === 'Backspace') back();
+      else if (k === 'Escape' || k === 'Backspace') s.back();
     }
+    return {
+      open: openGame,
+      key: gameKey,
+      // Horas y logros al día (después de jugar o cuando llega un resumen nuevo)
+      refresh() {
+        if (s.view === 'game' && gameCur) paintGameMain();
+      },
+      gamesChanged() {
+        if (gameCur) gameCur = s.games.find((g) => g.id === gameCur.id) || gameCur;
+      },
+      // Al volver: ¿se vino desde Todo el software?
+      backToLibrary() {
+        if (gameFrom !== 'library') return false;
+        gameFrom = null;
+        return true;
+      },
+    };
+  }
 
-    // --- Logros: juegos a la izquierda, sus logros a la derecha ---
+  // ---------- Logros: juegos a la izquierda, sus logros a la derecha ----------
+  function pantallaLogros(s) {
+    const { $, $$, call } = s;
     let achGames = [];
     let achSel = 0;
     let achFocus = 'side'; // side | list
     let achRowSel = 0;
     let achToken = 0;
-    function trophiesOf(g) {
-      return (g && g.appId && summary.perGame && summary.perGame[g.appId]) || null;
-    }
     function openTrophies(game) {
-      openScreen('trophies');
-      achGames = games.filter((g) => trophiesOf(g) && trophiesOf(g).total).sort((a, b) => (b.lastPlayed || 0) - (a.lastPlayed || 0));
+      s.openScreen('trophies');
+      achGames = s.games.filter((g) => trophiesOf(s, g) && trophiesOf(s, g).total).sort((a, b) => (b.lastPlayed || 0) - (a.lastPlayed || 0));
       if (game && !achGames.includes(game)) achGames.unshift(game);
       achSel = game ? achGames.indexOf(game) : 0;
       achFocus = 'side';
       const side = $('.sw-ach .sw-side');
-      $('.sw-ach .sw-sh-r').textContent = summary.hasKey ? `${summary.done || 0} de ${summary.total || 0}` : '';
-      if (!summary.hasKey) {
+      $('.sw-ach .sw-sh-r').textContent = s.summary.hasKey ? `${s.summary.done || 0} de ${s.summary.total || 0}` : '';
+      if (!s.summary.hasKey) {
         side.innerHTML = '';
         $('.sw-ach-list').innerHTML = `<div class="sw-msg">${U.achievementMessage({ status: 'no-key' })}</div>`;
         return;
@@ -520,7 +709,7 @@
       side.innerHTML = achGames.length
         ? achGames
             .map((g, i) => {
-              const tp = trophiesOf(g) || { done: 0, total: 0 };
+              const tp = trophiesOf(s, g) || { done: 0, total: 0 };
               const done = U.isComplete(tp);
               return `<button class="sw-li" data-i="${i}"><span class="sw-li-t">${esc(g.name)}</span><span class="sw-li-v${done ? ' nh-done-text' : ''}">${done ? `${U.completeBadge('crown')} ` : ''}${tp.total ? `${tp.done}/${tp.total}` : ''}</span></button>`;
             })
@@ -545,7 +734,7 @@
       box.style.transform = '';
       const token = ++achToken;
       const res = (await call('getAchievements', g.appId)) || { status: 'error' };
-      if (token !== achToken || view !== 'trophies') return;
+      if (token !== achToken || s.view !== 'trophies') return;
       if (res.status !== 'ok') return (box.innerHTML = `<div class="sw-msg">${U.achievementMessage(res)}</div>`);
       box.innerHTML = U.withSetHeads(U.sortAchievements(res.list))
         .map((a, j) => {
@@ -570,7 +759,7 @@
       const rows = $$('.sw-ach-row').length;
       if (k === 'Escape' || k === 'Backspace' || (k === 'ArrowLeft' && achFocus === 'side')) {
         if (achFocus === 'list' && k !== 'ArrowLeft') return (achFocus = 'side'), paintAchFocus();
-        if (k !== 'ArrowLeft') back();
+        if (k !== 'ArrowLeft') s.back();
         return;
       }
       if (achFocus === 'side') {
@@ -584,10 +773,14 @@
         paintAchFocus();
       }
     }
+    return { open: openTrophies, key: achKey };
+  }
 
-    // --- Grupo (Discord) ---
+  // ---------- Grupo (Discord) ----------
+  function pantallaGrupo(s) {
+    const { $, $$, call } = s;
     function partyStatusText() {
-      switch (discord.status) {
+      switch (s.discord.status) {
         case 'no-config':
           return { t: 'Conecta tu Discord', d: 'Para ver tu canal de voz y quiénes están contigo, conecta tu Discord. Se hace aquí mismo y toma unos 2 minutos.', btns: [['discord', 'Conectar Discord']] };
         case 'no-discord':
@@ -597,7 +790,7 @@
         case 'authorizing':
           return { t: 'Acepta en Discord', d: 'Revisa la ventana que apareció en Discord y presiona Autorizar.', btns: [] };
         case 'error':
-          return { t: 'No se pudo conectar', d: discord.message || 'Revisa los datos de tu aplicación de Discord.', btns: [['auth', 'Intentar de nuevo'], ['discord', 'Conectar Discord']] };
+          return { t: 'No se pudo conectar', d: s.discord.message || 'Revisa los datos de tu aplicación de Discord.', btns: [['auth', 'Intentar de nuevo'], ['discord', 'Conectar Discord']] };
         case 'ok':
           return null;
         default:
@@ -611,12 +804,12 @@
       if (st) {
         body.innerHTML = `<div class="sw-center"><div class="sw-big-ic">${icon('headset')}</div><div class="sw-ct">${esc(st.t)}</div><div class="sw-cd">${esc(st.d)}</div>
           <div class="sw-btnrow">${st.btns.map(([id, l], i) => `<button class="sw-pill${i === partyBtn ? ' sel' : ''}" data-pb="${id}">${l}</button>`).join('')}</div></div>`;
-      } else if (!discord.channel) {
+      } else if (!s.discord.channel) {
         body.innerHTML = `<div class="sw-center"><div class="sw-big-ic">${icon('headset')}</div><div class="sw-ct">No estás en un canal de voz</div><div class="sw-cd">Cuando entres a un canal de voz en Discord, aquí vas a ver quiénes están contigo.</div></div>`;
       } else {
-        const n = discord.members.length;
-        body.innerHTML = `<div class="sw-party-head"><b>${esc(discord.channel.name)}</b><span>${esc(discord.channel.guild || 'Mensaje directo')} · ${n} ${n === 1 ? 'persona' : 'personas'}</span></div>
-          <div class="sw-members">${discord.members
+        const n = s.discord.members.length;
+        body.innerHTML = `<div class="sw-party-head"><b>${esc(s.discord.channel.name)}</b><span>${esc(s.discord.channel.guild || 'Mensaje directo')} · ${n} ${n === 1 ? 'persona' : 'personas'}</span></div>
+          <div class="sw-members">${s.discord.members
             .map(
               (m) => `<div class="sw-mem${m.speaking ? ' talking' : ''}"><span class="sw-av" style="background-image:url('${m.avatar}')"></span><span class="sw-mem-n">${esc(m.name)}</span>${m.deafened ? icon('deaf') : m.muted ? icon('micOff') : ''}</div>`
             )
@@ -634,31 +827,43 @@
       b.forEach((x, j) => x.classList.toggle('sel', j === partyBtn));
     }
     function partyAction(id) {
-      if (id === 'auth') call('discordAuthorize').then((s) => s && renderDiscord(s));
+      if (id === 'auth') call('discordAuthorize').then((d) => d && s.renderDiscord(d));
       else call('open', id);
     }
+    function key(k) {
+      if (k === 'ArrowRight' || k === 'ArrowDown') setPartyBtn(partyBtn + 1);
+      else if (k === 'ArrowLeft' || k === 'ArrowUp') setPartyBtn(partyBtn - 1);
+      else if (k === 'Enter') {
+        const b = $$('[data-pb]')[partyBtn];
+        if (b) b.click();
+      } else if (k === 'Escape' || k === 'Backspace') s.back();
+    }
+    return { render: renderParty, key };
+  }
 
-    // --- Lista de amigos (de Steam) ---
+  // ---------- Lista de amigos (de Steam) ----------
+  function pantallaAmigos(s) {
+    const { $, $$, ctx, call } = s;
     // Cuadros grandes con su imagen (como la lista de amigos de la Switch); el marcado se ve a la izquierda.
     const FR_COLS = 5;
     let frSel = 0;
     let frId = null;
-    feed.onChange(() => view === 'friends' && paintFriends());
+    s.feed.onChange(() => s.view === 'friends' && paintFriends());
     function friendPic(f, cls = '') {
       return `<span class="sw-fr-pic ${cls} ${U.friendClass(f)}">${f.avatar ? `<img src="${esc(f.avatar)}" alt="" />` : `<b>${esc((f.name || '?').trim().charAt(0).toUpperCase())}</b>`}<i></i></span>`;
     }
     function openFriends() {
-      openScreen('friends');
+      s.openScreen('friends');
       frSel = 0;
       frId = null;
       $('.sw-fr-view').scrollTop = 0;
       paintFriends();
-      feed.watch(true);
+      s.feed.watch(true);
     }
     function paintFriends() {
-      const d = feed.data;
-      const rows = feed.list;
-      $('.sw-fr-count').textContent = d.status === 'ok' ? `${feed.online.length} en línea · ${rows.length} ${rows.length === 1 ? 'amigo' : 'amigos'}` : '';
+      const d = s.feed.data;
+      const rows = s.feed.list;
+      $('.sw-fr-count').textContent = d.status === 'ok' ? `${s.feed.online.length} en línea · ${rows.length} ${rows.length === 1 ? 'amigo' : 'amigos'}` : '';
       const grid = $('.sw-fr-grid');
       const side = $('.sw-fr-side');
       if (d.status !== 'ok' || !rows.length) {
@@ -681,7 +886,7 @@
       setFriend(keep >= 0 ? keep : Math.min(frSel, rows.length - 1), keep < 0);
     }
     function setFriend(i, scroll = true) {
-      const rows = feed.list;
+      const rows = s.feed.list;
       if (!rows.length) return;
       frSel = Math.max(0, Math.min(rows.length - 1, i));
       const f = rows[frSel];
@@ -698,15 +903,15 @@
     }
     function friendOptions(f) {
       if (!f) return;
-      openPop(f.name, U.friendStatus(f), [
-        { icon: 'person', label: 'Ver perfil', run: () => (feed.profile(f), ctx.toast(`Se abrió el perfil de ${f.name} en Steam`)) },
-        { icon: 'chat', label: 'Enviar mensaje', run: () => (feed.chat(f), ctx.toast(`Se abrió el chat con ${f.name} en Steam`)) },
+      s.ventanita.open(f.name, U.friendStatus(f), [
+        { icon: 'person', label: 'Ver perfil', run: () => (s.feed.profile(f), ctx.toast(`Se abrió el perfil de ${f.name} en Steam`)) },
+        { icon: 'chat', label: 'Enviar mensaje', run: () => (s.feed.chat(f), ctx.toast(`Se abrió el chat con ${f.name} en Steam`)) },
       ]);
     }
     function friendsKey(k) {
-      const rows = feed.list;
-      if (k === 'Escape' || k === 'Backspace') return back();
-      if (feed.data.status !== 'ok' || !rows.length) {
+      const rows = s.feed.list;
+      if (k === 'Escape' || k === 'Backspace') return s.back();
+      if (s.feed.data.status !== 'ok' || !rows.length) {
         if (k === 'Enter') {
           const b = $('.sw-fr-grid [data-fb]');
           if (b) b.click();
@@ -719,11 +924,15 @@
       else if (k === 'ArrowUp') frSel - FR_COLS < 0 ? ctx.sound('border') : setFriend(frSel - FR_COLS);
       else if (k === 'Enter' || k === 'o' || k === 'O' || k === '+') friendOptions(rows[frSel]);
     }
+    return { open: openFriends, key: friendsKey };
+  }
 
-    // --- Música (Spotify) ---
+  // ---------- Música (Spotify) ----------
+  function pantallaMusica(s) {
+    const { $, $$, api, ctx, call } = s;
     let musicBtn = 1;
     function renderMusic() {
-      const v = U.spotifyView(spotify || {});
+      const v = U.spotifyView(s.spotify || {});
       const body = $('.sw-music-body');
       $('.sw-music .sw-sh-r').textContent = v.app;
       const acts = U.musicActions(v);
@@ -757,8 +966,8 @@
           if (m.startsWith('x:')) return U.musicRun(api, m.slice(2), v, ctx.toast);
           if (m === 'connect') return call('open', 'setup-spotify');
           call('spotifyControl', m);
-          if (m === 'toggle' && spotify && spotify.running) {
-            spotify = { ...spotify, playing: !spotify.playing };
+          if (m === 'toggle' && s.spotify && s.spotify.running) {
+            s.spotify = { ...s.spotify, playing: !s.spotify.playing };
             renderMusic();
           }
         });
@@ -774,21 +983,37 @@
       if (first >= 0) musicBtn = first;
       else ctx.sound('border');
     }
+    function key(k) {
+      const b = $$('[data-m]');
+      if (k === 'ArrowRight') musicBtn = Math.min(b.length - 1, musicBtn + 1);
+      else if (k === 'ArrowLeft') musicBtn = Math.max(0, musicBtn - 1);
+      else if (k === 'ArrowDown') musicRow(1);
+      else if (k === 'ArrowUp') musicRow(-1);
+      else if (k === 'Enter' && b[musicBtn]) return b[musicBtn].click();
+      else if (k === 'Escape' || k === 'Backspace') return s.back();
+      b.forEach((x, j) => x.classList.toggle('sel', j === musicBtn));
+      const h = $('.sw-mu-hint');
+      if (h) h.textContent = (b[musicBtn] && b[musicBtn].dataset.label) || '';
+    }
+    return { render: renderMusic, key };
+  }
 
-    // --- Ajustes (con Tema claro/oscuro, solo de esta consola) ---
+  // ---------- Ajustes (con Tema claro/oscuro, solo de esta consola) ----------
+  function pantallaAjustes(s) {
+    const { $, $$, ctx, call } = s;
     const CAT_ICONS = { theme: 'palette', general: 'gear', games: 'pad', emulators: 'pad', screen: 'screen', sound: 'speaker', accounts: 'person', files: 'folder' };
     let setCat = 0;
     let setSel = 0;
     let setFocus = 'side';
     function setCats() {
       return [
-        { id: 'theme', title: 'Tema', items: [{ id: 'sw-theme', type: 'choice', label: 'Tema', desc: 'El color del menú de la Switch. Solo cambia esta consola.', options: [{ value: 'light', label: 'Básico blanco' }, { value: 'dark', label: 'Básico negro' }], value: light ? 'light' : 'dark' }] },
-        ...menuModel,
+        { id: 'theme', title: 'Tema', items: [{ id: 'sw-theme', type: 'choice', label: 'Tema', desc: 'El color del menú de la Switch. Solo cambia esta consola.', options: [{ value: 'light', label: 'Básico blanco' }, { value: 'dark', label: 'Básico negro' }], value: s.light ? 'light' : 'dark' }] },
+        ...s.menuModel,
       ];
     }
     async function openSettings() {
-      menuModel = (await call('getMenu')) || menuModel;
-      openScreen('settings');
+      s.menuModel = (await call('getMenu')) || s.menuModel;
+      s.openScreen('settings');
       setFocus = 'side';
       setSel = 0;
       paintSettings();
@@ -832,19 +1057,19 @@
       const it = setCats()[setCat].items[setSel];
       if (!it) return;
       if (it.id === 'sw-theme') {
-        setLight(!light);
+        s.setLight(!s.light);
         return paintSettings();
       }
       if (it.id === 'consoles') return ctx.openSelector();
-      if (it.confirm) return openPower();
-      if (it.type === 'choice') return openPop(it.label, '', it.options.map((o) => ({ label: o.label, on: String(o.value) === String(it.value), run: () => runOption(it, o.value) })));
+      if (it.confirm) return s.ventanita.power();
+      if (it.type === 'choice') return s.ventanita.open(it.label, '', it.options.map((o) => ({ label: o.label, on: String(o.value) === String(it.value), run: () => runOption(it, o.value) })));
       if (/^open-|^devtools$/.test(it.id)) ctx.toast('Se abrió en Windows');
       await runOption(it, it.type === 'toggle' ? !it.value : undefined);
     }
     async function runOption(it, value) {
       const next = await call('runMenu', it.id, value);
-      if (next) menuModel = next;
-      if (view === 'settings') paintSettings();
+      if (next) s.menuModel = next;
+      if (s.view === 'settings') paintSettings();
     }
     function settingsKey(k) {
       const cats = setCats();
@@ -852,7 +1077,7 @@
         if (k === 'ArrowDown') (setCat = Math.min(cats.length - 1, setCat + 1)), (setSel = 0);
         else if (k === 'ArrowUp') (setCat = Math.max(0, setCat - 1)), (setSel = 0);
         else if (k === 'ArrowRight' || k === 'Enter') setFocus = 'main';
-        else if (k === 'Escape' || k === 'Backspace' || k === 'ArrowLeft') return k === 'ArrowLeft' ? null : back();
+        else if (k === 'Escape' || k === 'Backspace' || k === 'ArrowLeft') return k === 'ArrowLeft' ? null : s.back();
       } else {
         const n = cats[setCat].items.length;
         if (k === 'ArrowDown') setSel = Math.min(n - 1, setSel + 1);
@@ -862,8 +1087,12 @@
       }
       paintSettings();
     }
+    return { open: openSettings, key: settingsKey };
+  }
 
-    // ---------- Ventanita (opciones del juego, energía, elegir) ----------
+  // ---------- Ventanita (opciones del juego, energía, elegir) ----------
+  function ventanita(s) {
+    const { $, $$, ctx, call } = s;
     let pop = null;
     function openPop(title, sub, items) {
       pop = { items, sel: Math.max(0, items.findIndex((x) => x.on)) };
@@ -906,41 +1135,41 @@
       if (!g) return;
       const sub = [U.hours(g.playtimeMin), g.lastPlayed ? `Jugado ${U.ago(g.lastPlayed)}` : ''].filter(Boolean).join(' · ') || g.description || '';
       openPop(g.name, sub, [
-        { icon: 'play', label: 'Iniciar', run: () => startGame(g) },
-        { icon: 'grid', label: 'Información del software', run: () => openGame(g, view === 'library' ? 'library' : 'home') },
-        ...(g.hasAch ? [{ icon: 'trophy', label: 'Logros', run: () => openGame(g, view === 'library' ? 'library' : 'home', 'ach') }] : []),
+        { icon: 'play', label: 'Iniciar', run: () => s.jugando.start(g) },
+        { icon: 'grid', label: 'Información del software', run: () => s.ficha.open(g, s.view === 'library' ? 'library' : 'home') },
+        ...(g.hasAch ? [{ icon: 'trophy', label: 'Logros', run: () => s.ficha.open(g, s.view === 'library' ? 'library' : 'home', 'ach') }] : []),
         { icon: 'image', label: 'Cambiar imágenes y descripción', run: () => window.NostalHubGameEditor && window.NostalHubGameEditor.open(g.id) },
       ]);
     }
-
-    // ---------- Pistas de teclas (abajo a la derecha) ----------
-    function paintHints() {
-      const h = (k, t) => `<span class="sw-hint"><b>${k}</b>${t}</span>`;
-      let html;
-      if (view === 'home') html = area === 'row' && rowItems[rowSel] && rowItems[rowSel].game ? h('O', 'Opciones') + h('Enter', 'Iniciar') : h('Enter', 'Abrir');
-      else if (view === 'library') html = h('O', 'Opciones') + h('Esc', 'Atrás') + h('Enter', 'Ver');
-      else if (view === 'friends') html = h('Esc', 'Atrás') + h('Enter', 'Opciones');
-      else if (view === 'game') html = h('Esc', 'Atrás') + h('Enter', 'Aceptar');
-      else html = h('Esc', 'Atrás') + h('Enter', 'Aceptar');
-      $('.sw-hints').innerHTML = html;
+    function key(k) {
+      if (k === 'ArrowDown') setPop(pop.sel + 1);
+      else if (k === 'ArrowUp') setPop(pop.sel - 1);
+      else if (k === 'Enter') choosePop(pop.sel);
+      else if (k === 'Escape' || k === 'Backspace' || k === 'o' || k === 'O') closePop();
     }
+    return { key, open: openPop, close: closePop, power: openPower, gameOptions: openGameOptions, isOpen: () => !!pop };
+  }
 
-    // ---------- Iniciar y "Jugando a…" ----------
+  // ---------- Iniciar y "Jugando a…" ----------
+  function pantallaJugando(s) {
+    const { $, api, ctx, root, call } = s;
+    const nowPlaying = U.nowPlaying($('.sw-playing'), api, ctx.toast);
+    let playTimer = null;
     async function startGame(g) {
-      if (!g || view === 'playing') return;
+      if (!g || s.view === 'playing') return;
       const res = await api.launch(g.id);
       if (!res || !res.ok) {
         ctx.sound('error');
         return ctx.toast(`No se pudo abrir: ${(res && res.error) || 'error desconocido'}`);
       }
       ctx.sound('gameboot');
-      root.dataset.prevView = view;
-      view = 'playing';
-      closePop();
+      root.dataset.prevView = s.view;
+      s.view = 'playing';
+      s.ventanita.close();
       const p = $('.sw-playing');
       const art = $('.sw-play-art');
       art.innerHTML = '';
-      art.appendChild(squareArt(g));
+      art.appendChild(squareArt(s, g));
       $('.sw-play-name').textContent = g.name;
       p.hidden = false;
       p.classList.remove('leave');
@@ -949,17 +1178,17 @@
       nowPlaying.start();
       const started = Date.now();
       const upd = () => {
-        const s = Math.floor((Date.now() - started) / 1000);
-        const hh = Math.floor(s / 3600);
-        const m = Math.floor((s % 3600) / 60);
-        $('.sw-play-time').textContent = hh ? `${hh}:${pad2(m)}:${pad2(s % 60)}` : `${m}:${pad2(s % 60)}`;
+        const t = Math.floor((Date.now() - started) / 1000);
+        const hh = Math.floor(t / 3600);
+        const m = Math.floor((t % 3600) / 60);
+        $('.sw-play-time').textContent = hh ? `${hh}:${pad2(m)}:${pad2(t % 60)}` : `${m}:${pad2(t % 60)}`;
       };
       upd();
       clearInterval(playTimer);
       playTimer = setInterval(upd, 1000);
     }
     async function endPlaying(reason) {
-      if (view !== 'playing') return;
+      if (s.view !== 'playing') return;
       nowPlaying.stop();
       clearInterval(playTimer);
       document.body.classList.remove('playing');
@@ -968,151 +1197,22 @@
       p.classList.add('leave');
       await wait(350);
       p.hidden = true;
-      view = root.dataset.prevView || 'home';
+      s.view = root.dataset.prevView || 'home';
       if (reason === 'not-started') ctx.toast('No se detectó que el juego abriera');
     }
     $('[data-p="stop"]').addEventListener('click', () => {
       call('dismissPlaying');
       endPlaying('manual');
     });
-
-    // ---------- Teclado ----------
-    function onKey(e) {
-      const k = e.key;
-      if (k === 'Enter' || k === ' ') e.preventDefault();
-      if (view === 'playing') {
-        if (k === 'Enter') $('[data-p="stop"]').click();
-        return;
-      }
-      if (pop) {
-        if (k === 'ArrowDown') setPop(pop.sel + 1);
-        else if (k === 'ArrowUp') setPop(pop.sel - 1);
-        else if (k === 'Enter') choosePop(pop.sel);
-        else if (k === 'Escape' || k === 'Backspace' || k === 'o' || k === 'O') closePop();
-        return;
-      }
-      if (k === 'o' || k === 'O' || k === '+') {
-        if (view === 'home' && area === 'row' && rowItems[rowSel] && rowItems[rowSel].game) return openGameOptions(rowItems[rowSel].game);
-        if (view === 'library' && libList[libSel]) return openGameOptions(libList[libSel]);
-      }
-      if (view === 'home') {
-        if (area === 'row') {
-          if (k === 'ArrowRight') rowSel >= rowItems.length - 1 ? ctx.sound('border') : setRow(rowSel + 1);
-          else if (k === 'ArrowLeft') rowSel <= 0 ? ctx.sound('border') : setRow(rowSel - 1);
-          else if (k === 'ArrowDown') setRow(rowSel, 'btns');
-          else if (k === 'Enter') activateRow();
-          else if (k === 'Escape') ctx.openSelector();
-        } else {
-          if (k === 'ArrowRight') btnSel >= BTNS.length - 1 ? ctx.sound('border') : ((btnSel += 1), setRow(rowSel, 'btns'));
-          else if (k === 'ArrowLeft') btnSel <= 0 ? ctx.sound('border') : ((btnSel -= 1), setRow(rowSel, 'btns'));
-          else if (k === 'ArrowUp') setRow(rowSel, 'row');
-          else if (k === 'Enter') runBtn(BTNS[btnSel].id);
-          else if (k === 'Escape') setRow(rowSel, 'row');
-        }
-      } else if (view === 'library') libKey(k);
-      else if (view === 'friends') friendsKey(k);
-      else if (view === 'trophies') achKey(k);
-      else if (view === 'settings') settingsKey(k);
-      else if (view === 'game') gameKey(k);
-      else if (view === 'party') {
-        if (k === 'ArrowRight' || k === 'ArrowDown') setPartyBtn(partyBtn + 1);
-        else if (k === 'ArrowLeft' || k === 'ArrowUp') setPartyBtn(partyBtn - 1);
-        else if (k === 'Enter') {
-          const b = $$('[data-pb]')[partyBtn];
-          if (b) b.click();
-        } else if (k === 'Escape' || k === 'Backspace') back();
-      } else if (view === 'music') {
-        const b = $$('[data-m]');
-        if (k === 'ArrowRight') musicBtn = Math.min(b.length - 1, musicBtn + 1);
-        else if (k === 'ArrowLeft') musicBtn = Math.max(0, musicBtn - 1);
-        else if (k === 'ArrowDown') musicRow(1);
-        else if (k === 'ArrowUp') musicRow(-1);
-        else if (k === 'Enter' && b[musicBtn]) return b[musicBtn].click();
-        else if (k === 'Escape' || k === 'Backspace') return back();
-        b.forEach((x, j) => x.classList.toggle('sel', j === musicBtn));
-        const h = $('.sw-mu-hint');
-        if (h) h.textContent = (b[musicBtn] && b[musicBtn].dataset.label) || '';
-      }
-    }
-    window.addEventListener('keydown', onKey);
-    // Rueda en el inicio: moverse por la fila
-    let wheelLock = 0;
-    $('.sw-row').addEventListener('wheel', (e) => {
-      if (view !== 'home' || Date.now() < wheelLock) return;
-      const d = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
-      if (Math.abs(d) < 10) return;
-      setRow(rowSel + (d > 0 ? 1 : -1));
-      wheelLock = Date.now() + 160;
-    });
-
-    // ---------- Datos ----------
-    async function loadProfile() {
-      profile = (await call('getSteamProfile')) || profile;
-      paintUsers();
-    }
-    let doneKey = ''; // juegos al 100 % (si cambia, se redibujan los cuadros con su corona)
-    async function loadSummary(s) {
-      summary = s || (await call('getAchievementSummary')) || summary;
-      const k = U.completeKey(summary);
-      if (k !== doneKey) {
-        doneKey = k;
-        setGames(games);
-        return;
-      }
-      if (view === 'game' && gameCur) paintGameMain();
-    }
-    function renderSpotify(s) {
-      spotify = s || spotify;
-      if (view === 'music') renderMusic();
-    }
-    function renderDiscord(s) {
-      discord = s || discord;
-      paintUsers();
-      if (view === 'party') renderParty();
-    }
-    function setGames(list) {
-      games = list || [];
-      if (gameCur) gameCur = games.find((g) => g.id === gameCur.id) || gameCur;
-      renderRow();
-      if (view === 'library') paintLib();
-      if (view === 'game' && gameCur) paintGameMain();
-    }
-    offs.push(api.onGamesUpdated(setGames));
-    offs.push(api.onGameEnded(({ reason }) => endPlaying(reason)));
-    if (api.onSpotify) offs.push(api.onSpotify(renderSpotify));
-    if (api.onDiscord) offs.push(api.onDiscord(renderDiscord));
-    if (api.onSteamSummary) offs.push(api.onSteamSummary((s) => loadSummary(s)));
-    if (api.onSteamChanged)
-      offs.push(
-        api.onSteamChanged(() => {
-          loadProfile();
-          loadSummary();
-        })
-      );
-    call('spotifyWatch', true).then((s) => s && renderSpotify(s));
-    call('discordWatch', true).then((s) => s && renderDiscord(s));
-    call('getMenu').then((m) => (menuModel = m || []));
-    loadProfile();
-    loadSummary();
-    api.getState().then((s) => {
-      setGames(s.games);
-      root.classList.add('intro');
-      setTimeout(() => root.classList.remove('intro'), 1200);
-    });
-
     return {
-      unmount() {
+      start: startGame,
+      end: endPlaying,
+      key(k) {
+        if (k === 'Enter') $('[data-p="stop"]').click();
+      },
+      dispose() {
         nowPlaying.dispose();
-        feed.dispose();
-        clearInterval(clockTimer);
         clearInterval(playTimer);
-        window.removeEventListener('keydown', onKey);
-        offs.forEach((off) => off && off());
-        call('spotifyWatch', false);
-        call('discordWatch', false);
-        document.body.classList.remove('playing');
-        root.classList.remove('light', 'in-screen', 'is-playing', 'intro', 'all-sel');
-        root.innerHTML = '';
       },
     };
   }
