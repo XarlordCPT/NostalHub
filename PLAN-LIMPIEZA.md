@@ -42,7 +42,7 @@ Rama: `limpieza`. `main` no se toca hasta que Cristóbal la junte. Un commit por
 
 - [x] Un ayudante común para moverse por listas y cuadrículas (hoy hay 4 formas distintas): `U.rowWindow`.
 - [ ] Separar el `mount` de cada consola por pantallas (menú, ficha, logros, amigos, ajustes, música).
-      Orden: PS2 → Switch → Xbox 360 → 3DS → PS3 → Wii → PS4 → Vita. **Listas: PS2, Switch, Xbox 360 y 3DS.** Sigue: PS3.
+      Orden: PS2 → Switch → Xbox 360 → 3DS → PS3 → Wii → PS4 → Vita. **Listas: PS2, Switch, Xbox 360, 3DS, PS3, Wii y PS4.** Falta solo la Vita.
 
 ### Cómo retomarla (notas para la próxima sesión)
 
@@ -125,5 +125,11 @@ Rama: `limpieza`. `main` no se toca hasta que Cristóbal la junte. Un commit por
 - **Etapa 4, mitad lista** (4 consolas de 8, un commit cada una): PS2, Switch, Xbox 360 y 3DS. `npm test`: 56 de lógica + 73
   pantallas (26 nuevas: mouse, jugar y volver, Grupo, música, ventanas, mover íconos), 0 diferencias contra el código de
   antes; app real: 8 consolas, 0 errores. Faltan PS3, Wii, PS4 y Vita.
+- **Etapa 4, falta solo la Vita** (7 consolas de 8, un commit cada una). PS3 (objeto `ps`), Wii (`wii`, y `wii.menuEl` es el
+  menú de canales) y PS4 (`p4`) siguen el molde. `npm test`: 56 de lógica + pantallas nuevas en cada consola, 0 diferencias
+  contra el código de antes. Ojo con las pruebas que abren "Ordenar": elegir un orden queda guardado y cambia las capturas
+  (pasó en la Wii: se borra con `localStorage.removeItem('nostalhub.<consola>.gameSort')` desde un paso `js`). Se quitó una
+  prueba de la PS4 (Ajustes → Temas → Fondo): la lista a veces queda corrida unos píxeles, con el código nuevo y sin poder
+  descartarlo con el de antes; revisar a mano que esa lista se vea bien.
 - Ojo para las pruebas con la app real: dentro de una consola, Enter abre un juego de verdad. El script solo aprieta teclas
   con el selector a la vista y sin ninguna consola abierta (una vez se abrió Pokémon Fire Red por apretar Enter a ciegas).

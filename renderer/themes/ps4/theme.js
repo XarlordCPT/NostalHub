@@ -198,48 +198,263 @@
   const LIB_COLS = 4;
   const LIB_ROW_H = 158;
   const LIB_VIEW_H = 760;
-  const { wait, pad2 } = window.NostalHubUtil;
+  const U = window.NostalHubUtil;
+  const esc = U.escapeHtml;
+  const { wait, pad2 } = U;
 
   window.Themes = window.Themes || {};
   window.Themes.ps4 = { mount };
 
   // root: contenedor del tema. ctx: { api, stage, stageRect, toast, openSelector, sound }
+  // El tema va separado por pantallas (una función cada una, más abajo). Todas reciben `p4`, que tiene lo que es de
+  // todas (en qué pantalla se está y las anteriores, los juegos, el juego de la ficha, el perfil, el resumen de
+  // logros, la música, Discord, las opciones) y las otras pantallas (p4.inicio, p4.ficha, p4.biblioteca, p4.rapido…).
+  // Lo de una sola pantalla queda en su función.
   function mount(root, ctx) {
     root.innerHTML = MARKUP;
     const api = ctx.api;
-    const U = window.NostalHubUtil;
-    const esc = U.escapeHtml;
-    const $ = (s) => root.querySelector(s);
-    const $$ = (s) => [...root.querySelectorAll(s)];
+    const $ = (sel) => root.querySelector(sel);
+    const $$ = (sel) => [...root.querySelectorAll(sel)];
     const call = (fn, ...a) => (typeof api[fn] === 'function' ? api[fn](...a) : Promise.resolve(null));
-
-    let games = [];
-    let view = 'home'; // home | func | game | library | trophies | party | settings | playing
-    const stack = [];
-    let rowSel = 0;
-    let funcSel = 4;
-    let current = null; // juego de la ficha
-    let profile = { name: 'Jugador', avatar: null };
-    let summary = { done: 0, total: 0, perGame: {}, hasKey: false };
-    let spotify = null;
-    let discord = { status: 'off', channel: null, members: [] };
-    let menuModel = [];
-    let playTimer = null;
+    const p4 = {
+      root,
+      ctx,
+      api,
+      $,
+      $$,
+      call,
+      view: 'home', // home | func | game | library | trophies | friends | party | settings | playing
+      stack: [], // pantallas anteriores, para volver
+      games: [],
+      current: null, // juego de la ficha
+      profile: { name: 'Jugador', avatar: null },
+      summary: { done: 0, total: 0, perGame: {}, hasKey: false },
+      spotify: null,
+      discord: { status: 'off', channel: null, members: [] },
+      menuModel: [],
+      wall: null, // fondo propio (lo pone fondo())
+    };
     const offs = [];
-    const nowPlaying = window.NostalHubUtil.nowPlaying($('.p4-playing'), api, ctx.toast);
 
-    // ---------- Arte del juego de fondo (se cruza suavemente) ----------
+    // ---------- Pantallas (biblioteca, ficha, trofeos, grupo, ajustes) ----------
+    function showScreen(name) {
+      if (p4.view !== name) p4.stack.push(p4.view);
+      p4.view = name;
+      root.classList.toggle('in-screen', true);
+      root.classList.remove('in-func');
+      $$('.p4-screen').forEach((s) => {
+        const on = s.classList.contains(`p4-${name === 'library' ? 'lib' : name === 'trophies' ? 'troph' : name === 'settings' ? 'set' : name}`);
+        s.hidden = !on;
+        if (on) {
+          s.classList.remove('enter');
+          s.offsetWidth;
+          s.classList.add('enter');
+        }
+      });
+    }
+    function back() {
+      const prev = p4.stack.pop() || 'home';
+      $$('.p4-screen').forEach((s) => (s.hidden = true));
+      p4.view = prev;
+      if (prev === 'home' || prev === 'func') {
+        root.classList.remove('in-screen');
+        if (prev === 'func') p4.inicio.openFunc();
+        else p4.inicio.repaintRow();
+      } else {
+        showScreenAgain(prev);
+      }
+    }
+    function showScreenAgain(name) {
+      p4.view = name;
+      const cls = { library: 'lib', trophies: 'troph', settings: 'set' }[name] || name;
+      const s = $(`.p4-${cls}`);
+      if (s) s.hidden = false;
+      if (name === 'game' && p4.current) p4.fondo.setArt(p4.current.hero || p4.current.tile, true);
+      if (name === 'library') {
+        p4.fondo.setArt(null);
+        p4.biblioteca.paint();
+      }
+    }
+    p4.showScreen = showScreen;
+    p4.back = back;
+
+    p4.jugando = pantallaJugando(p4);
+    p4.fondo = fondo(p4);
+    p4.barra = barraSuperior(p4);
+    p4.inicio = pantallaInicio(p4);
+    p4.ficha = pantallaFicha(p4);
+    p4.biblioteca = pantallaBiblioteca(p4);
+    p4.trofeos = pantallaTrofeos(p4);
+    p4.amigos = pantallaAmigos(p4);
+    p4.grupo = pantallaGrupo(p4);
+    p4.ajustes = pantallaAjustes(p4);
+    p4.ventanita = ventanita(p4);
+    p4.rapido = menuRapido(p4);
+
+    let doneKey = ''; // juegos al 100 % (si cambia, se redibujan los cuadros con su platino)
+    async function loadSummary(s) {
+      p4.summary = s || (await call('getAchievementSummary')) || p4.summary;
+      const k = U.completeKey(p4.summary);
+      if (k !== doneKey) {
+        doneKey = k;
+        setGames(p4.games);
+      }
+      $('.p4-st-troph b').textContent = p4.summary.hasKey ? String(p4.summary.done || 0) : '—';
+      p4.inicio.summaryChanged();
+      if (p4.current && p4.view === 'game') p4.ficha.paintTrophies(p4.current);
+    }
+
+    // ---------- Spotify (barra superior y menú rápido) ----------
+    function renderSpotify(s) {
+      p4.spotify = s || p4.spotify;
+      const st = p4.spotify || {};
+      const on = st.running && st.playing && st.title;
+      $('.p4-st-music').hidden = !on;
+      if (on) $('.p4-st-music .t').textContent = `${st.title}${st.artist ? ` · ${st.artist}` : ''}`;
+      p4.rapido.refresh('music');
+    }
+    p4.renderSpotify = renderSpotify;
+
+    // ---------- Teclado ----------
+    function onKey(e) {
+      const k = e.key;
+      if (k === 'Enter' || k === ' ') e.preventDefault();
+      if (p4.biblioteca.typing()) return;
+      if (p4.ventanita.isOpen()) return p4.ventanita.key(k);
+      if (p4.rapido.isOpen()) return p4.rapido.key(k);
+      if ((k === 'p' || k === 'P') && p4.view !== 'playing') return p4.rapido.open();
+      switch (p4.view) {
+        case 'home':
+          p4.inicio.key(k);
+          break;
+        case 'func':
+          p4.inicio.funcKey(k);
+          break;
+        case 'game':
+          p4.ficha.key(k);
+          break;
+        case 'library':
+          p4.biblioteca.key(k);
+          break;
+        case 'trophies':
+          p4.trofeos.key(k);
+          break;
+        case 'party':
+          p4.grupo.key(k);
+          break;
+        case 'friends':
+          p4.amigos.key(k);
+          break;
+        case 'settings':
+          p4.ajustes.key(k);
+          break;
+        case 'playing':
+          p4.jugando.key(k);
+          break;
+        default:
+          break;
+      }
+    }
+    window.addEventListener('keydown', onKey);
+
+    // ---------- Datos ----------
+    function setGames(list) {
+      p4.games = list || [];
+      if (p4.current) p4.current = p4.games.find((g) => g.id === p4.current.id) || p4.current;
+      if (p4.wall.value.startsWith('game:')) p4.fondo.applyWall(); // el arte del juego elegido como fondo
+      p4.inicio.renderRow();
+      if (p4.view === 'library') p4.biblioteca.paint();
+      if (p4.current && p4.view === 'game') {
+        $('.p4g-meta').textContent = [typeLabel(p4.current), U.hours(p4.current.playtimeMin), p4.current.lastPlayed ? `Jugado ${U.ago(p4.current.lastPlayed)}` : ''].filter(Boolean).join('   ·   ');
+        p4.ficha.paintTrophies(p4.current);
+      }
+    }
+    offs.push(api.onGamesUpdated(setGames));
+    offs.push(api.onGameEnded(({ reason }) => p4.jugando.end(reason)));
+    if (api.onSpotify) offs.push(api.onSpotify(renderSpotify));
+    if (api.onDiscord) offs.push(api.onDiscord((d) => p4.grupo.renderDiscord(d)));
+    if (api.onSteamSummary) offs.push(api.onSteamSummary((s) => loadSummary(s)));
+    if (api.onSteamChanged)
+      offs.push(
+        api.onSteamChanged(() => {
+          p4.barra.loadProfile();
+          loadSummary();
+        })
+      );
+
+    call('spotifyWatch', true).then((s) => s && p4.renderSpotify(s));
+    call('discordWatch', true).then((s) => s && p4.grupo.renderDiscord(s));
+    p4.barra.loadProfile();
+    loadSummary();
+    p4.inicio.paintFunc();
+    api.getState().then((st) => {
+      setGames(st.games);
+      root.classList.add('intro');
+      setTimeout(() => root.classList.remove('intro'), 1400);
+    });
+
+    return {
+      unmount() {
+        p4.jugando.dispose();
+        p4.barra.dispose();
+        window.removeEventListener('keydown', onKey);
+        p4.amigos.dispose();
+        offs.forEach((off) => off && off());
+        call('spotifyWatch', false);
+        call('discordWatch', false);
+        document.body.classList.remove('playing');
+        root.classList.remove('in-func', 'in-screen', 'is-playing', 'intro', 'art-strong');
+        root.innerHTML = '';
+      },
+    };
+  }
+
+  // Logros de un juego según el resumen ({ done, total }), o nada
+  function trophiesOf(p4, g) {
+    return (g && g.appId && p4.summary.perGame && p4.summary.perGame[g.appId]) || null;
+  }
+  function typeLabel(g) {
+    return { steam: 'Steam', exe: 'Programa', shortcut: 'Acceso directo', url: 'Otro launcher', minecraft: 'Launcher de Minecraft', emulator: 'Emulador', riot: 'Riot Games' }[g.type] || '';
+  }
+  function tileArt(p4, g, big = false) {
+    // Cuadro del juego: su fondo + el logo encima (o su imagen tal cual si es personalizada)
+    const el = document.createElement('div');
+    el.className = 'p4-tart';
+    const bg = g.tileIsCustom ? g.tile : g.hero || g.tile || g.cover;
+    if (bg) U.stillBackground(el, bg); // si es animada, su primer cuadro: solo se anima el juego marcado
+    if (!g.tileIsCustom) {
+      if (g.logo) {
+        const img = document.createElement('img');
+        img.src = g.logo;
+        img.alt = '';
+        el.appendChild(img);
+      } else if (!g.heroIsReal || !bg) {
+        const t = document.createElement('div');
+        t.className = 'p4-tart-name';
+        t.textContent = g.name;
+        t.style.fontSize = `${big ? 44 : 30}px`;
+        el.appendChild(t);
+      }
+    }
+    // Juego al 100 %: trofeo de platino en la esquina
+    if (U.isComplete(trophiesOf(p4, g))) el.insertAdjacentHTML('beforeend', U.completeBadge('platinum', 'on-icon'));
+    return el;
+  }
+
+  // ---------- Fondo: el arte del juego (se cruza suavemente) y el fondo propio (Ajustes → Temas) ----------
+  function fondo(p4) {
+    const { $, $$, api, root } = p4;
     const artImgs = $$('.p4-art-img');
     let artFront = 0;
     let artUrl = null;
     // ---------- Fondo propio (Ajustes → Temas): una imagen tuya o el arte de un juego, en vez del azul con ondas ----------
-    const wall = U.wallpaper(api, 'ps4');
-    function applyWall(v = wall.value) {
-      const url = wall.url(games, v);
+    p4.wall = U.wallpaper(api, 'ps4');
+    function applyWall(v = p4.wall.value) {
+      const url = p4.wall.url(p4.games, v);
       $('.p4-wall').style.backgroundImage = url ? `url("${url}")` : '';
       root.classList.toggle('has-wall', !!url);
     }
-    wall.load().then(() => applyWall());
+    p4.wall.load().then(() => applyWall());
     // Sección "Temas" de Ajustes (solo de la PS4; las demás opciones vienen de main.js)
     function withThemes(model) {
       const items = [
@@ -249,11 +464,11 @@
           local: true,
           label: 'Fondo',
           desc: 'Una imagen tuya (de la carpeta de fondos) o el arte de uno de tus juegos, como los temas de la PS4.',
-          value: wall.value,
-          options: wall.choices(games).map((c) => ({ value: c.value, label: c.group === 'games' ? `Juego: ${c.label}` : c.label, short: c.label })),
-          set: (v) => (wall.set(v), applyWall()),
+          value: p4.wall.value,
+          options: p4.wall.choices(p4.games).map((c) => ({ value: c.value, label: c.group === 'games' ? `Juego: ${c.label}` : c.label, short: c.label })),
+          set: (v) => (p4.wall.set(v), applyWall()),
         },
-        { id: 'p4-wall-folder', type: 'action', local: true, label: 'Abrir carpeta de fondos', desc: 'Pon aquí tus imágenes (JPG o PNG, ideal 1920×1080) y después elígelas en Fondo.', run: () => wall.openFolder() },
+        { id: 'p4-wall-folder', type: 'action', local: true, label: 'Abrir carpeta de fondos', desc: 'Pon aquí tus imágenes (JPG o PNG, ideal 1920×1080) y después elígelas en Fondo.', run: () => p4.wall.openFolder() },
       ];
       return [{ id: 'themes', title: 'Temas', items }, ...(model || []).filter((s) => s.id !== 'themes')];
     }
@@ -271,8 +486,12 @@
       artImgs[artFront].classList.remove('on');
       artFront = 1 - artFront;
     }
+    return { setArt, applyWall, withThemes };
+  }
 
-    // ---------- Barra superior ----------
+  // ---------- Barra superior: la hora y tu perfil ----------
+  function barraSuperior(p4) {
+    const { $, $$, call } = p4;
     function tickClock() {
       const d = new Date();
       $('.p4-st-clock').textContent = `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
@@ -282,40 +501,34 @@
 
     function paintAvatar(el) {
       const img = el.querySelector('img');
-      img.hidden = !profile.avatar;
-      if (profile.avatar) img.src = profile.avatar;
-      el.classList.toggle('empty', !profile.avatar);
-      el.dataset.letter = (profile.name || '?').charAt(0).toUpperCase();
+      img.hidden = !p4.profile.avatar;
+      if (p4.profile.avatar) img.src = p4.profile.avatar;
+      el.classList.toggle('empty', !p4.profile.avatar);
+      el.dataset.letter = (p4.profile.name || '?').charAt(0).toUpperCase();
     }
     async function loadProfile() {
-      profile = (await call('getSteamProfile')) || profile;
+      p4.profile = (await call('getSteamProfile')) || p4.profile;
       $$('.p4-av').forEach(paintAvatar);
-      $('.p4-st-user .n').textContent = profile.name || 'Jugador';
-      $('.p4-qm-foot .n').textContent = profile.name || 'Jugador';
-      $('.p4t-name').textContent = profile.name || 'Jugador';
+      $('.p4-st-user .n').textContent = p4.profile.name || 'Jugador';
+      $('.p4-qm-foot .n').textContent = p4.profile.name || 'Jugador';
+      $('.p4t-name').textContent = p4.profile.name || 'Jugador';
     }
-    let doneKey = ''; // juegos al 100 % (si cambia, se redibujan los cuadros con su platino)
-    async function loadSummary(s) {
-      summary = s || (await call('getAchievementSummary')) || summary;
-      const k = U.completeKey(summary);
-      if (k !== doneKey) {
-        doneKey = k;
-        setGames(games);
-      }
-      $('.p4-st-troph b').textContent = summary.hasKey ? String(summary.done || 0) : '—';
-      if (view === 'home' && homeOrder.mode === 'ach') renderRow();
-      if (view === 'home') renderTeaser();
-      if (current && view === 'game') paintGameTrophies(current);
-    }
+    return { paintAvatar, loadProfile, dispose: () => clearInterval(clockTimer) };
+  }
 
+  // ---------- Inicio: la fila de juegos, lo que se asoma abajo y la fila de funciones (al subir) ----------
+  function pantallaInicio(p4) {
+    const { $, $$, ctx, root, call } = p4;
+    let rowSel = 0;
+    let funcSel = 4;
     // ---------- Datos de cada juego ----------
     // Juegos del inicio: los 5 primeros según el orden elegido (tecla O / △ en el inicio)
     const homeOrder = U.gameOrder('ps4', { def: 'recent' });
     function recentGames() {
-      return homeOrder.apply(games, summary).slice(0, 5);
+      return homeOrder.apply(p4.games, p4.summary).slice(0, 5);
     }
     function homeSortMenu() {
-      openPop('Ordenar el inicio', homeOrder.sorts.map((s) => ({ label: s.label, on: s.id === homeOrder.mode, run: () => setHomeSort(s.id) })));
+      p4.ventanita.open('Ordenar el inicio', homeOrder.sorts.map((s) => ({ label: s.label, on: s.id === homeOrder.mode, run: () => setHomeSort(s.id) })));
     }
     function setHomeSort(m) {
       homeOrder.set(m);
@@ -326,36 +539,8 @@
     function paintHomeSort() {
       $('.p4-home-sort .t').textContent = `Ordenar: ${homeOrder.label()}`;
     }
-    $('.p4-home-sort').addEventListener('click', () => view === 'home' && homeSortMenu());
+    $('.p4-home-sort').addEventListener('click', () => p4.view === 'home' && homeSortMenu());
     paintHomeSort();
-    function trophiesOf(g) {
-      return (g && g.appId && summary.perGame && summary.perGame[g.appId]) || null;
-    }
-    function tileArt(g, big = false) {
-      // Cuadro del juego: su fondo + el logo encima (o su imagen tal cual si es personalizada)
-      const el = document.createElement('div');
-      el.className = 'p4-tart';
-      const bg = g.tileIsCustom ? g.tile : g.hero || g.tile || g.cover;
-      if (bg) U.stillBackground(el, bg); // si es animada, su primer cuadro: solo se anima el juego marcado
-      if (!g.tileIsCustom) {
-        if (g.logo) {
-          const img = document.createElement('img');
-          img.src = g.logo;
-          img.alt = '';
-          el.appendChild(img);
-        } else if (!g.heroIsReal || !bg) {
-          const t = document.createElement('div');
-          t.className = 'p4-tart-name';
-          t.textContent = g.name;
-          t.style.fontSize = `${big ? 44 : 30}px`;
-          el.appendChild(t);
-        }
-      }
-      // Juego al 100 %: trofeo de platino en la esquina
-      if (U.isComplete(trophiesOf(g))) el.insertAdjacentHTML('beforeend', U.completeBadge('platinum', 'on-icon'));
-      return el;
-    }
-
     // ---------- Menú principal: fila de juegos ----------
     let rowItems = []; // { type: 'game' | 'library', game }
     function renderRow() {
@@ -369,7 +554,7 @@
         if (it.type === 'game') t.dataset.gameId = it.game.id; // clic derecho → cambiar imágenes
         const face = document.createElement('div');
         face.className = 'p4-tface';
-        if (it.type === 'game') face.appendChild(tileArt(it.game));
+        if (it.type === 'game') face.appendChild(tileArt(p4, it.game));
         else face.innerHTML = `<div class="p4-lib-ic">${icon('grid')}<span>Biblioteca</span></div>`;
         const strip = document.createElement('div');
         strip.className = 'p4-tstrip';
@@ -378,11 +563,11 @@
         // Con el mouse no se elige al pasar por encima: la fila se corre y elegiría otro cuadro sin querer
         // Con el mouse: un clic lo elige; con el cuadro ya elegido, clic en "Iniciar" = jugar y clic en la imagen = ver la ficha
         t.addEventListener('click', (e) => {
-          if (view !== 'home') return;
+          if (p4.view !== 'home') return;
           if (i !== rowSel) return setRow(i);
-          if (it.type === 'library') return openLibrary();
-          if (e.target.closest('.p4-tstrip')) startGame(it.game);
-          else openGame(it.game);
+          if (it.type === 'library') return p4.biblioteca.open();
+          if (e.target.closest('.p4-tstrip')) p4.jugando.start(it.game);
+          else p4.ficha.open(it.game);
         });
         row.appendChild(t);
       });
@@ -415,7 +600,7 @@
       label.classList.remove('pop');
       label.offsetWidth;
       label.classList.add('pop');
-      if (view === 'home') setArt(it && it.type === 'game' ? it.game.hero || it.game.tile : null);
+      if (p4.view === 'home') p4.fondo.setArt(it && it.type === 'game' ? it.game.hero || it.game.tile : null);
       renderTeaser();
     }
 
@@ -424,11 +609,11 @@
       const box = $('.p4-teaser');
       const it = rowItems[rowSel];
       if (!it || it.type !== 'game') {
-        box.innerHTML = `<div class="p4-panel wide"><div class="p4-panel-h">${icon('grid')} Biblioteca</div><div class="p4-panel-t">${games.length} juegos y aplicaciones. Presiona Enter para verlos todos.</div></div>`;
+        box.innerHTML = `<div class="p4-panel wide"><div class="p4-panel-h">${icon('grid')} Biblioteca</div><div class="p4-panel-t">${p4.games.length} juegos y aplicaciones. Presiona Enter para verlos todos.</div></div>`;
         return;
       }
       const g = it.game;
-      const tp = trophiesOf(g);
+      const tp = trophiesOf(p4, g);
       const act = [U.hours(g.playtimeMin), g.lastPlayed ? `Jugado ${U.ago(g.lastPlayed)}` : ''].filter(Boolean).join(' · ') || 'Todavía no lo juegas';
       box.innerHTML = `
         <div class="p4-panel"><div class="p4-panel-h">${icon('clock')} Tu actividad</div><div class="p4-panel-t">${esc(act)}</div></div>
@@ -437,7 +622,7 @@
             ? `<div class="p4-panel-t nh-done-text plat">${U.completeBadge('platinum')} Platino · ${tp.done} de ${tp.total}</div><div class="p4-bar plat"><i style="width:100%"></i></div>`
             : tp && tp.total
             ? `<div class="p4-panel-t">${tp.done} de ${tp.total} · ${Math.round((tp.done / tp.total) * 100)} %</div><div class="p4-bar"><i style="width:${(tp.done / tp.total) * 100}%"></i></div>`
-            : `<div class="p4-panel-t dim">${g.hasAch ? (summary.hasKey ? 'Sin datos todavía' : 'Agrega tu clave de Steam') : g.type === 'emulator' ? 'Sin logros' : 'No es de Steam'}</div>`
+            : `<div class="p4-panel-t dim">${g.hasAch ? (p4.summary.hasKey ? 'Sin datos todavía' : 'Agrega tu clave de Steam') : g.type === 'emulator' ? 'Sin logros' : 'No es de Steam'}</div>`
         }</div>
         <div class="p4-panel wide"><div class="p4-panel-h">${icon('down')} Información</div><div class="p4-panel-t clamp">${esc(g.description || 'Baja para ver la ficha del juego.')}</div></div>`;
     }
@@ -445,93 +630,97 @@
     function activateRow() {
       const it = rowItems[rowSel];
       if (!it) return;
-      if (it.type === 'library') openLibrary();
-      else startGame(it.game);
+      if (it.type === 'library') p4.biblioteca.open();
+      else p4.jugando.start(it.game);
     }
-
     // ---------- Fila de funciones (al subir) ----------
     function setFunc(i) {
       funcSel = (i + FUNCS.length) % FUNCS.length;
       $$('.p4-fn').forEach((b) => b.classList.toggle('sel', Number(b.dataset.i) === funcSel));
     }
     function openFunc() {
-      view = 'func';
+      p4.view = 'func';
       root.classList.add('in-func');
-      setArt(null);
+      p4.fondo.setArt(null);
       setFunc(funcSel);
     }
     function closeFunc() {
       root.classList.remove('in-func');
-      view = 'home';
+      p4.view = 'home';
       setRow(rowSel);
     }
     function runFunc(id) {
       if (id === 'store') call('open', 'steam-store');
-      else if (id === 'friends') openFriends();
+      else if (id === 'friends') p4.amigos.open();
       else if (id === 'profile') call('open', 'steam-profile');
-      else if (id === 'party') openParty();
-      else if (id === 'trophies') openTrophies();
-      else if (id === 'settings') openSettings();
-      else if (id === 'power') openPower();
+      else if (id === 'party') p4.grupo.open();
+      else if (id === 'trophies') p4.trofeos.open();
+      else if (id === 'settings') p4.ajustes.open();
+      else if (id === 'power') p4.ventanita.power();
     }
     $$('.p4-fn').forEach((b) => {
-      b.addEventListener('mouseenter', () => view === 'func' && setFunc(Number(b.dataset.i)));
+      b.addEventListener('mouseenter', () => p4.view === 'func' && setFunc(Number(b.dataset.i)));
       b.addEventListener('click', () => {
-        if (view === 'home') openFunc();
+        if (p4.view === 'home') openFunc();
         setFunc(Number(b.dataset.i));
         runFunc(FUNCS[funcSel].id);
       });
     });
+    // Rueda del mouse en el menú principal: mover entre juegos
+    let wheelLock = 0;
+    $('.p4-home').addEventListener('wheel', (e) => {
+      if (p4.view !== 'home' || Date.now() < wheelLock) return;
+      const d = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
+      if (Math.abs(d) < 10) return;
+      setRow(rowSel + (d > 0 ? 1 : -1));
+      wheelLock = Date.now() + 160;
+    });
+    function key(k) {
+      if (k === 'ArrowRight') setRow(rowSel + 1);
+      else if (k === 'ArrowLeft') setRow(rowSel - 1);
+      else if (k === 'ArrowUp') openFunc();
+      else if (k === 'ArrowDown') {
+        const it = rowItems[rowSel];
+        if (it && it.type === 'game') p4.ficha.open(it.game);
+        else if (it) p4.biblioteca.open();
+      } else if (k === 'Enter') activateRow();
+      else if (k === 'o' || k === 'O') homeSortMenu();
+      else if (k === 'Escape') ctx.openSelector();
+    }
+    function funcKey(k) {
+      if (k === 'ArrowRight') setFunc(funcSel + 1);
+      else if (k === 'ArrowLeft') setFunc(funcSel - 1);
+      else if (k === 'ArrowDown' || k === 'Escape' || k === 'Backspace') closeFunc();
+      else if (k === 'Enter') runFunc(FUNCS[funcSel].id);
+    }
+    return {
+      key,
+      funcKey,
+      renderRow,
+      renderTeaser,
+      openFunc,
+      closeFunc,
+      paintFunc: () => setFunc(funcSel),
+      repaintRow: () => setRow(rowSel),
+      // Llegó un resumen de logros: el orden por logros y lo que se asoma abajo cambian
+      summaryChanged() {
+        if (p4.view === 'home' && homeOrder.mode === 'ach') renderRow();
+        if (p4.view === 'home') renderTeaser();
+      },
+    };
+  }
 
-    // ---------- Pantallas (biblioteca, ficha, trofeos, grupo, ajustes) ----------
-    function showScreen(name) {
-      if (view !== name) stack.push(view);
-      view = name;
-      root.classList.toggle('in-screen', true);
-      root.classList.remove('in-func');
-      $$('.p4-screen').forEach((s) => {
-        const on = s.classList.contains(`p4-${name === 'library' ? 'lib' : name === 'trophies' ? 'troph' : name === 'settings' ? 'set' : name}`);
-        s.hidden = !on;
-        if (on) {
-          s.classList.remove('enter');
-          s.offsetWidth;
-          s.classList.add('enter');
-        }
-      });
-    }
-    function back() {
-      const prev = stack.pop() || 'home';
-      $$('.p4-screen').forEach((s) => (s.hidden = true));
-      view = prev;
-      if (prev === 'home' || prev === 'func') {
-        root.classList.remove('in-screen');
-        if (prev === 'func') openFunc();
-        else setRow(rowSel);
-      } else {
-        showScreenAgain(prev);
-      }
-    }
-    function showScreenAgain(name) {
-      view = name;
-      const cls = { library: 'lib', trophies: 'troph', settings: 'set' }[name] || name;
-      const s = $(`.p4-${cls}`);
-      if (s) s.hidden = false;
-      if (name === 'game' && current) setArt(current.hero || current.tile, true);
-      if (name === 'library') {
-        setArt(null);
-        paintLib();
-      }
-    }
-
+  function pantallaFicha(p4) {
+    const { $, $$, call } = p4;
     // ---------- Ficha del juego ----------
     let gameBtn = 0;
     let gameToken = 0;
     function openGame(g) {
       if (!g) return;
-      current = g;
-      showScreen('game');
+      p4.current = g;
+      p4.showScreen('game');
       $('.p4-game').dataset.gameCurrent = g.id; // clic derecho / tecla I → imágenes de este juego
-      setArt(g.hero || g.tile, true);
+      p4.fondo.setArt(g.hero || g.tile, true);
       const title = $('.p4g-title');
       title.innerHTML = '';
       if (g.logo) {
@@ -547,12 +736,9 @@
       setGameBtn(0);
       paintGameTrophies(g);
     }
-    function typeLabel(g) {
-      return { steam: 'Steam', exe: 'Programa', shortcut: 'Acceso directo', url: 'Otro launcher', minecraft: 'Launcher de Minecraft', emulator: 'Emulador', riot: 'Riot Games' }[g.type] || '';
-    }
     async function paintGameTrophies(g) {
       const body = $('.p4g-tp-body');
-      const tp = trophiesOf(g);
+      const tp = trophiesOf(p4, g);
       if (!g.hasAch) {
         body.innerHTML = '<div class="p4-panel-t dim">Este juego no tiene lista de trofeos.</div>';
         return;
@@ -564,7 +750,7 @@
         : '<div class="p4-panel-t dim">Cargando…</div><div class="p4g-icons"></div>';
       const token = ++gameToken;
       const res = await call('getAchievements', g.appId);
-      if (token !== gameToken || view !== 'game') return;
+      if (token !== gameToken || p4.view !== 'game') return;
       if (!res || res.status !== 'ok') {
         body.innerHTML = `<div class="p4-panel-t dim small">${U.achievementMessage(res || { status: 'error' })}</div>`;
         return;
@@ -590,9 +776,19 @@
     }
     $$('.p4g-actions .p4-btn').forEach((b) => {
       b.addEventListener('mouseenter', () => setGameBtn($$('.p4g-actions .p4-btn').filter((x) => !x.hidden).indexOf(b)));
-      b.addEventListener('click', () => (b.dataset.g === 'start' ? startGame(current) : openTrophyList(current)));
+      b.addEventListener('click', () => (b.dataset.g === 'start' ? p4.jugando.start(p4.current) : p4.trofeos.openList(p4.current)));
     });
+    function key(k) {
+      if (k === 'ArrowRight') setGameBtn(gameBtn + 1);
+      else if (k === 'ArrowLeft') setGameBtn(gameBtn - 1);
+      else if (k === 'Enter') $$('.p4g-actions .p4-btn').filter((b) => !b.hidden)[gameBtn].click();
+      else if (k === 'Escape' || k === 'Backspace' || k === 'ArrowUp') p4.back();
+    }
+    return { key, open: openGame, paintTrophies: paintGameTrophies };
+  }
 
+  function pantallaBiblioteca(p4) {
+    const { $, $$ } = p4;
     // ---------- Biblioteca ----------
     const LIB_CATS = [
       { id: 'all', label: 'Todos', icon: 'grid', filter: () => true },
@@ -600,7 +796,7 @@
       { id: 'apps', label: 'Aplicaciones', icon: 'apps', filter: (g) => !['steam', 'minecraft', 'emulator'].includes(g.type) },
       { id: 'recent', label: 'Jugados recientemente', icon: 'clock', filter: (g) => !!g.lastPlayed, mine: true },
       // Solo los que de verdad tienen logros (Steam revisa cada juego en segundo plano; los sin logros quedan en 0)
-      { id: 'troph', label: 'Con trofeos', icon: 'trophy', filter: (g) => !!(trophiesOf(g) && trophiesOf(g).total > 0), mine: true },
+      { id: 'troph', label: 'Con trofeos', icon: 'trophy', filter: (g) => !!(trophiesOf(p4, g) && trophiesOf(p4, g).total > 0), mine: true },
     ];
     const libOrder = U.gameOrder('ps4lib', { def: 'recent' }); // Jugado recientemente, Nombre, Horas o % de logros
     let libCat = 0;
@@ -613,8 +809,8 @@
     const searchInput = $('.p4l-search input');
 
     function openLibrary() {
-      showScreen('library');
-      setArt(null);
+      p4.showScreen('library');
+      p4.fondo.setArt(null);
       libFocus = 'grid';
       libSel = 0;
       libScroll = 0;
@@ -623,18 +819,18 @@
     function paintLib() {
       // Lado izquierdo
       const side = $('.p4l-side');
-      const count = (c) => games.filter(c.filter).length;
+      const count = (c) => p4.games.filter(c.filter).length;
       side.innerHTML = `
         <button class="p4l-it" data-s="0">${icon('search')}<span>Buscar</span></button>
         <div class="p4l-h">Este PC</div>
         ${LIB_CATS.filter((c) => !c.mine)
           .map((c) => `<button class="p4l-it" data-s="${LIB_CATS.indexOf(c) + 1}">${icon(c.icon)}<span>${c.label}</span><b>${count(c)}</b></button>`)
           .join('')}
-        <div class="p4l-h user"><span class="p4-av small"><img alt="" hidden /></span>${esc(profile.name || 'Jugador')}</div>
+        <div class="p4l-h user"><span class="p4-av small"><img alt="" hidden /></span>${esc(p4.profile.name || 'Jugador')}</div>
         ${LIB_CATS.filter((c) => c.mine)
           .map((c) => `<button class="p4l-it" data-s="${LIB_CATS.indexOf(c) + 1}">${icon(c.icon)}<span>${c.label}</span><b>${count(c)}</b></button>`)
           .join('')}`;
-      side.querySelectorAll('.p4-av').forEach(paintAvatar);
+      side.querySelectorAll('.p4-av').forEach((el) => p4.barra.paintAvatar(el));
       side.querySelectorAll('.p4l-it').forEach((b) => {
         const s = Number(b.dataset.s);
         b.classList.toggle('on', s - 1 === libCat);
@@ -649,8 +845,8 @@
       const cat = LIB_CATS[libCat];
       const q = libQuery.trim().toLowerCase();
       libList = libOrder.apply(
-        games.filter(cat.filter).filter((g) => !q || g.name.toLowerCase().includes(q)),
-        summary
+        p4.games.filter(cat.filter).filter((g) => !q || g.name.toLowerCase().includes(q)),
+        p4.summary
       );
       $('.p4l-sort').innerHTML = `<span class="p4-key">S</span><span>${libOrder.label()}</span>${icon('down')}`;
       $('.p4l-section').textContent = q ? `Resultados para "${libQuery}"` : `${cat.label} · ${libList.length}`;
@@ -661,7 +857,7 @@
         c.className = 'p4l-cell';
         c.dataset.i = i;
         c.dataset.gameId = g.id;
-        const art = tileArt(g);
+        const art = tileArt(p4, g);
         const name = document.createElement('div');
         name.className = 'p4l-name';
         name.textContent = g.name;
@@ -676,7 +872,7 @@
           libFocus = 'grid';
           setLib(i, false);
         });
-        c.addEventListener('click', () => openGame(g));
+        c.addEventListener('click', () => p4.ficha.open(g));
         grid.appendChild(c);
       });
       if (!libList.length) grid.innerHTML = '<div class="p4l-empty">No hay nada aquí.</div>';
@@ -726,11 +922,11 @@
       }
     });
     function libSortMenu() {
-      openPop('Ordenar', libOrder.sorts.map((s) => ({ label: s.label, on: s.id === libOrder.mode, run: () => (libOrder.set(s.id), (libSel = 0), (libScroll = 0), paintLib()) })));
+      p4.ventanita.open('Ordenar', libOrder.sorts.map((s) => ({ label: s.label, on: s.id === libOrder.mode, run: () => (libOrder.set(s.id), (libSel = 0), (libScroll = 0), paintLib()) })));
     }
     $('.p4l-sort').addEventListener('click', () => libSortMenu());
     $('.p4l-viewport').addEventListener('wheel', (e) => {
-      if (view !== 'library' || Math.abs(e.deltaY) < 10) return;
+      if (p4.view !== 'library' || Math.abs(e.deltaY) < 10) return;
       const maxRow = Math.max(0, Math.ceil(libList.length / LIB_COLS) - Math.floor(LIB_VIEW_H / LIB_ROW_H));
       libScroll = Math.max(0, Math.min(maxRow, libScroll + (e.deltaY > 0 ? 1 : -1)));
       $('.p4l-grid').style.transform = `translateY(${-libScroll * LIB_ROW_H}px)`;
@@ -743,7 +939,7 @@
         else if (k === 'ArrowUp') libSideSel = order[Math.max(0, at - 1)];
         else if (k === 'ArrowRight' && libList.length) libFocus = 'grid';
         else if (k === 'Enter') return pickSide();
-        else if (k === 'Escape' || k === 'Backspace') return back();
+        else if (k === 'Escape' || k === 'Backspace') return p4.back();
         setLib(libSel, false);
         return;
       }
@@ -757,28 +953,32 @@
       } else if (k === 'ArrowDown') setLib(libSel + LIB_COLS);
       else if (k === 'ArrowUp') {
         if (libSel >= LIB_COLS) setLib(libSel - LIB_COLS);
-      } else if (k === 'Enter' && libList[libSel]) openGame(libList[libSel]);
+      } else if (k === 'Enter' && libList[libSel]) p4.ficha.open(libList[libSel]);
       else if (k === 's' || k === 'S' || k === 'o' || k === 'O') libSortMenu();
-      else if (k === 'Escape' || k === 'Backspace') back();
+      else if (k === 'Escape' || k === 'Backspace') p4.back();
     }
+    return { open: openLibrary, paint: paintLib, key: libKey, typing: () => document.activeElement === searchInput };
+  }
 
+  function pantallaTrofeos(p4) {
+    const { $, $$, call } = p4;
     // ---------- Trofeos ----------
-    let tMode = 'games'; // games | list
+    let tMode = 'games'; // p4.games | list
     let tSel = 0;
     let tRows = [];
     let tToken = 0;
     const T_ROW_H = 128;
     const T_VIEW_H = 590;
     function openTrophies() {
-      showScreen('trophies');
-      setArt(null);
+      p4.showScreen('trophies');
+      p4.fondo.setArt(null);
       tMode = 'games';
       tSel = 0;
       paintTrophyGames();
     }
     function paintTrophyCard() {
-      const pct = summary.total ? Math.round((summary.done / summary.total) * 100) : 0;
-      $('.p4t-sum').textContent = summary.hasKey ? `${summary.done || 0} trofeos de ${summary.total || 0} · ${pct} %` : 'Sin clave de Steam';
+      const pct = p4.summary.total ? Math.round((p4.summary.done / p4.summary.total) * 100) : 0;
+      $('.p4t-sum').textContent = p4.summary.hasKey ? `${p4.summary.done || 0} trofeos de ${p4.summary.total || 0} · ${pct} %` : 'Sin clave de Steam';
       $('.p4t-card .p4-bar i').style.width = `${pct}%`;
     }
     function paintTrophyGames() {
@@ -789,27 +989,27 @@
       list.dataset.first = '0';
       list.style.transform = '';
       $('.p4t-head').textContent = 'Tus juegos';
-      if (!summary.hasKey) {
+      if (!p4.summary.hasKey) {
         msg.hidden = false;
         msg.innerHTML = U.achievementMessage({ status: 'no-key' });
         tRows = [];
         return;
       }
       msg.hidden = true;
-      tRows = games
-        .filter((g) => trophiesOf(g) && trophiesOf(g).total)
+      tRows = p4.games
+        .filter((g) => trophiesOf(p4, g) && trophiesOf(p4, g).total)
         .sort((a, b) => (b.lastPlayed || 0) - (a.lastPlayed || 0));
       if (!tRows.length) {
         msg.hidden = false;
         msg.innerHTML = 'Todavía no hay datos de trofeos. Se cargan solos en unos minutos.';
       }
       tRows.forEach((g, i) => {
-        const tp = trophiesOf(g);
+        const tp = trophiesOf(p4, g);
         const r = document.createElement('button');
         r.className = 'p4t-row';
         r.dataset.i = i;
         r.dataset.gameId = g.id;
-        const art = tileArt(g);
+        const art = tileArt(p4, g);
         const pct = Math.round((tp.done / tp.total) * 100);
         const info = document.createElement('div');
         info.className = 'p4t-info';
@@ -828,13 +1028,13 @@
     }
     async function openTrophyList(g) {
       if (!g) return;
-      if (view !== 'trophies') {
-        showScreen('trophies');
-        setArt(null);
+      if (p4.view !== 'trophies') {
+        p4.showScreen('trophies');
+        p4.fondo.setArt(null);
       }
       paintTrophyCard();
       tMode = 'list';
-      current = g;
+      p4.current = g;
       tSel = 0;
       const msg = $('.p4t-msg');
       const list = $('.p4t-list');
@@ -846,7 +1046,7 @@
       msg.innerHTML = '<div class="p4-spin"></div>Cargando trofeos…';
       const token = ++tToken;
       const res = (await call('getAchievements', g.appId)) || { status: 'error' };
-      if (token !== tToken || view !== 'trophies') return;
+      if (token !== tToken || p4.view !== 'trophies') return;
       if (res.status !== 'ok') {
         msg.innerHTML = U.achievementMessage(res);
         tRows = [];
@@ -888,7 +1088,7 @@
       }
     }
     $('.p4t-viewport').addEventListener('wheel', (e) => {
-      if (view === 'trophies' && Math.abs(e.deltaY) > 10) setTrophy(tSel + (e.deltaY > 0 ? 1 : -1));
+      if (p4.view === 'trophies' && Math.abs(e.deltaY) > 10) setTrophy(tSel + (e.deltaY > 0 ? 1 : -1));
     });
     function trophyKey(k) {
       if (k === 'ArrowDown') setTrophy(tSel + 1);
@@ -896,15 +1096,19 @@
       else if (k === 'Enter' && tMode === 'games' && tRows[tSel]) openTrophyList(tRows[tSel]);
       else if (k === 'Escape' || k === 'Backspace') {
         // Si vinimos de la ficha del juego, volvemos a ella; si no, a la lista de juegos
-        if (tMode === 'list' && stack[stack.length - 1] !== 'game') {
+        if (tMode === 'list' && p4.stack[p4.stack.length - 1] !== 'game') {
           tMode = 'games';
           tSel = 0;
           $('.p4t-list').dataset.first = '0';
           paintTrophyGames();
-        } else back();
+        } else p4.back();
       }
     }
+    return { open: openTrophies, openList: openTrophyList, key: trophyKey };
+  }
 
+  function pantallaAmigos(p4) {
+    const { $, $$, ctx, call } = p4;
     // ---------- Amigos (de Steam) ----------
     // La lista se pide a Steam al abrir y cada 30 segundos mientras está a la vista.
     let friends = { status: 'loading', list: [] };
@@ -923,19 +1127,19 @@
       friendsAt = Date.now();
       // Si falla una actualización, se queda la última lista buena
       if (res.status === 'ok' || friends.status !== 'ok' || res.status !== 'error') friends = res;
-      if (view === 'friends') paintFriends();
-      if (qmOpen && QM[qmSel] && QM[qmSel].id === 'friends') renderQmSub();
+      if (p4.view === 'friends') paintFriends();
+      p4.rapido.refresh('friends');
     }
     function openFriends() {
-      showScreen('friends');
-      setArt(null);
+      p4.showScreen('friends');
+      p4.fondo.setArt(null);
       fSel = 0;
       fBtn = 0;
       $('.p4f-viewport').scrollTop = 0;
       paintFriends();
       if (Date.now() - friendsAt > 5000) loadFriends();
       clearInterval(fTimer);
-      fTimer = setInterval(() => (view === 'friends' ? loadFriends() : clearInterval(fTimer)), 30000);
+      fTimer = setInterval(() => (p4.view === 'friends' ? loadFriends() : clearInterval(fTimer)), 30000);
     }
     function paintFriends() {
       const list = $('.p4f-list');
@@ -1024,27 +1228,42 @@
         }
       } else if (k === 'Escape' || k === 'Backspace') {
         clearInterval(fTimer);
-        back();
+        p4.back();
       }
     }
+    return {
+      open: openFriends,
+      key: friendsKey,
+      load: loadFriends,
+      // Para el menú rápido: la lista, hace cuánto se pidió, la foto y el mensaje de "no hay"
+      data: () => friends,
+      age: () => Date.now() - friendsAt,
+      avatar: friendAvatar,
+      message: friendsMessage,
+      openProfile: openFriendProfile,
+      dispose: () => clearInterval(fTimer),
+    };
+  }
 
+  function pantallaGrupo(p4) {
+    const { $, $$, call } = p4;
     // ---------- Grupo (Discord) ----------
     function openParty() {
-      showScreen('party');
-      setArt(null);
+      p4.showScreen('party');
+      p4.fondo.setArt(null);
       partyBtn = 0;
       renderParty();
     }
     function renderDiscord(s) {
-      discord = s || discord;
-      const n = discord.status === 'ok' && discord.channel ? discord.members.length : 0;
+      p4.discord = s || p4.discord;
+      const n = p4.discord.status === 'ok' && p4.discord.channel ? p4.discord.members.length : 0;
       $('.p4-st-party').hidden = !n;
       $('.p4-st-party b').textContent = String(n);
-      if (view === 'party') renderParty();
-      if (qmOpen && QM[qmSel] && QM[qmSel].id === 'party') renderQmSub();
+      if (p4.view === 'party') renderParty();
+      p4.rapido.refresh('party');
     }
     function partyMembersHtml(big) {
-      return discord.members
+      return p4.discord.members
         .map(
           (m) => `<div class="p4p-m${m.speaking ? ' talking' : ''}${big ? '' : ' small'}">
             <span class="p4p-av" style="background-image:url('${m.avatar}')"></span>
@@ -1055,7 +1274,7 @@
         .join('');
     }
     function partyStatusText() {
-      switch (discord.status) {
+      switch (p4.discord.status) {
         case 'no-config':
           return { t: 'Conecta tu Discord', d: 'Para ver tu canal de voz y quiénes están contigo, conecta tu Discord. Se hace aquí mismo y toma unos 2 minutos.', btns: [['discord', 'Conectar Discord']] };
         case 'no-discord':
@@ -1067,7 +1286,7 @@
         case 'authorizing':
           return { t: 'Acepta en Discord', d: 'Revisa la ventana que apareció en Discord y presiona Autorizar.', btns: [] };
         case 'error':
-          return { t: 'No se pudo conectar', d: discord.message || 'Revisa los datos de tu aplicación de Discord.', btns: [['auth', 'Intentar de nuevo'], ['discord', 'Conectar Discord']] };
+          return { t: 'No se pudo conectar', d: p4.discord.message || 'Revisa los datos de tu aplicación de Discord.', btns: [['auth', 'Intentar de nuevo'], ['discord', 'Conectar Discord']] };
         default:
           return null;
       }
@@ -1079,11 +1298,11 @@
       if (st) {
         body.innerHTML = `<div class="p4p-empty">${icon('headset', 'p4p-big')}<div class="p4p-t">${st.t}</div><div class="p4p-d">${esc(st.d)}</div>
           <div class="p4p-btns">${st.btns.map(([id, label], i) => `<button class="p4-btn${i === partyBtn ? ' sel' : ''}" data-pb="${id}"><span>${label}</span></button>`).join('')}</div></div>`;
-      } else if (!discord.channel) {
+      } else if (!p4.discord.channel) {
         body.innerHTML = `<div class="p4p-empty">${icon('headset', 'p4p-big')}<div class="p4p-t">No estás en un canal de voz</div><div class="p4p-d">Cuando entres a un canal de voz en Discord, aquí vas a ver quiénes están contigo.</div></div>`;
       } else {
         body.innerHTML = `<div class="p4p-card">
-            <div class="p4p-chan">${icon('headset')}<div><div class="p4p-cname">${esc(discord.channel.name)}</div><div class="p4p-guild">${esc(discord.channel.guild || 'Mensaje directo')} · ${discord.members.length} ${discord.members.length === 1 ? 'persona' : 'personas'}</div></div></div>
+            <div class="p4p-chan">${icon('headset')}<div><div class="p4p-cname">${esc(p4.discord.channel.name)}</div><div class="p4p-guild">${esc(p4.discord.channel.guild || 'Mensaje directo')} · ${p4.discord.members.length} ${p4.discord.members.length === 1 ? 'persona' : 'personas'}</div></div></div>
             <div class="p4p-members">${partyMembersHtml(true)}</div>
           </div>`;
       }
@@ -1108,19 +1327,23 @@
       else if (k === 'Enter') {
         const b = $$('[data-pb]')[partyBtn];
         if (b) partyAction(b.dataset.pb);
-      } else if (k === 'Escape' || k === 'Backspace') back();
+      } else if (k === 'Escape' || k === 'Backspace') p4.back();
     }
+    return { renderDiscord, open: openParty, key: partyKey, membersHtml: partyMembersHtml, statusText: partyStatusText };
+  }
 
+  function pantallaAjustes(p4) {
+    const { $, $$, ctx, call } = p4;
     // ---------- Ajustes ----------
     let setLevel = 'cats'; // cats | items
     let setCat = 0;
     let setSel = 0;
     const CAT_ICONS = { themes: 'image', general: 'gear', games: 'pad', emulators: 'pad', screen: 'screen', sound: 'speaker', accounts: 'person', files: 'folder' };
     async function openSettings() {
-      showScreen('settings');
-      setArt(null);
-      await wall.load();
-      menuModel = withThemes(await call('getMenu'));
+      p4.showScreen('settings');
+      p4.fondo.setArt(null);
+      await p4.wall.load();
+      p4.menuModel = p4.fondo.withThemes(await call('getMenu'));
       setLevel = 'cats';
       setSel = 0;
       paintSettings();
@@ -1131,8 +1354,8 @@
       list.classList.remove('slide');
       list.offsetWidth;
       list.classList.add('slide');
-      $('.p4-set .p4-title').textContent = setLevel === 'cats' ? 'Ajustes' : menuModel[setCat].title;
-      const rows = setLevel === 'cats' ? menuModel : menuModel[setCat].items;
+      $('.p4-set .p4-title').textContent = setLevel === 'cats' ? 'Ajustes' : p4.menuModel[setCat].title;
+      const rows = setLevel === 'cats' ? p4.menuModel : p4.menuModel[setCat].items;
       rows.forEach((r, i) => {
         const b = document.createElement('button');
         b.className = 'p4s-row';
@@ -1164,7 +1387,7 @@
       if (!rows.length) return;
       setSel = (i + rows.length) % rows.length;
       rows.forEach((r) => r.classList.toggle('sel', Number(r.dataset.i) === setSel));
-      const it = setLevel === 'items' ? menuModel[setCat].items[setSel] : null;
+      const it = setLevel === 'items' ? p4.menuModel[setCat].items[setSel] : null;
       $('.p4s-desc').textContent = it ? it.desc || '' : '';
     }
     async function pickSetting() {
@@ -1174,19 +1397,19 @@
         setSel = 0;
         return paintSettings();
       }
-      const it = menuModel[setCat].items[setSel];
+      const it = p4.menuModel[setCat].items[setSel];
       if (!it) return;
       if (it.id === 'consoles') return ctx.openSelector();
-      if (it.confirm) return openPower();
+      if (it.confirm) return p4.ventanita.power();
       if (it.local && it.type === 'choice') {
-        return openPop(
+        return p4.ventanita.open(
           it.label,
-          it.options.map((o) => ({ label: o.label, on: String(o.value) === String(it.value), run: () => (it.set(o.value), (menuModel = withThemes(menuModel)), paintSettings()) }))
+          it.options.map((o) => ({ label: o.label, on: String(o.value) === String(it.value), run: () => (it.set(o.value), (p4.menuModel = p4.fondo.withThemes(p4.menuModel)), paintSettings()) }))
         );
       }
       if (it.local) return (it.run(), ctx.toast('Se abrió en Windows'));
       if (it.type === 'choice') {
-        return openPop(
+        return p4.ventanita.open(
           it.label,
           it.options.map((o) => ({ label: o.label, on: String(o.value) === String(it.value), run: () => runOption(it, o.value) }))
         );
@@ -1196,9 +1419,9 @@
     }
     async function runOption(it, value) {
       const next = await call('runMenu', it.id, value);
-      if (next) menuModel = withThemes(next);
-      if (view === 'settings') paintSettings();
-      if (qmOpen) renderQmSub();
+      if (next) p4.menuModel = p4.fondo.withThemes(next);
+      if (p4.view === 'settings') paintSettings();
+      p4.rapido.refresh();
     }
     function settingsKey(k) {
       if (k === 'ArrowDown') setSetting(setSel + 1);
@@ -1209,10 +1432,14 @@
           setLevel = 'cats';
           setSel = setCat;
           paintSettings();
-        } else if (k !== 'ArrowLeft') back();
+        } else if (k !== 'ArrowLeft') p4.back();
       }
     }
+    return { runOption, open: openSettings, key: settingsKey };
+  }
 
+  function ventanita(p4) {
+    const { $, $$, ctx, call } = p4;
     // ---------- Ventanitas (Energía y listas para elegir) ----------
     let pop = null; // { items, sel }
     function openPop(title, items) {
@@ -1259,7 +1486,19 @@
         { icon: 'power', label: 'Apagar NostalHub', run: () => call('runMenu', 'quit') },
       ]);
     }
+    function key(k) {
+      if (k === 'ArrowDown') setPop(pop.sel + 1);
+      else if (k === 'ArrowUp') setPop(pop.sel - 1);
+      else if (k === 'Enter') choosePop(pop.sel);
+      else if (k === 'Escape' || k === 'Backspace') closePop();
+    }
+    return { key, open: openPop, power: openPower, isOpen: () => !!pop };
+  }
 
+  function menuRapido(p4) {
+    const { $, $$, api, ctx, call } = p4;
+    const friendClass = U.friendClass;
+    const friendStatus = U.friendStatus;
     // ---------- Menú rápido ----------
     const QM = [
       { id: 'sound', label: 'Sonido', icon: 'speaker' },
@@ -1279,15 +1518,15 @@
     let qmCol = 'list'; // list | sub
     let qmSubSel = 0;
     async function openQm() {
-      if (qmOpen || view === 'playing') return;
+      if (qmOpen || p4.view === 'playing') return;
       qmOpen = true;
-      menuModel = withThemes((await call('getMenu')) || menuModel);
+      p4.menuModel = p4.fondo.withThemes((await call('getMenu')) || p4.menuModel);
       const qm = $('.p4-qm');
       qm.hidden = false;
       qm.classList.remove('leave');
       qmCol = 'list';
       renderQm();
-      if (Date.now() - friendsAt > 20000) loadFriends();
+      if (p4.amigos.age() > 20000) p4.amigos.load();
     }
     async function closeQm() {
       if (!qmOpen) return;
@@ -1310,7 +1549,7 @@
         b.className = 'p4-qm-it';
         b.dataset.i = i;
         b.innerHTML = `${icon(q.icon)}<span>${q.label}</span>`;
-        if (q.id === 'party' && discord.channel && discord.status === 'ok') b.insertAdjacentHTML('beforeend', `<b>${discord.members.length}</b>`);
+        if (q.id === 'party' && p4.discord.channel && p4.discord.status === 'ok') b.insertAdjacentHTML('beforeend', `<b>${p4.discord.members.length}</b>`);
         b.addEventListener('mouseenter', () => {
           qmCol = 'list';
           setQm(i);
@@ -1334,7 +1573,7 @@
       setQm(ids[(at + dir + ids.length) % ids.length]);
     }
     function soundItems() {
-      const sec = menuModel.find((s) => s.id === 'sound');
+      const sec = p4.menuModel.find((s) => s.id === 'sound');
       return sec ? sec.items : [];
     }
     // Columna de la derecha: opciones de lo que está marcado
@@ -1362,11 +1601,11 @@
       if (q.id === 'sound') {
         soundItems().forEach((it) => {
           const val = it.type === 'toggle' ? `<span class="p4s-check${it.value ? ' on' : ''}">${it.value ? icon('check') : ''}</span>` : `<span class="p4s-v">${esc(U.optionValueText(it))}</span>`;
-          addBtn(`<span class="p4s-l">${esc(it.label)}</span>${val}`, () => runOption(it, U.optionNextValue(it, 1)));
+          addBtn(`<span class="p4s-l">${esc(it.label)}</span>${val}`, () => p4.ajustes.runOption(it, U.optionNextValue(it, 1)));
         });
       } else if (q.id === 'music') {
         // Música: la canción con su barra, lo que viene y (con Spotify conectado) aleatorio, repetir, me gusta…
-        const v = U.spotifyView(spotify);
+        const v = U.spotifyView(p4.spotify);
         const info = document.createElement('div');
         info.className = 'p4-qm-song';
         info.innerHTML = `<div class="p4-qm-cover"${v.cover ? ` style="background-image:url('${v.cover}')"` : ''}>${v.cover ? '' : icon('music')}</div><div class="p4-qm-stx"><div class="p4-qm-app">${esc(v.app)}</div><div class="p4-qm-st">${esc(v.title)}</div><div class="p4-qm-sa">${esc(v.artist)}</div>${U.progressHtml(v, 'p4-qm-prog')}</div>`;
@@ -1388,7 +1627,7 @@
           addBtn(`${icon('prev')}`, () => call('spotifyControl', 'prev'), 'round');
           addBtn(`${icon(v.playing ? 'pause' : 'play')}`, () => {
             call('spotifyControl', 'toggle');
-            if (spotify) renderSpotify({ ...spotify, playing: !spotify.playing });
+            if (p4.spotify) p4.renderSpotify({ ...p4.spotify, playing: !p4.spotify.playing });
           }, 'round big');
           addBtn(`${icon('next')}`, () => call('spotifyControl', 'next'), 'round');
           row(3);
@@ -1412,32 +1651,32 @@
       } else if (q.id === 'party') {
         const head = document.createElement('div');
         head.className = 'p4-qm-party';
-        if (discord.status === 'ok' && discord.channel) {
-          head.innerHTML = `<div class="p4-qm-st">${esc(discord.channel.name)}</div><div class="p4-qm-sa">${esc(discord.channel.guild || 'Mensaje directo')}</div><div class="p4p-members small">${partyMembersHtml(false)}</div>`;
+        if (p4.discord.status === 'ok' && p4.discord.channel) {
+          head.innerHTML = `<div class="p4-qm-st">${esc(p4.discord.channel.name)}</div><div class="p4-qm-sa">${esc(p4.discord.channel.guild || 'Mensaje directo')}</div><div class="p4p-members small">${p4.grupo.membersHtml(false)}</div>`;
         } else {
-          const st = partyStatusText();
+          const st = p4.grupo.statusText();
           head.innerHTML = `<div class="p4-qm-st">${st ? st.t : 'No estás en un canal de voz'}</div>`;
         }
         box.appendChild(head);
         addBtn(`${icon('headset')}<span>Ver grupo</span>`, () => {
           closeQm();
-          openParty();
+          p4.grupo.open();
         });
       } else if (q.id === 'friends') {
         // Solo los conectados (los que juegan primero), como en el menú rápido de la PS4
-        const online = (friends.list || []).filter((f) => f.state !== 0);
-        if (friends.status !== 'ok' || !online.length) {
+        const online = (p4.amigos.data().list || []).filter((f) => f.state !== 0);
+        if (p4.amigos.data().status !== 'ok' || !online.length) {
           const info = document.createElement('div');
           info.className = 'p4-qm-party';
-          info.innerHTML = `<div class="p4-qm-st">${friends.status === 'loading' ? 'Cargando amigos…' : friends.status === 'ok' ? 'No hay amigos en línea' : esc(friendsMessage().t)}</div>`;
+          info.innerHTML = `<div class="p4-qm-st">${p4.amigos.data().status === 'loading' ? 'Cargando amigos…' : p4.amigos.data().status === 'ok' ? 'No hay amigos en línea' : esc(p4.amigos.message().t)}</div>`;
           box.appendChild(info);
         }
-        online.slice(0, 8).forEach((f) => addBtn(`${friendAvatar(f, 'small')}<span class="p4f-qtx"><span class="p4f-qn">${esc(f.name)}</span><span class="p4f-qs ${friendClass(f)}">${esc(friendStatus(f))}</span></span>`, () => openFriendProfile(f), 'p4f-qrow'));
+        online.slice(0, 8).forEach((f) => addBtn(`${p4.amigos.avatar(f, 'small')}<span class="p4f-qtx"><span class="p4f-qn">${esc(f.name)}</span><span class="p4f-qs ${friendClass(f)}">${esc(friendStatus(f))}</span></span>`, () => p4.amigos.openProfile(f), 'p4f-qrow'));
         addBtn(`${icon('people')}<span>${online.length > 8 ? `Ver todos (${online.length} en línea)` : 'Ver todos los amigos'}</span>`, () => {
           closeQm();
-          goFromQm(openFriends);
+          goFromQm(() => p4.amigos.open());
         });
-        if (friends.status !== 'loading' && Date.now() - friendsAt > 20000) loadFriends();
+        if (p4.amigos.data().status !== 'loading' && p4.amigos.age() > 20000) p4.amigos.load();
       } else if (q.id === 'power') {
         addBtn(`${icon('swap')}<span>Cambiar de consola</span>`, () => ctx.openSelector());
         addBtn(`${icon('restart')}<span>Reiniciar NostalHub</span>`, () => call('runMenu', 'reload'));
@@ -1463,14 +1702,14 @@
       }
       closeQm();
       if (q.id === 'random') {
-        if (games.length) goFromQm(() => openGame(games[Math.floor(Math.random() * games.length)]));
-      } else if (q.id === 'library') goFromQm(openLibrary);
+        if (p4.games.length) goFromQm(() => p4.ficha.open(p4.games[Math.floor(Math.random() * p4.games.length)]));
+      } else if (q.id === 'library') goFromQm(() => p4.biblioteca.open());
       else if (q.id === 'consoles') ctx.openSelector();
-      else if (q.id === 'settings') goFromQm(openSettings);
+      else if (q.id === 'settings') goFromQm(() => p4.ajustes.open());
     }
     // Desde el menú rápido se puede abrir una pantalla estando en cualquier otra
     function goFromQm(fn) {
-      if (view === 'func') closeFunc();
+      if (p4.view === 'func') p4.inicio.closeFunc();
       fn();
     }
     function qmKey(k) {
@@ -1532,31 +1771,36 @@
     $('.p4-qm').addEventListener('pointerdown', (e) => {
       if (e.target === e.currentTarget) closeQm();
     });
+    return {
+      open: openQm,
+      close: closeQm,
+      key: qmKey,
+      isOpen: () => qmOpen,
+      // Llegaron datos nuevos: si esa parte está a la vista (o cualquiera, sin decir cuál), se vuelve a dibujar
+      refresh(id) {
+        if (qmOpen && (!id || (QM[qmSel] && QM[qmSel].id === id))) renderQmSub();
+      },
+    };
+  }
 
-    // ---------- Spotify (barra superior y menú rápido) ----------
-    function renderSpotify(s) {
-      spotify = s || spotify;
-      const st = spotify || {};
-      const on = st.running && st.playing && st.title;
-      $('.p4-st-music').hidden = !on;
-      if (on) $('.p4-st-music .t').textContent = `${st.title}${st.artist ? ` · ${st.artist}` : ''}`;
-      if (qmOpen && QM[qmSel] && QM[qmSel].id === 'music') renderQmSub();
-    }
-
+  function pantallaJugando(p4) {
+    const { $, api, ctx, root, call } = p4;
+    const nowPlaying = U.nowPlaying($('.p4-playing'), api, ctx.toast);
+    let playTimer = null;
     // ---------- Iniciar y "Jugando a…" ----------
     async function startGame(g) {
-      if (!g || view === 'playing') return;
+      if (!g || p4.view === 'playing') return;
       const res = await api.launch(g.id);
       if (!res || !res.ok) {
         ctx.toast(`No se pudo abrir: ${(res && res.error) || 'error desconocido'}`);
         return;
       }
-      stack.push(view);
-      view = 'playing';
-      closeQm();
+      p4.stack.push(p4.view);
+      p4.view = 'playing';
+      p4.rapido.close();
       const p = $('.p4-playing');
       $('.p4-play-art').innerHTML = '';
-      $('.p4-play-art').appendChild(tileArt(g, true));
+      $('.p4-play-art').appendChild(tileArt(p4, g, true));
       $('.p4-play-name').textContent = g.name;
       p.hidden = false;
       p.classList.remove('leave');
@@ -1575,7 +1819,7 @@
       playTimer = setInterval(upd, 1000);
     }
     async function endPlaying(reason) {
-      if (view !== 'playing') return;
+      if (p4.view !== 'playing') return;
       nowPlaying.stop();
       clearInterval(playTimer);
       document.body.classList.remove('playing');
@@ -1584,136 +1828,22 @@
       p.classList.add('leave');
       await wait(400);
       p.hidden = true;
-      view = stack.pop() || 'home';
+      p4.view = p4.stack.pop() || 'home';
       if (reason === 'not-started') ctx.toast('No se detectó que el juego abriera');
     }
     $('[data-p="stop"]').addEventListener('click', () => {
       call('dismissPlaying');
       endPlaying('manual');
     });
-
-    // ---------- Teclado ----------
-    function onKey(e) {
-      const k = e.key;
-      if (k === 'Enter' || k === ' ') e.preventDefault();
-      if (document.activeElement === searchInput) return;
-      if (pop) {
-        if (k === 'ArrowDown') setPop(pop.sel + 1);
-        else if (k === 'ArrowUp') setPop(pop.sel - 1);
-        else if (k === 'Enter') choosePop(pop.sel);
-        else if (k === 'Escape' || k === 'Backspace') closePop();
-        return;
-      }
-      if (qmOpen) return qmKey(k);
-      if ((k === 'p' || k === 'P') && view !== 'playing') return openQm();
-      switch (view) {
-        case 'home':
-          if (k === 'ArrowRight') setRow(rowSel + 1);
-          else if (k === 'ArrowLeft') setRow(rowSel - 1);
-          else if (k === 'ArrowUp') openFunc();
-          else if (k === 'ArrowDown') {
-            const it = rowItems[rowSel];
-            if (it && it.type === 'game') openGame(it.game);
-            else if (it) openLibrary();
-          } else if (k === 'Enter') activateRow();
-          else if (k === 'o' || k === 'O') homeSortMenu();
-          else if (k === 'Escape') ctx.openSelector();
-          break;
-        case 'func':
-          if (k === 'ArrowRight') setFunc(funcSel + 1);
-          else if (k === 'ArrowLeft') setFunc(funcSel - 1);
-          else if (k === 'ArrowDown' || k === 'Escape' || k === 'Backspace') closeFunc();
-          else if (k === 'Enter') runFunc(FUNCS[funcSel].id);
-          break;
-        case 'game':
-          if (k === 'ArrowRight') setGameBtn(gameBtn + 1);
-          else if (k === 'ArrowLeft') setGameBtn(gameBtn - 1);
-          else if (k === 'Enter') $$('.p4g-actions .p4-btn').filter((b) => !b.hidden)[gameBtn].click();
-          else if (k === 'Escape' || k === 'Backspace' || k === 'ArrowUp') back();
-          break;
-        case 'library':
-          libKey(k);
-          break;
-        case 'trophies':
-          trophyKey(k);
-          break;
-        case 'party':
-          partyKey(k);
-          break;
-        case 'friends':
-          friendsKey(k);
-          break;
-        case 'settings':
-          settingsKey(k);
-          break;
-        case 'playing':
-          if (k === 'Enter') $('[data-p="stop"]').click();
-          break;
-        default:
-          break;
-      }
-    }
-    window.addEventListener('keydown', onKey);
-
-    // Rueda del mouse en el menú principal: mover entre juegos
-    let wheelLock = 0;
-    $('.p4-home').addEventListener('wheel', (e) => {
-      if (view !== 'home' || Date.now() < wheelLock) return;
-      const d = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
-      if (Math.abs(d) < 10) return;
-      setRow(rowSel + (d > 0 ? 1 : -1));
-      wheelLock = Date.now() + 160;
-    });
-
-    // ---------- Datos ----------
-    function setGames(list) {
-      games = list || [];
-      if (current) current = games.find((g) => g.id === current.id) || current;
-      if (wall.value.startsWith('game:')) applyWall(); // el arte del juego elegido como fondo
-      renderRow();
-      if (view === 'library') paintLib();
-      if (current && view === 'game') {
-        $('.p4g-meta').textContent = [typeLabel(current), U.hours(current.playtimeMin), current.lastPlayed ? `Jugado ${U.ago(current.lastPlayed)}` : ''].filter(Boolean).join('   ·   ');
-        paintGameTrophies(current);
-      }
-    }
-    offs.push(api.onGamesUpdated(setGames));
-    offs.push(api.onGameEnded(({ reason }) => endPlaying(reason)));
-    if (api.onSpotify) offs.push(api.onSpotify(renderSpotify));
-    if (api.onDiscord) offs.push(api.onDiscord(renderDiscord));
-    if (api.onSteamSummary) offs.push(api.onSteamSummary((s) => loadSummary(s)));
-    if (api.onSteamChanged)
-      offs.push(
-        api.onSteamChanged(() => {
-          loadProfile();
-          loadSummary();
-        })
-      );
-
-    call('spotifyWatch', true).then((s) => s && renderSpotify(s));
-    call('discordWatch', true).then((s) => s && renderDiscord(s));
-    loadProfile();
-    loadSummary();
-    setFunc(funcSel);
-    api.getState().then((s) => {
-      setGames(s.games);
-      root.classList.add('intro');
-      setTimeout(() => root.classList.remove('intro'), 1400);
-    });
-
     return {
-      unmount() {
+      start: startGame,
+      end: endPlaying,
+      key(k) {
+        if (k === 'Enter') $('[data-p="stop"]').click();
+      },
+      dispose() {
         nowPlaying.dispose();
-        clearInterval(clockTimer);
         clearInterval(playTimer);
-        window.removeEventListener('keydown', onKey);
-        clearInterval(fTimer);
-        offs.forEach((off) => off && off());
-        call('spotifyWatch', false);
-        call('discordWatch', false);
-        document.body.classList.remove('playing');
-        root.classList.remove('in-func', 'in-screen', 'is-playing', 'intro', 'art-strong');
-        root.innerHTML = '';
       },
     };
   }
