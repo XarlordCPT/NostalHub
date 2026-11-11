@@ -79,6 +79,17 @@ const PANTALLAS = {
     trofeos: { pasos: [k('ArrowUp', 3), espera(400), k('Enter'), espera(1200), k('Enter')], ve: '.p3-sub-list .p3-row' },
     ajustes: { pasos: [k('ArrowLeft', 2)], ve: '[class*="p3-"]' },
     amigos: { pasos: [k('ArrowRight', 2)], ve: '[class*="p3-"]' },
+    // Lo que faltaba: opciones de un juego, información, sus trofeos, música, tema, Grupo, apagar, jugar y volver
+    opciones: { pasos: [k('o')], ve: '.p3-opt.sel' },
+    info: { pasos: [k('o'), espera(300), k('ArrowDown'), k('Enter')], ve: '.p3-info:not([hidden]) .p3-inf-box' },
+    'ordenar-lista': { pasos: [k('o'), espera(300), k('ArrowUp'), k('Enter')], ve: '.p3-opt.on' },
+    'trofeos-del-juego': { pasos: [k('o'), espera(300), k('ArrowDown', 2), k('Enter'), espera(1200), k('ArrowDown', 2)], ve: '.p3-sub-list .p3-row.sel' },
+    musica: { pasos: [k('ArrowLeft'), espera(500), k('ArrowDown', 3), k('Enter'), espera(600), k('ArrowDown', 3)], ve: '.p3-sub-list .p3-row.sel' },
+    tema: { pasos: [k('ArrowLeft', 2), espera(500), k('ArrowUp', 9), k('Enter'), espera(600), k('Enter'), espera(600), k('ArrowDown', 2), k('Escape')], ve: '.p3-sub-list .p3-row.sel' },
+    grupo: { pasos: [k('ArrowRight', 2), espera(500), k('ArrowUp', 30), k('Enter')], ve: '.p3-sub-list .p3-row.sel' },
+    apagar: { pasos: [k('ArrowLeft', 3), espera(500), k('ArrowUp', 5), k('Enter')], ve: '.p3-dlg:not([hidden]) .p3-dlg-b.sel' },
+    jugando: { pasos: [k('Enter'), espera(2900)], ve: '.is-playing [data-p="stop"]' },
+    'vuelta-con-mouse': { pasos: [k('Enter'), espera(2900), clic('[data-p="stop"]'), espera(900), k('ArrowDown')], ve: '.p3-it.sel' },
   },
   ps4: {
     inicio: { pasos: [], ve: '[data-game-id]' },
