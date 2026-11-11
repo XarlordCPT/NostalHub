@@ -18,13 +18,15 @@ Para abrirla: pega esa ruta en la barra del Explorador de Windows, o usa **Ajust
 
 ---
 
-## Novedades desde la 1.2.0 (próxima versión)
+## Novedades de la versión 1.3.0
 
 - **Juegos de Riot** (VALORANT, League of Legends y Teamfight Tactics): se agregan solos y entran directo, sin apretar
   Jugar (sección 7).
 - **Wii: buscar un juego y ver la música** con los botones nuevos de la lupa y la nota (sección 9).
 - **Arreglos**: la descripción de la Guía de la Xbox 360 ya no queda tapada, y la música de un juego en la PS3 se apaga
   siempre al salir de la consola.
+- **Código ordenado por dentro**: las 8 consolas quedaron separadas por pantallas y con más pruebas automáticas. No
+  cambia nada de cómo se ve ni de cómo se usa; sirve para que agregar o arreglar cosas sea más fácil y seguro.
 
 ## Novedades de la versión 1.2.0
 
