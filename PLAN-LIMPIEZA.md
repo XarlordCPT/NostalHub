@@ -42,7 +42,7 @@ Rama: `limpieza`. `main` no se toca hasta que Cristóbal la junte. Un commit por
 
 - [x] Un ayudante común para moverse por listas y cuadrículas (hoy hay 4 formas distintas): `U.rowWindow`.
 - [ ] Separar el `mount` de cada consola por pantallas (menú, ficha, logros, amigos, ajustes, música).
-      Orden: PS2 → Switch → Xbox 360 → 3DS → PS3 → Wii → PS4 → Vita. **Lista: PS2.** Sigue: Switch.
+      Orden: PS2 → Switch → Xbox 360 → 3DS → PS3 → Wii → PS4 → Vita. **Listas: PS2, Switch, Xbox 360 y 3DS.** Sigue: PS3.
 
 ### Cómo retomarla (notas para la próxima sesión)
 
@@ -57,6 +57,16 @@ Rama: `limpieza`. `main` no se toca hasta que Cristóbal la junte. Un commit por
   `pantallaAmigos`). Cada una guarda lo suyo adentro y devuelve solo lo que usan las otras (`open`, `key`, `dispose`…);
   entre ellas se llaman por `s.juegos`, `s.detalle`… `onKey` queda en `mount` y reparte la tecla según `s.view`. Se
   mantuvo el orden en que se piden los datos al abrir.
+- **Switch, Xbox 360 y 3DS** siguen el mismo molde. Diferencias: en la Xbox lo de todas (qué está marcado, moverse con
+  flechas, pistas, cambiar de vista) lo pone `navegacion(s)` directo en `s`; en la 3DS el objeto se llama `ds` (ahí `s` se
+  usa mucho como nombre corto dentro de las funciones) y cada app del sistema es su propia función (`appAjustes`,
+  `appActividad`, `appMusica`, `appLogros`, `appAmigos`, `appGrupo`, `appNotas`) dentro del marco `marcoDeApps`.
+- **Cómo se hicieron (más rápido y con menos riesgo que reescribir a mano)**: un script de Python copia cada tramo de líneas
+  tal cual a su función nueva y cambia solo los nombres (`view` → `s.view`, `openGame(` → `s.ficha.open(`), sin tocar
+  `.nombre`, `'nombre'`, `-nombre` ni claves `nombre: '…'`; ojo con `...nombre` y con variables locales que se llaman igual
+  que una compartida. Después: `node --check`, y un revisor de variables sin definir
+  (`npx eslint@8 --no-eslintrc --env browser,es2022 --rule "no-undef: error" <tema>`, corrido fuera del proyecto; no se
+  instala nada en el repo). Recién ahí las capturas.
 - **Antes de separar una consola, agregar a `PANTALLAS` lo que su prueba no cubre** (mouse, iniciar un juego y volver), guardar
   esa referencia con el código de antes (`git stash push <tema>` → `npm run test:referencia -- <consola>` → `git stash pop`)
   y recién ahí comparar.
@@ -112,5 +122,8 @@ Rama: `limpieza`. `main` no se toca hasta que Cristóbal la junte. Un commit por
 - **Etapa 4, en marcha** (2 commits). `U.rowWindow` con prueba (la misma cuenta estaba escrita 6 veces) y la PS2 separada por
   pantallas. `npm test`: 56 de lógica + 49 pantallas (2 nuevas de la PS2 con mouse), 0 diferencias; app real: 8 consolas, 0
   errores. Las capturas de referencia se rehicieron con el código de antes del cambio (ver las notas de la etapa 4).
+- **Etapa 4, mitad lista** (4 consolas de 8, un commit cada una): PS2, Switch, Xbox 360 y 3DS. `npm test`: 56 de lógica + 73
+  pantallas (26 nuevas: mouse, jugar y volver, Grupo, música, ventanas, mover íconos), 0 diferencias contra el código de
+  antes; app real: 8 consolas, 0 errores. Faltan PS3, Wii, PS4 y Vita.
 - Ojo para las pruebas con la app real: dentro de una consola, Enter abre un juego de verdad. El script solo aprieta teclas
   con el selector a la vista y sin ninguna consola abierta (una vez se abrió Pokémon Fire Red por apretar Enter a ciegas).
