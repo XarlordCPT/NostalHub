@@ -33,6 +33,7 @@
   const BY_CONSOLE = {
     selector: { options: 'o', create: 'r' }, // ordenar las consolas y el resumen de horas
     x360: { l1: 'q', r1: 'e', options: 'g' }, // pestañas y la Guía
+    xone: { l1: 'q', r1: 'e', options: 'o' }, // páginas (Pins / Inicio / Tienda) y opciones del juego
     vita: { l1: 'q', r1: 'e', options: 'p' }, // tarjetas y menú rápido
     ps4: { options: 'p' }, // menú rápido
     ps2: { options: 'c', create: 'a' }, // Configuración y Amigos (ordenar: △)
@@ -45,7 +46,7 @@
 
   // Lo que muestran las pistas cuando se usa el control
   const PAD_LABEL = { Enter: '✕', Esc: '○', Escape: '○', O: '△', o: '△', I: '□', 'Q / E': 'L1 / R1', G: 'Options', P: 'Options', C: 'Options', S: 'Create', A: 'Create', R: 'Create', '+': '△' };
-  const HINT_KEYS = '.ps-key, .xb-key, .p4-key, .p3-hints kbd, .sw-hint > b, .sw-fr-hint > b, .st-key, .gc-key, #sel-sort kbd, #sel-stats kbd, .sel-move-hint kbd';
+  const HINT_KEYS = '.ps-key, .xb-key, .xo-key, .p4-key, .p3-hints kbd, .sw-hint > b, .sw-fr-hint > b, .st-key, .gc-key, #sel-sort kbd, #sel-stats kbd, .sel-move-hint kbd';
 
   const consoleId = () => document.body.dataset.console || 'selector';
   const keyFor = (name) => {

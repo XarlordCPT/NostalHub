@@ -1,7 +1,7 @@
 # Manual de NostalHub
 
-NostalHub muestra tus juegos con los menús de 8 consolas: **Wii, PlayStation 2, Xbox 360, PlayStation 3,
-PlayStation 4, PS Vita, Nintendo Switch y Nintendo 3DS**. Este manual explica cómo se usa cada una y dónde va cada
+NostalHub muestra tus juegos con los menús de 9 consolas: **Wii, PlayStation 2, Xbox 360, PlayStation 3,
+PlayStation 4, PS Vita, Nintendo Switch, Nintendo 3DS y Xbox One**. Este manual explica cómo se usa cada una y dónde va cada
 archivo que pones a mano.
 
 Todo lo que agregas tú (imágenes, sonidos, modelos, claves) vive en **una sola carpeta de datos**, separada del código:
@@ -17,6 +17,12 @@ Para abrirla: pega esa ruta en la barra del Explorador de Windows, o usa **Ajust
 > La excepción es si cambias el **código** del proyecto: ahí sí hay que cerrar (menú → Salir) y volver a hacer `npm start`.
 
 ---
+
+## Novedades desde la 1.3.0 (próxima versión)
+
+- **Consola nueva: Xbox One**, con el menú de 2013 (Pins / Inicio / Tienda, mosaicos de color y "Mi color"). Ver la
+  sección 9.
+- **PS4**: la fila de funciones (flecha arriba) y el marco del juego elegido ahora se ven como en la consola real.
 
 ## Novedades de la versión 1.3.0
 
@@ -733,6 +739,25 @@ terminan: usa **Volver al menú**.
   **encendido** (cambiar de consola o apagar).
 - El icono de cada juego es la misma imagen cuadrada de la Switch (`cuadrado.png`).
 
+### Xbox One
+
+- Es el menú con el que salió la consola en 2013: fondo oscuro y **mosaicos** de color. Arriba a la izquierda se ven
+  las fotos de tus amigos conectados y a la derecha la hora.
+- Tiene tres páginas, que se cambian con **Q / E** (o yendo más allá del borde con ← →, o con la rueda):
+  - **Pins**: tus juegos en el orden que elijas (hasta 15).
+  - **Inicio**: a la izquierda tu **perfil** (tu foto, tus logros y cuántos amigos hay en línea: al elegirlo se abre
+    **Amigos**); al centro, en grande, **lo último que jugaste** y debajo otros cuatro recientes; a la derecha
+    **Mis juegos** (todos, en cuadrícula), **Música** y **Grupo** (tu canal de voz de Discord); y en la columna
+    *Más*: **Logros**, **Configuración** y **Energía** (cambiar de consola, reiniciar o apagar).
+  - **Tienda**: la tienda de Steam, las novedades de tus amigos, tu perfil y *Cambiar de consola*.
+- **Enter** sobre un juego abre su **ficha** (Iniciar, Logros, Imágenes). **O** sobre un juego abre sus opciones
+  (iniciar directo, ver la ficha, logros, cambiar imágenes y ordenar); en cualquier otro mosaico, **O** cambia el orden.
+- **Configuración → Mi color** cambia el color de los mosaicos y botones (verde, azul, turquesa, morado, rosa, rojo,
+  naranja o gris). Se recuerda y solo cambia esta consola.
+- Cada juego usa tu imagen cuadrada (`cuadrado.png`, la misma de la Switch y la 3DS); si no hay, el fondo con el logo
+  encima o la carátula. El mosaico grande usa el fondo (`fondo.jpg`) con el logo.
+- Un juego con todos sus logros lleva la **medalla dorada**, como en la Xbox 360.
+
 ---
 
 ## 10. Control (PS5, PS4, Xbox…)
@@ -783,6 +808,7 @@ juegos.
 | PS4 | ← → juegos · **↑** funciones · **↓** ficha del juego · Enter jugar · **P** menú rápido · **O** ordenar el inicio · **S** orden (Biblioteca) · Esc volver (en el menú principal: selector) |
 | PS Vita | Flechas entre burbujas (↑ ↓ en los bordes, la rueda o RePág / AvPág cambian de página) · Enter abrir · **O** ordenar (inicio) · **Q / E** cambiar de tarjeta · **Retroceso** cerrar la tarjeta · **P** menú rápido · **N** avisos · Esc inicio (en el inicio: selector) |
 | Switch | ← → juegos · **↓** botones redondos · Enter iniciar · **O** opciones del juego · **S** ordenar (Todo el software) · Esc volver (en el inicio: selector) |
+| Xbox One | Flechas moverse por los mosaicos · **Q / E** cambiar de página (Pins / Inicio / Tienda) · Enter elegir · **O** opciones del juego u ordenar · Esc volver (en el inicio: selector) |
 | 3DS | Flechas por la cuadrícula · Enter abrir · **O** o **X** opciones del juego · **+** o **Y** íconos más grandes · **−** íconos más chicos · Esc volver (en el menú: selector) |
 
 ---

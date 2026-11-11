@@ -20,6 +20,7 @@
   }
   // [frecuencia, hasta, cuándo, duración, volumen, forma]
   const SYNTH = {
+    xone: [[523, 0, 0, 0.22, 0.24, 'triangle'], [784, 0, 0.1, 0.3, 0.22, 'triangle'], [1046, 0, 0.2, 0.6, 0.2, 'triangle'], [1568, 0, 0.2, 0.5, 0.06]],
     x360: [[660, 1320, 0, 0.16, 0.35], [1320, 0, 0.11, 0.55, 0.22, 'triangle'], [1980, 0, 0.11, 0.6, 0.1]],
     ps3: [[1318, 0, 0, 0.7, 0.26], [1760, 0, 0.09, 0.9, 0.24], [3520, 0, 0.09, 0.5, 0.05]],
     ps4: [[880, 1175, 0, 0.09, 0.25], [1760, 0, 0.07, 0.8, 0.22], [2637, 0, 0.07, 0.45, 0.06]],
@@ -109,6 +110,9 @@
   // 3DS: aviso blanco con la luz de notificación parpadeando
   const n3ds = (p) => (play(p), run(card(p, 'n3n', '¡Logro conseguido!', esc(p.name), '<i class="led"></i>')));
 
+  // Xbox One: banda oscura con el borde del color de la consola; entra desde abajo
+  const xone = (p) => (play(p), run(card(p, 'x1n', 'Logro desbloqueado', `${p.gamerscore ? `<b>${esc(p.gamerscore)} G</b>` : ''}<span>${esc(p.name)}</span>`)));
+
   async function xbox360(p) {
     const el = document.createElement('div');
     el.className = 'x3';
@@ -137,7 +141,7 @@
     el.remove();
   }
 
-  const STYLES = { x360: xbox360, ps3, ps4, vita, switch: sw, wii, ps2, '3ds': n3ds };
+  const STYLES = { x360: xbox360, ps3, ps4, vita, switch: sw, wii, ps2, '3ds': n3ds, xone };
   window.overlay.onShow(async (p) => {
     try {
       await (STYLES[p.style] || xbox360)(p);

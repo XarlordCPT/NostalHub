@@ -20,7 +20,7 @@ const REFERENCIA = process.argv.includes('--referencia');
 const EN_PARALELO = 4;
 const BLOQUE = 4; // se compara el promedio de cada cuadrito de 4×4 píxeles
 const BLOQUES_PERMITIDOS = 12; // de 129 600 cuadritos
-const ORDEN = ['wii', 'ps2', 'x360', 'ps4', 'vita', 'switch', 'ps3', '3ds']; // orden del selector
+const ORDEN = ['wii', 'ps2', 'x360', 'ps4', 'vita', 'switch', 'ps3', '3ds', 'xone']; // orden del selector
 
 // Que el dibujo no dependa de este PC: letras suavizadas en gris (no con los colores de ClearType) y escala 1
 app.commandLine.appendSwitch('disable-lcd-text');
@@ -180,6 +180,27 @@ const PANTALLAS = {
     'amigo-ventana': { pasos: [clic('[data-s="friends"]'), espera(600), k('Enter')], ve: '.b-dlg:not([hidden]) button.sel' },
     jugando: { pasos: [k('Enter'), espera(1600)], ve: '.bp-btn' },
     'vuelta-con-mouse': { pasos: [k('Enter'), espera(1600), clic('.bp-btn'), espera(600), k('ArrowRight'), clic('[data-s="notes"]'), espera(600), clic('.ba-back')], ve: '.b-slot.sel' },
+  },
+  xone: {
+    inicio: { pasos: [], ve: '.xo-tile.main.focus' },
+    pins: { pasos: [k('q'), espera(700), k('ArrowLeft'), k('ArrowDown')], ve: '.xo-page.on[data-page="pins"] .xo-tile.focus' },
+    tienda: { pasos: [k('e'), espera(700)], ve: '.xo-page.on[data-page="store"] .xo-tile.focus' },
+    ficha: { pasos: [k('Enter'), espera(700)], ve: '[data-game-current] [data-g="play"].focus' },
+    logros: { pasos: [k('Enter'), espera(700), k('ArrowRight'), k('Enter'), espera(1300), k('ArrowDown', 2)], ve: '.xo-row.ach.focus' },
+    'logros-juegos': { pasos: [k('ArrowRight', 2), k('Enter'), espera(800), k('ArrowDown')], ve: '.xo-row.ag.focus' },
+    biblioteca: { pasos: [k('ArrowRight'), k('Enter'), espera(800), k('ArrowRight'), k('ArrowDown')], ve: '.xo-cell.focus' },
+    amigos: { pasos: [k('ArrowLeft'), k('ArrowDown'), k('Enter'), espera(800), k('ArrowDown', 2)], ve: '.xo-row.fr.focus' },
+    'amigos-tarjeta': { pasos: [k('ArrowLeft'), k('ArrowDown'), k('Enter'), espera(800), k('ArrowDown', 2), k('ArrowRight')], ve: '[data-fb].focus' },
+    grupo: { pasos: [k('ArrowRight'), k('ArrowDown', 2), k('Enter'), espera(700)], ve: '.xo-p-body > *' },
+    musica: { pasos: [k('ArrowRight'), k('ArrowDown'), k('Enter'), espera(700), k('ArrowRight')], ve: '.xo-m-body [data-m].focus' },
+    ajustes: { pasos: [k('ArrowRight', 2), k('ArrowDown'), k('Enter'), espera(900), k('ArrowDown', 2), k('ArrowRight')], ve: '.xo-row.it.focus' },
+    'ajustes-color': { pasos: [k('ArrowRight', 2), k('ArrowDown'), k('Enter'), espera(900), k('ArrowRight'), k('Enter')], ve: '.xo-pop-it.focus' },
+    energia: { pasos: [k('ArrowRight', 2), k('ArrowDown', 2), k('Enter')], ve: '.xo-pop-it.focus' },
+    editor: { pasos: [k('i'), espera(800)], ve: '.ge-panel' },
+    'biblioteca-abajo': { pasos: [k('ArrowRight'), k('Enter'), espera(800), k('ArrowDown', 3)], ve: '.xo-cell.focus' },
+    opciones: { pasos: [k('o')], ve: '.xo-pop-it.focus' },
+    jugando: { pasos: [k('Enter'), espera(700), k('Enter'), espera(1000)], ve: '.is-playing [data-p="stop"]' },
+    'vuelta-al-menu': { pasos: [k('Enter'), espera(700), k('Enter'), espera(1000), k('Enter'), espera(900), k('Escape'), espera(600)], ve: '.xo-page.on .xo-tile.focus' },
   },
 };
 // Pantallas que no son de una consola

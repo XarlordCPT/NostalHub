@@ -5,8 +5,8 @@ Contexto para Claude al trabajar en este proyecto. Léelo entero antes de tocar 
 ## Qué es
 
 **NostalHub** es un launcher de juegos de escritorio (Electron, Windows) hecho por **Cristóbal Medina** para su
-**segunda pantalla**. Muestra sus juegos de Steam (y otros) con los menús de **8 consolas**: `wii`, `ps2`, `x360`,
-`ps3`, `ps4`, `vita`, `switch` y `3ds`. Cada consola imita su menú real (diseño, sonidos, animaciones), y todas
+**segunda pantalla**. Muestra sus juegos de Steam (y otros) con los menús de **9 consolas**: `wii`, `ps2`, `x360`,
+`ps3`, `ps4`, `vita`, `switch`, `3ds` y `xone` (Xbox One, menú de 2013). Cada consola imita su menú real (diseño, sonidos, animaciones), y todas
 comparten las mismas funciones: juegos, logros de Steam, amigos de Steam, música (Spotify / Apple Music / YouTube
 Music), Grupo de Discord, ajustes y aviso de logros encima del juego.
 
@@ -118,7 +118,7 @@ renderer/console-model.js, models/   Modelos 3D (Three.js) del selector y de los
 renderer/overlay/       Avisos de logro de cada consola (STYLES, SYNTH, copa del trofeo)
 renderer/mock.js        Datos falsos para abrir index.html en un navegador normal (sin Electron)
 renderer/themes/<id>/   theme.js + theme.css de cada consola
-tests/                  `npm test`: logica/*.test.js (node --test) y pantallas.js (las 8 consolas, capturas comparadas)
+tests/                  `npm test`: logica/*.test.js (node --test) y pantallas.js (las 9 consolas, capturas comparadas)
 ```
 
 ## Cómo funciona un tema
@@ -130,7 +130,7 @@ tests/                  `npm test`: logica/*.test.js (node --test) y pantallas.j
 - **Cada tema va separado por pantallas** dentro de su `theme.js`: `mount` arma un objeto con lo que es de todas (en qué
   pantalla se está, los juegos, el resumen de logros…) y crea cada pantalla con una función aparte (`pantallaInicio`,
   `pantallaLogros`, `pantallaAmigos`…), que guarda lo suyo adentro y devuelve solo lo que usan las otras (`open`, `key`…).
-  El objeto se llama `s` (PS2, Switch, Xbox 360), `ds` (3DS), `ps` (PS3), `wii`, `p4` (PS4) o `vita`. `onKey` queda en
+  El objeto se llama `s` (PS2, Switch, Xbox 360), `ds` (3DS), `ps` (PS3), `wii`, `p4` (PS4), `vita` o `xo` (Xbox One). `onKey` queda en
   `mount` y reparte la tecla. Una pantalla nueva = una función nueva, no más código suelto en `mount`.
 - Escenario fijo de **1920×1080** (lo escala `shell.js`). La 3DS dibuja sus pantallas nativas de 400×240 y
   320×240 escaladas 1,75 veces (700×420 y 560×420) en su CSS.
@@ -173,7 +173,7 @@ descripción), `cache\` (arte descargado, `spotify.log`, `discord.log`) y las cl
 
 0. **`npm test` antes de cada commit** (unos 2 minutos, no abre nada en pantalla ni usa los datos reales):
    - `tests/logica/*.test.js`: pruebas de `src/` y de `common.js` con `node --test` (archivos temporales, API falsas).
-   - `tests/pantallas.js`: entra a las 8 consolas con el mock, recorre sus pantallas con el teclado y compara cada captura
+   - `tests/pantallas.js`: entra a las 9 consolas con el mock, recorre sus pantallas con el teclado y compara cada captura
      píxel a píxel con `tests/capturas/referencia/` (fecha y azar fijos, animaciones congeladas, 3D y videos escondidos).
      Si un cambio de diseño es a propósito: revisa `tests/capturas/diferencias/` y guarda las nuevas con `npm run test:referencia`.
    - Solo algunas consolas: `npm test -- wii ps2` o `npm run test:pantallas -- wii`. Pantalla nueva → agrégala a `PANTALLAS`.
@@ -241,6 +241,9 @@ descripción), `cache\` (arte descargado, `spotify.log`, `discord.log`) y las cl
 - Battle.net no tiene API pública de amigos: no se puede. YouTube Music tampoco tiene API oficial: se queda con SMTC.
 - Para probar la app con otra carpeta de datos **no sirve** cambiar `APPDATA`: Electron pide la carpeta a Windows
   directo y usa el `config.json` real de Cristóbal (solo `src/minecraft.js` sí lee `APPDATA`).
+- Xbox One: casi todo se mueve con un solo `move(dir)` que va al `[data-nav]` más cercano de la pantalla actual (y Enter
+  hace clic en lo marcado). Una pantalla nueva solo necesita poner `data-nav` en lo elegible. Ojo con las clases que
+  también pone `U.friendClass` (`game`, `on`, `off`, `busy`): una fila `.xo-row.game` de logros chocó con un amigo jugando.
 - Elegir con `mouseenter` + mover la lista con el teclado = la selección salta al elemento que pasa bajo el mouse
   quieto. `common.js` ya ignora esos avisos después de una tecla (hasta que el mouse se mueva de verdad).
 - Toda pantalla tiene que poder usarse solo con flechas + Enter + Esc (el control llega así). Filas de botones

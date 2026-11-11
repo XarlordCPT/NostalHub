@@ -130,3 +130,14 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: transparent;
 
 /* Logros de RetroAchievements (pixel art de 64×64): agrandados sin suavizar */
 img[src*="media.retroachievements.org"] { image-rendering: pixelated; }
+
+/* Xbox One: banda oscura al centro con una franja verde; sube un poquito al aparecer */
+.x1n { left: 50%; top: 28px; height: 104px; padding: 0 34px 0 0; gap: 22px; font-family: 'Segoe UI', 'Selawik', Arial, sans-serif; color: #fff; background: #1f1f1f; border-left: 10px solid #107c10;
+  box-shadow: 0 8px 26px rgba(0, 0, 0, 0.55); transform: translate(-50%, 26px); transition: opacity 0.3s ease, transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1); }
+.x1n.in { opacity: 1; transform: translate(-50%, 0); }
+.x1n.out { opacity: 0; transform: translate(-50%, 26px); }
+.x1n .ic { width: 104px; height: 104px; background: #107c10; }
+.x1n .noicon { color: #fff; }
+.x1n .t1 { font-size: 21px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; color: #9bd49b; }
+.x1n .t2 { font-size: 30px; font-weight: 300; margin-top: 4px; gap: 14px; }
+.x1n .t2 b { font-weight: 600; }

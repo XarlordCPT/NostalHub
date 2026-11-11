@@ -1,8 +1,9 @@
 # Checklist: agregar una consola nueva a NostalHub
 
 Lista para Claude (y para Cristóbal): todo lo que **cada consola** tiene que tener antes de darla por terminada.
-`<id>` es el id corto de la consola (ej.: `ps3`, `3ds`). Revisa una consola ya hecha (la PS3 o la 3DS son las
-más completas) cuando tengas dudas de cómo se hace algo.
+`<id>` es el id corto de la consola (ej.: `ps3`, `3ds`). Revisa una consola ya hecha cuando tengas dudas de cómo se
+hace algo: la **Xbox One** es la más nueva y la más corta de leer (todo se mueve con un solo `move(dir)`); la PS3 y la
+3DS son las más completas.
 
 ## 0. Antes de empezar
 
@@ -16,16 +17,24 @@ más completas) cuando tengas dudas de cómo se hace algo.
 - [ ] `renderer/consoles.js`: entrada con `id`, `company`, `name`, `year` y `look` (background, base, text,
       subtext, accent, font, nameWeight, nameShadow, enterFlash). Si `accent` es muy claro, el selector usa `base`
       para los menús (`uiAccent` en `shell.js`): comprobar que el menú de **Ordenar** se lee bien.
-- [ ] `renderer/index.html`: `<script src="themes/<id>/theme.js">` y su `theme.css`.
+- [ ] `renderer/index.html`: `<script src="themes/<id>/theme.js">` (el `theme.css` lo carga solo `shell.js`). Agrégala **al
+      final** de `consoles.js`: las pruebas llegan a cada consola contando posiciones en el selector.
+- [ ] **Separada por pantallas** desde el principio (ver "Cómo funciona un tema" en `CLAUDE.md`): `mount` arma el objeto
+      compartido y cada pantalla es una función aparte que devuelve solo lo que usan las otras.
 - [ ] `renderer/themes/<id>/theme.js` → `window.Themes['<id>'] = { mount(root, ctx), synth(kind, vol) }`.
       `mount` devuelve `{ unmount() }` para desmontar (quitar listeners, timers, `nowPlaying.dispose()`, WebGL…).
 - [ ] Las `@keyframes` con el prefijo de la consola (`<id>-…`): todo el CSS se carga junto.
 - [ ] Todo el CSS con prefijo `.theme-<id>`; si hay overlays con `display:grid/flex`, agregar
-      `.theme-<id> [hidden] { display: none !important }`. Reset de botones con `:where(.theme-<id>) button`.
+      `.theme-<id> [hidden] { display: none !important }`. Reset de botones con `:where(.theme-<id>) button` (así no
+      hace falta ningún otro `!important`). Antes de inventar una clase, revisa que no choque con las que ponen los
+      ayudantes (`U.friendClass`: `game`, `on`, `off`, `busy`).
 - [ ] Escenario fijo de 1920×1080 (lo escala `shell.js`): nada fuera de esa caja.
 
 ## 2. Funciones que TODAS las consolas tienen
 
+- [ ] Todo texto o dirección de imagen que vaya dentro de HTML pasa por `esc` (también `url('…')` y `src="…"`).
+- [ ] Listas que suben y bajan con `translateY`: `U.rowWindow(first, row, per, total)`; o un contenedor con
+      `overflow-y: auto` y `scrollIntoView({ block: 'nearest' })`.
 - [ ] **Juegos**: lista/grilla con `api.getState()`, `api.onGamesUpdated`, iniciar con `api.launch(id)`,
       volver de un juego con `api.onGameEnded`.
 - [ ] **Ordenar los juegos** con `U.gameOrder('<id>', { manual, def })` (Jugado recientemente, Nombre, Horas, % de
@@ -73,6 +82,11 @@ más completas) cuando tengas dudas de cómo se hace algo.
       `hero`, `logo`, `square`, `icon0`, `music`…). Si necesita una imagen nueva: `SLOTS` + `EDITABLE` y
       `customInfo` en `main.js` + `CUSTOM_FILES` en `src/media.js` + vista previa `.shape-*` en `shell.css`.
 - [ ] Si la imagen nueva se puede recortar: su forma en `CROP_RATIOS` (game-editor) y el tipo en `CROPPABLE` (main.js).
+- [ ] **Estilos del editor** en el `theme.css` de la consola: `.theme-<id> .ge-wrap`, `.ge-panel`, `.ge-head`, `.ge-slot`,
+      `.ge-b`, `.ge-text`, `.ge-ctx`, `.ge-ci`… (copiar el bloque de otra consola y darle su aspecto). Sin eso el editor y
+      el menú del clic derecho salen sin fondo, encima del menú (pasó con la Xbox One). **Abrirlo y mirarlo.**
+- [ ] Imágenes animadas: las de los juegos van quietas (`U.stillBackground`) y solo se anima la del marcado
+      (`U.liveBackground`); varias animaciones a la vez dan tirones.
 - [ ] Probar que la imagen elegida se ve bien (proporción correcta, sin cortes raros).
 
 ## 4. Sonidos
@@ -92,7 +106,7 @@ más completas) cuando tengas dudas de cómo se hace algo.
       Si no tenía, inventar uno con su estilo (colores, fuente, forma de sus avisos).
 - [ ] `renderer/overlay/overlay.css`: estilos del aviso (dentro de la ventanita de 1000×180).
 - [ ] `src/overlay.js` → `POS`: `left`, `right` o (sin poner nada) arriba al centro.
-- [ ] `main.js` → `ACH_STYLES` (y `PLAYSTATION` si es de Sony, para el trofeo de platino).
+- [ ] `main.js` → `ACH_STYLES` y `CONSOLE_NAMES` (y `PLAYSTATION` si es de Sony, para el trofeo de platino).
 - [ ] Sonido propio opcional: `consolas\<id>\logro.wav`.
 - [ ] Probar con **Ctrl + Alt + Shift + L** estando en esa consola.
 
@@ -107,7 +121,12 @@ más completas) cuando tengas dudas de cómo se hace algo.
 
 - [ ] `MANUAL.md`: sección "Cómo se usa la <consola>" (teclas, secciones, imágenes que usa, sonidos).
 - [ ] Probar en el navegador con el mock (`renderer/mock.js`; agregar lo que falte) y en Electron real.
-- [ ] Agregar sus pantallas a `PANTALLAS` en `tests/pantallas.js` (cómo llegar con el teclado y qué tiene que verse) y
-      guardar sus capturas con `npm run test:referencia -- <id>`. `npm test` tiene que pasar entero.
+- [ ] Agregar la consola a `ORDEN` y sus pantallas a `PANTALLAS` en `tests/pantallas.js` (cómo llegar con el teclado y qué
+      tiene que verse): todas las secciones, la ficha, logros, jugando y volver, y las ventanitas. **Nunca elegir un
+      orden de juegos ni un tema en una prueba**: queda guardado y cambia las capturas de las corridas siguientes.
+      Guardar sus capturas con `npm run test:referencia -- <id>`. `npm test` tiene que pasar entero.
+- [ ] Agregarla también a las listas de `tests/app-real/consolas.js` y `tests/app-real/humo.js`.
+- [ ] Revisar variables sueltas: `npx eslint@8 --no-eslintrc --env browser,es2022 --rule "no-undef: error" <tema>`
+      (corrido fuera del proyecto; no se instala nada).
 - [ ] Capturas de cada pantalla antes de entregar.
 - [ ] Darle a Cristóbal los comandos de git (él hace el commit y el push).

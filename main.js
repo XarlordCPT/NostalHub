@@ -144,7 +144,7 @@ const discord = new DiscordVoice({
 
 // ---------- Contador de horas y presencia en Discord ----------
 const DISCORD_PRESENCE_ID = '1556550846261493780'; // ID (público) de la aplicación "NostalHub" del portal de Discord
-const CONSOLE_NAMES = { wii: 'Wii', ps2: 'PS2', x360: 'Xbox 360', ps3: 'PS3', ps4: 'PS4', vita: 'PS Vita', switch: 'Switch', '3ds': '3DS' };
+const CONSOLE_NAMES = { wii: 'Wii', ps2: 'PS2', x360: 'Xbox 360', ps3: 'PS3', ps4: 'PS4', vita: 'PS Vita', switch: 'Switch', '3ds': '3DS', xone: 'Xbox One' };
 const TRACK_EVERY_MS = 15000;
 const playLog = new PlayLog(path.join(DATA_DIR, 'estadisticas.db'), (m) => anotar('horas', m));
 const retro = new RetroAchievements({ dataDir: DATA_DIR, log: (m) => anotar('retro', m) });
@@ -246,7 +246,7 @@ function achievementDisplay() {
   return screen.getPrimaryDisplay();
 }
 const overlay = new Overlay({ dir: __dirname, pickDisplay: achievementDisplay });
-const ACH_STYLES = ['x360', 'ps3', 'ps4', 'vita', 'wii', 'ps2', 'switch', '3ds']; // las que tienen aviso propio (ver renderer/overlay)
+const ACH_STYLES = ['x360', 'ps3', 'ps4', 'vita', 'wii', 'ps2', 'switch', '3ds', 'xone']; // las que tienen aviso propio (ver renderer/overlay)
 const PLAYSTATION = ['ps3', 'ps4', 'vita'];
 function showAchievement(a, { test = false } = {}) {
   if (config.data.achOverlay === false) return test && send('toast', 'Los logros sobre el juego están apagados (Ajustes → Pantalla)');

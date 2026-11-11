@@ -13,7 +13,7 @@ const OUT = path.join(ROOT, 'tests', 'capturas', 'app-real');
 const ULTIMA = JSON.parse(fs.readFileSync(path.join(process.env.APPDATA, 'NostalHub', 'config.json'), 'utf8')).lastConsole || 'wii'; // la consola que tenías marcada
 const PORT = 9351;
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
-const IDS = ['wii', 'ps2', 'x360', 'ps3', 'ps4', 'vita', 'switch', '3ds'];
+const IDS = ['wii', 'ps2', 'x360', 'ps3', 'ps4', 'vita', 'switch', '3ds', 'xone'];
 const orden = [...IDS.filter((i) => i !== ULTIMA), ULTIMA];
 
 (async () => {

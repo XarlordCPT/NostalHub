@@ -164,4 +164,23 @@ window.CONSOLES = [
       enterFlash: '#ffffff',
     },
   },
+  {
+    id: 'xone',
+    company: 'Microsoft',
+    name: 'Xbox One',
+    year: 2013,
+    look: {
+      background:
+        'radial-gradient(ellipse 50% 60% at 74% 50%, rgba(16,124,16,0.42), rgba(16,124,16,0) 70%),' +
+        'linear-gradient(to bottom, #232323 0%, #151515 55%, #0b0b0b 100%)',
+      base: '#1f1f1f',
+      text: '#ffffff',
+      subtext: '#9bd49b',
+      accent: '#107c10',
+      font: "'Segoe UI', 'Selawik', 'Helvetica Neue', Arial, sans-serif",
+      nameWeight: 300,
+      nameShadow: '0 3px 14px rgba(0,0,0,0.5)',
+      enterFlash: '#000000',
+    },
+  },
 ];

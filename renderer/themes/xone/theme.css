@@ -1,0 +1,307 @@
+/* Tema Xbox One (menú de 2013): todo queda dentro de #theme-root.theme-xone. --xo-acc es "Mi color". */
+.theme-xone {
+  --xo-acc: #107c10;
+  --xo-dark: #2b2b2b;
+  --xo-sub: #9a9a9a;
+  --xo-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: radial-gradient(ellipse 90% 70% at 50% 0%, #232323 0%, #121212 70%, #0b0b0b 100%);
+  color: #fff;
+  font-family: 'Segoe UI', 'Selawik', 'Helvetica Neue', Arial, sans-serif;
+  user-select: none;
+}
+.theme-xone [hidden] { display: none !important; }
+:where(.theme-xone) button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; text-align: left; }
+.theme-xone .xo-ic { display: block; flex: none; width: 1em; height: 1em; }
+
+/* ============ Arriba: amigos conectados, hora y pestañas ============ */
+.xo-top { position: absolute; left: 121px; right: 121px; top: 62px; height: 64px; display: flex; align-items: center; justify-content: space-between; transition: opacity 0.3s ease; }
+.xo-strip { display: flex; gap: 8px; }
+.xo-strip-p { width: 60px; height: 60px; overflow: hidden; display: grid; place-items: center; background: var(--xo-acc); font-size: 30px; font-weight: 600; }
+.xo-strip-p img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.xo-clock { font-size: 40px; font-weight: 300; letter-spacing: 1px; color: #d8d8d8; }
+.xo-tabs { position: absolute; left: 121px; top: 168px; display: flex; gap: 48px; transition: opacity 0.3s ease; }
+.xo-tab { font-size: 50px; font-weight: 300; color: #6f6f6f; transition: color 0.25s ease; }
+.xo-tab.on { color: #fff; }
+.xo-tab:hover { color: #cfcfcf; }
+
+/* ============ Inicio: tira de páginas con mosaicos ============ */
+.xo-home { position: absolute; left: 0; right: 0; top: 287px; height: 660px; transition: opacity 0.3s ease; }
+.xo-track { position: absolute; left: 0; top: 0; transition: transform 0.5s var(--xo-ease); }
+.xo-page { position: absolute; top: 0; height: 649px; opacity: 0.45; transition: opacity 0.4s ease; }
+.xo-page.on { opacity: 1; }
+.xo-page[data-page='pins'] { left: 0; width: 1091px; }
+.xo-page[data-page='home'] { left: 1171px; width: 1722px; }
+.xo-page[data-page='store'] { left: 2973px; width: 700px; }
+.xo-tile { position: absolute; overflow: hidden; background: var(--xo-dark); transition: transform 0.18s var(--xo-ease), box-shadow 0.18s ease; }
+.xo-tile.acc { background: var(--xo-acc); }
+.xo-tile.dark { background: #333; }
+.xo-tile.focus,
+.xo-cell.focus .xo-artbox { box-shadow: 0 0 0 5px #fff; z-index: 3; }
+.xo-tile.focus { transform: scale(1.025); }
+.xo-tile > .xo-ic { position: absolute; left: 50%; top: 44%; width: 76px; height: 76px; transform: translate(-50%, -50%); }
+.xo-tile.wide > .xo-ic { left: 76px; }
+.xo-tl { position: absolute; left: 16px; right: 12px; bottom: 12px; font-size: 24px; line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.xo-tile small { position: absolute; left: 16px; top: 14px; font-size: 22px; opacity: 0.8; }
+.xo-colh { position: absolute; top: -40px; font-size: 20px; font-weight: 600; letter-spacing: 3px; text-transform: uppercase; color: var(--xo-sub); }
+.xo-phead { position: absolute; top: -40px; left: 0; display: flex; align-items: center; gap: 10px; font-size: 20px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; color: var(--xo-sub); }
+.xo-empty { position: absolute; left: 0; top: 40px; font-size: 32px; color: var(--xo-sub); white-space: nowrap; }
+
+/* Arte cuadrado de un juego */
+.xo-artbox { position: absolute; inset: 0; display: block; overflow: hidden; }
+.xo-art { position: absolute; inset: 0; background: #3a3a3a center / cover no-repeat; display: grid; place-items: center; }
+.xo-art.top { background-position: center 22%; }
+.xo-art img { max-width: 84%; max-height: 60%; object-fit: contain; filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.6)); }
+.xo-art b { padding: 12px; font-size: 26px; font-weight: 600; line-height: 1.1; text-align: center; text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8); }
+.xo-art.none { background: linear-gradient(150deg, #454545, #2a2a2a); }
+
+/* El mosaico grande: lo último que jugaste */
+.xo-mainart { position: absolute; inset: 0; background: #2f2f2f center / cover no-repeat; display: grid; place-items: center; }
+.xo-mainart img { max-width: 56%; max-height: 52%; object-fit: contain; filter: drop-shadow(0 6px 18px rgba(0, 0, 0, 0.65)); }
+.xo-mainl { position: absolute; left: 0; bottom: 26px; max-width: 80%; padding: 10px 26px 12px; background: rgba(20, 20, 20, 0.72); font-size: 44px; font-weight: 300; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* Tu perfil */
+.xo-pic { position: absolute; inset: 0; display: grid; place-items: center; background: #3d3d3d center / cover no-repeat; font-size: 96px; font-weight: 300; }
+.xo-me { position: absolute; inset: 0; padding: 18px 16px; display: flex; flex-direction: column; }
+.xo-me b { font-size: 26px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.xo-me-l { display: flex; align-items: center; gap: 10px; margin-top: 12px; font-size: 26px; }
+.xo-me-l .xo-ic { width: 28px; height: 28px; }
+.xo-me-n { margin-top: auto; margin-bottom: 44px; font-size: 76px; font-weight: 300; line-height: 1; }
+.xo-mu,
+.xo-pa,
+.xo-ac { position: absolute; inset: 0; }
+.xo-mu > .xo-ic,
+.xo-pa > .xo-ic { position: absolute; left: 50%; top: 44%; width: 76px; height: 76px; transform: translate(-50%, -50%); }
+.xo-mu-c { position: absolute; inset: 0; background: center / cover no-repeat; }
+.xo-mu-c + .xo-tl { left: 0; right: 0; bottom: 0; padding: 8px 16px 12px; background: rgba(20, 20, 20, 0.72); }
+.xo-pa b { position: absolute; right: 16px; top: 12px; font-size: 34px; font-weight: 300; }
+.xo-ac > .xo-ic { position: absolute; left: 76px; top: 44%; width: 76px; height: 76px; transform: translate(-50%, -50%); }
+.xo-ac b { position: absolute; right: 18px; top: 16px; font-size: 30px; font-weight: 300; }
+
+/* ============ Pistas de teclas ============ */
+.xo-hints { position: absolute; left: 121px; bottom: 54px; display: flex; gap: 34px; font-size: 24px; color: #bdbdbd; z-index: 6; }
+.xo-hint { display: flex; align-items: center; gap: 12px; }
+.xo-key { min-width: 44px; height: 40px; padding: 0 12px; display: inline-grid; place-items: center; border: 2px solid #8a8a8a; font-size: 20px; font-weight: 600; color: #fff; }
+
+/* ============ Pantallas ============ */
+.theme-xone.in-screen .xo-home,
+.theme-xone.in-screen .xo-tabs,
+.theme-xone.in-screen .xo-strip { opacity: 0; pointer-events: none; }
+.xo-screen { position: absolute; left: 121px; right: 121px; top: 150px; bottom: 130px; z-index: 4; }
+.xo-screen.enter { animation: xone-in 0.35s var(--xo-ease) both; }
+@keyframes xone-in { from { opacity: 0; transform: translateX(60px); } to { opacity: 1; transform: none; } }
+.xo-sh { display: flex; align-items: baseline; gap: 30px; height: 84px; }
+.xo-sh h2 { margin: 0; font-size: 60px; font-weight: 300; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.xo-sh > span { margin-left: auto; font-size: 30px; color: var(--xo-sub); white-space: nowrap; }
+.xo-bar { display: block; height: 8px; background: rgba(255, 255, 255, 0.16); overflow: hidden; }
+.xo-bar i { display: block; height: 100%; width: 0; background: var(--xo-acc); transition: width 0.5s ease; }
+.xo-bar.done i { background: #f2c230; }
+.xo-msg { position: absolute; left: 0; right: 0; top: 190px; display: flex; flex-direction: column; align-items: center; gap: 16px; font-size: 30px; color: #c9c9c9; text-align: center; }
+.xo-msg.in { position: static; margin-top: 120px; }
+.xo-msg b { font-size: 46px; font-weight: 300; color: #fff; }
+.xo-msg small { font-size: 24px; }
+.xo-spin { width: 54px; height: 54px; border: 5px solid rgba(255, 255, 255, 0.2); border-top-color: #fff; border-radius: 50%; animation: xone-spin 0.9s linear infinite; }
+@keyframes xone-spin { to { transform: rotate(360deg); } }
+.xo-btnrow { display: flex; align-items: center; gap: 16px; margin-top: 26px; flex-wrap: wrap; }
+.xo-btn { height: 76px; padding: 0 34px; display: inline-flex; align-items: center; gap: 16px; background: #3a3a3a; font-size: 30px; white-space: nowrap; transition: box-shadow 0.15s ease; }
+.xo-btn.acc { background: var(--xo-acc); }
+.xo-btn .xo-ic { width: 32px; height: 32px; }
+.xo-btn.focus,
+.xo-rnd.focus,
+.xo-row.focus,
+.xo-pop-it.focus,
+.xo-sortb.focus { box-shadow: 0 0 0 4px #fff; position: relative; z-index: 2; }
+.xo-scroll,
+.xo-lib-view,
+.xo-a-view,
+.xo-f-view,
+.xo-s-cats,
+.xo-s-items,
+.xo-pop-list { overflow-y: auto; scrollbar-width: none; }
+.xo-lib-view::-webkit-scrollbar,
+.xo-a-view::-webkit-scrollbar,
+.xo-f-view::-webkit-scrollbar,
+.xo-s-cats::-webkit-scrollbar,
+.xo-s-items::-webkit-scrollbar,
+.xo-pop-list::-webkit-scrollbar { display: none; }
+
+/* Mis juegos y aplicaciones */
+.xo-sortb { margin-left: auto; height: 60px; padding: 0 22px; display: flex; align-items: center; gap: 12px; background: #333; font-size: 26px; }
+.xo-lib-view { position: absolute; left: -10px; right: -10px; top: 104px; bottom: 0; padding: 10px; }
+.xo-lib-grid { display: grid; grid-template-columns: repeat(7, 226px); gap: 16px 15.5px; }
+.xo-cell { position: relative; height: 282px; }
+.xo-cell .xo-artbox { inset: 0 0 56px 0; transition: box-shadow 0.15s ease; }
+.xo-cell-n { position: absolute; left: 2px; right: 2px; bottom: 12px; font-size: 22px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #cfcfcf; }
+.xo-cell.focus .xo-cell-n { color: #fff; }
+.xo-lib-grid .xo-empty { position: static; }
+
+/* Ficha del juego */
+.xo-game { display: flex; gap: 70px; align-items: flex-start; padding-top: 40px; }
+.xo-g-art { position: relative; flex: none; width: 520px; height: 520px; box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5); }
+.xo-artbox.big .xo-art b { font-size: 52px; }
+.xo-g-info { flex: 1; min-width: 0; }
+.xo-g-name { margin: 0; font-size: 84px; font-weight: 300; line-height: 1.05; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.xo-g-meta { margin-top: 18px; font-size: 30px; color: var(--xo-sub); }
+.xo-g-prog { margin-top: 26px; max-width: 760px; }
+.xo-g-prog span { display: block; margin-top: 10px; font-size: 28px; }
+.xo-g-desc { margin-top: 26px; max-width: 980px; font-size: 28px; line-height: 1.4; color: #cfcfcf; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+.xo-g-btns { display: flex; gap: 16px; margin-top: 40px; }
+
+/* Filas (logros, amigos, configuración) */
+.xo-row { width: 100%; min-height: 100px; padding: 12px 22px; display: flex; align-items: center; gap: 22px; background: #262626; margin-bottom: 6px; }
+.xo-row-t { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.xo-row-t b { font-size: 30px; font-weight: 400; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.xo-row-t small { font-size: 23px; color: var(--xo-sub); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.xo-row-v { flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; font-size: 26px; color: #d0d0d0; }
+.xo-row-v small { font-size: 20px; color: var(--xo-sub); }
+.xo-row.sep { min-height: 62px; background: none; border-bottom: 2px solid var(--xo-acc); margin: 14px 0 10px; }
+.xo-row.sep b { font-size: 26px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; }
+.xo-row.locked .xo-row-ic { filter: grayscale(1) brightness(0.7); }
+.xo-row.locked .xo-row-t b { color: #b5b5b5; }
+.xo-row-ic { flex: none; width: 76px; height: 76px; background: #3a3a3a center / cover no-repeat; image-rendering: auto; }
+.xo-row.ag { position: relative; padding-left: 122px; }
+.xo-artbox.mini { inset: 0 auto 0 0; width: 100px; }
+.xo-artbox.mini .xo-art b { font-size: 12px; padding: 4px; }
+.xo-artbox.mini .nh-done.on-icon { width: 30px; height: 30px; top: 4px; right: 4px; }
+.xo-a-bar { margin-top: 6px; }
+.xo-a-view { position: absolute; left: -8px; right: -8px; top: 124px; bottom: 0; padding: 8px; }
+
+/* Amigos */
+.xo-f-body { position: absolute; left: 0; right: 0; top: 104px; bottom: 0; display: flex; gap: 60px; }
+.xo-f-view { flex: 1; min-width: 0; padding: 8px; margin: -8px; }
+.xo-f-head { margin: 18px 0 10px; font-size: 22px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; color: var(--xo-sub); }
+.xo-f-head:first-child { margin-top: 0; }
+.xo-fpic { position: relative; flex: none; width: 76px; height: 76px; border-radius: 10px; overflow: visible; display: grid; place-items: center; background: #444; font-size: 34px; }
+.xo-fpic img { width: 100%; height: 100%; object-fit: cover; border-radius: 10px; display: block; }
+.xo-fpic i { position: absolute; right: -5px; bottom: -5px; width: 20px; height: 20px; border-radius: 50%; border: 3px solid #1a1a1a; background: #6b6b6b; }
+.xo-fpic.on i { background: #6ccb3c; }
+.xo-fpic.game i { background: var(--xo-acc); box-shadow: 0 0 0 2px #fff inset; }
+.xo-fpic.away i,
+.xo-fpic.busy i { background: #e0a020; }
+.xo-fpic.off img { filter: grayscale(0.8); opacity: 0.7; }
+.xo-fpic.big { width: 220px; height: 220px; font-size: 96px; border-radius: 18px; }
+.xo-fpic.big img { border-radius: 18px; }
+.xo-fpic.big i { width: 34px; height: 34px; border-width: 5px; }
+.xo-f-card { flex: none; width: 560px; padding: 40px; background: #222; display: flex; flex-direction: column; align-items: flex-start; gap: 14px; align-self: flex-start; }
+.xo-f-card:empty { display: none; }
+.xo-f-n { margin-top: 16px; font-size: 48px; font-weight: 300; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.xo-f-s { font-size: 28px; color: var(--xo-sub); margin-bottom: 14px; }
+.xo-f-s.on,
+.xo-f-s.game { color: #8fdc68; }
+.xo-f-card .xo-btn { width: 100%; }
+
+/* Grupo */
+.xo-p-chan { display: flex; align-items: center; gap: 20px; margin-top: 30px; font-size: 44px; font-weight: 300; }
+.xo-p-chan .xo-ic { width: 54px; height: 54px; color: #8fdc68; }
+.xo-p-chan b { font-weight: 300; }
+.xo-p-list { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 30px; }
+.xo-p-m { display: flex; align-items: center; gap: 20px; padding: 14px 18px; background: #262626; }
+.xo-p-m.talking { box-shadow: inset 5px 0 0 #8fdc68; }
+.xo-p-av { flex: none; width: 72px; height: 72px; border-radius: 10px; background: #444 center / cover no-repeat; }
+.xo-p-m b { flex: 1; min-width: 0; font-size: 30px; font-weight: 400; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.xo-p-m small { font-size: 22px; color: var(--xo-sub); }
+
+/* Música */
+.xo-m-body { display: flex; gap: 70px; margin-top: 50px; }
+.xo-m-cover { flex: none; width: 460px; height: 460px; display: grid; place-items: center; background: var(--xo-acc) center / cover no-repeat; font-size: 180px; box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5); }
+.xo-m-info { flex: 1; min-width: 0; }
+.xo-m-st { font-size: 26px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; color: var(--xo-sub); }
+.xo-m-t { margin-top: 10px; font-size: 68px; font-weight: 300; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.xo-m-a { font-size: 34px; color: #cfcfcf; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.xo-m-prog { margin-top: 26px; max-width: 900px; font-size: 22px; color: var(--xo-sub); }
+.xo-rnd { width: 84px; height: 84px; display: grid; place-items: center; background: #3a3a3a; font-size: 36px; }
+.xo-rnd.big { width: 104px; height: 104px; background: var(--xo-acc); font-size: 46px; }
+.xo-rnd.sm { width: 70px; height: 70px; font-size: 30px; }
+.xo-rnd.sm.on { background: var(--xo-acc); }
+.xo-rnd svg { width: 1em; height: 1em; }
+.xo-m-hint { height: 34px; margin-top: 14px; font-size: 24px; color: var(--xo-sub); }
+.xo-m-next { margin-top: 10px; font-size: 26px; color: #cfcfcf; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.xo-m-next small { margin-right: 14px; font-size: 20px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; color: var(--xo-sub); }
+
+/* Configuración */
+.xo-s-body { position: absolute; left: 0; right: 0; top: 104px; bottom: 60px; display: flex; gap: 50px; }
+.xo-s-cats { flex: none; width: 480px; padding: 8px; margin: -8px; }
+.xo-s-items { flex: 1; min-width: 0; padding: 8px; margin: -8px; }
+.xo-row.cat { min-height: 84px; background: none; }
+.xo-row.cat .xo-ic { width: 40px; height: 40px; color: #cfcfcf; }
+.xo-row.cat.on { background: var(--xo-acc); }
+.xo-row.cat.on .xo-ic { color: #fff; }
+.xo-row.it { min-height: 88px; }
+.xo-tg { flex: none; width: 76px; height: 34px; border: 3px solid #cfcfcf; position: relative; }
+.xo-tg i { position: absolute; left: 3px; top: 3px; width: 22px; height: 22px; background: #cfcfcf; transition: left 0.2s ease; }
+.xo-tg.on { border-color: var(--xo-acc); background: var(--xo-acc); }
+.xo-tg.on i { left: 45px; background: #fff; }
+.xo-s-desc { position: absolute; left: 530px; right: 0; bottom: 0; height: 44px; font-size: 24px; color: var(--xo-sub); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ============ Ventanita ============ */
+.xo-pop { position: absolute; inset: 0; z-index: 20; display: grid; place-items: center; background: rgba(0, 0, 0, 0.6); }
+.xo-pop-box { width: 720px; background: #1f1f1f; border-top: 8px solid var(--xo-acc); box-shadow: 0 30px 80px rgba(0, 0, 0, 0.7); animation: xone-pop 0.22s var(--xo-ease) both; }
+@keyframes xone-pop { from { opacity: 0; transform: scale(0.94); } to { opacity: 1; transform: none; } }
+.xo-pop-title { padding: 28px 36px 18px; font-size: 40px; font-weight: 300; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.xo-pop-list { max-height: 640px; padding: 8px 14px 18px; }
+.xo-pop-it { width: 100%; height: 78px; padding: 0 22px; display: flex; align-items: center; gap: 22px; font-size: 30px; }
+.xo-pop-it span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.xo-pop-it .xo-ic { width: 34px; height: 34px; }
+.xo-pop-it.on { color: #fff; }
+.xo-radio { flex: none; width: 26px; height: 26px; border: 3px solid #9a9a9a; border-radius: 50%; }
+.xo-radio.on { border-color: var(--xo-acc); background: radial-gradient(circle, var(--xo-acc) 45%, transparent 50%); }
+.xo-sw { flex: none; width: 40px; height: 40px; }
+.xo-pop-it.on .xo-sw { box-shadow: 0 0 0 3px #1f1f1f, 0 0 0 6px #fff; }
+
+/* ============ Jugando a… ============ */
+.xo-playing { position: absolute; inset: 0; z-index: 30; display: flex; flex-direction: column; align-items: center; justify-content: center; background: radial-gradient(ellipse 80% 70% at 50% 40%, #262626, #0c0c0c); animation: xone-fade 0.4s ease both; }
+.xo-playing.leave { animation: xone-fade 0.35s ease reverse both; }
+@keyframes xone-fade { from { opacity: 0; } to { opacity: 1; } }
+.xo-pl-art { position: relative; width: 300px; height: 300px; box-shadow: 0 0 0 5px var(--xo-acc), 0 24px 60px rgba(0, 0, 0, 0.6); }
+.xo-pl-label { margin-top: 36px; font-size: 26px; font-weight: 600; letter-spacing: 3px; text-transform: uppercase; color: var(--xo-sub); }
+.xo-pl-name { margin-top: 6px; max-width: 1200px; font-size: 68px; font-weight: 300; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.xo-pl-time { margin-top: 4px; font-size: 40px; font-weight: 300; font-variant-numeric: tabular-nums; color: #cfcfcf; }
+.xo-pl-clock { margin-top: 10px; font-size: 24px; color: var(--xo-sub); text-align: center; }
+.xo-playing > .xo-btn { margin-top: 30px; }
+.theme-xone.is-playing .xo-hints { opacity: 0; }
+
+/* Spotify y Grupo a los lados mientras juegas */
+.xo-playing .np-panel { background: #1f1f1f; border-top: 6px solid var(--xo-acc); border-radius: 0; color: #fff; }
+.xo-playing .np-btn { border-radius: 0; background: #3a3a3a; }
+.xo-playing .np-btn:hover { background: var(--xo-acc); }
+
+/* Entrada */
+.theme-xone.intro .xo-tile { animation: xone-tile 0.5s var(--xo-ease) both; }
+.theme-xone.intro .xo-tabs,
+.theme-xone.intro .xo-top { animation: xone-fade 0.6s ease both; }
+@keyframes xone-tile { from { opacity: 0; transform: translateX(80px); } to { opacity: 1; transform: none; } }
+
+/* ============ Editor de imágenes (clic derecho o tecla I) ============ */
+.theme-xone .ge-wrap { background: rgba(0, 0, 0, 0.72); font-family: 'Segoe UI', 'Selawik', sans-serif; }
+.theme-xone .ge-panel { background: #1f1f1f; color: #fff; border-top: 8px solid var(--xo-acc); box-shadow: 0 30px 80px rgba(0, 0, 0, 0.7); }
+.theme-xone .ge-head { padding: 28px 46px 18px; border-bottom: 2px solid #333; }
+.theme-xone .ge-title { font-size: 48px; font-weight: 300; }
+.theme-xone .ge-sub { font-size: 24px; color: var(--xo-sub); }
+.theme-xone .ge-body { padding: 24px 46px; }
+.theme-xone .ge-slot,
+.theme-xone .ge-desc { padding: 20px; background: #2a2a2a; }
+.theme-xone .ge-slot.on,
+.theme-xone .ge-desc.on { box-shadow: 0 0 0 4px #fff; }
+.theme-xone .ge-prev { background: #141414; color: var(--xo-sub); }
+.theme-xone .ge-name { font-size: 32px; font-weight: 400; }
+.theme-xone .ge-state { font-size: 19px; padding: 3px 12px; background: #3a3a3a; color: #cfcfcf; }
+.theme-xone .is-custom .ge-state { background: var(--xo-acc); color: #fff; }
+.theme-xone .ge-hint,
+.theme-xone .ge-used { font-size: 21px; color: var(--xo-sub); line-height: 1.35; }
+.theme-xone .ge-b { height: 56px; padding: 0 26px; background: #3a3a3a; color: #fff; font-size: 23px; }
+.theme-xone .ge-b.kf,
+.theme-xone .ge-b:hover { background: var(--xo-acc); box-shadow: 0 0 0 3px #fff; }
+.theme-xone .ge-text { border: 2px solid #4a4a4a; padding: 14px 18px; font-size: 25px; color: #fff; background: #141414; line-height: 1.4; }
+.theme-xone .ge-text.kf,
+.theme-xone .ge-text:focus { border-color: #fff; outline: none; }
+.theme-xone .ge-msg { padding: 8px 46px; font-size: 25px; color: #8fdc68; }
+.theme-xone .ge-msg.bad { color: #ff6b5e; }
+.theme-xone .ge-foot { padding: 18px 46px 26px; border-top: 2px solid #333; }
+.theme-xone .ge-drop { background: color-mix(in srgb, var(--xo-acc) 85%, transparent); color: #fff; }
+.theme-xone .ge-ctx { padding: 8px; background: #1f1f1f; color: #fff; border-top: 6px solid var(--xo-acc); box-shadow: 0 18px 44px rgba(0, 0, 0, 0.6); font-family: 'Segoe UI', 'Selawik', sans-serif; }
+.theme-xone .ge-ctx-title { font-size: 21px; color: var(--xo-sub); padding: 8px 16px 10px; }
+.theme-xone .ge-ci { height: 64px; padding: 0 18px; font-size: 27px; color: #fff; }
+.theme-xone .ge-ci.kf,
+.theme-xone .ge-ci:hover { background: var(--xo-acc); }

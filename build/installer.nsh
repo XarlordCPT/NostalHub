@@ -3,7 +3,7 @@
 
 !macro customWelcomePage
   !define MUI_WELCOMEPAGE_TITLE "Bienvenido a NostalHub ${VERSION}"
-  !define MUI_WELCOMEPAGE_TEXT "Tus juegos con los menús de 8 consolas clásicas: Wii, PS2, Xbox 360, PS3, PS4, PS Vita, Switch y 3DS.$\r$\n$\r$\nSi ya tienes NostalHub, se actualiza a esta versión sin perder tus juegos, ajustes, fondos ni sonidos (viven en %APPDATA%\NostalHub).$\r$\n$\r$\nPresiona Siguiente para continuar."
+  !define MUI_WELCOMEPAGE_TEXT "Tus juegos con los menús de 9 consolas clásicas: Wii, PS2, Xbox 360, PS3, PS4, PS Vita, Switch, 3DS y Xbox One.$\r$\n$\r$\nSi ya tienes NostalHub, se actualiza a esta versión sin perder tus juegos, ajustes, fondos ni sonidos (viven en %APPDATA%\NostalHub).$\r$\n$\r$\nPresiona Siguiente para continuar."
   !insertmacro MUI_PAGE_WELCOME
 !macroend
 

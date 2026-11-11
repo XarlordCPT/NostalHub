@@ -37,7 +37,7 @@ const LLAMADAS = `(async () => {
   const emu = st.games.find((g) => g.type === 'emulator' && g.hasAch);
   await probar('getState', () => st);
   await probar('getMenu', () => api.getMenu());
-  await probar('getConsoleAssets', () => api.getConsoleAssets(['wii', 'ps2', 'x360', 'ps3', 'ps4', 'vita', 'switch', '3ds']));
+  await probar('getConsoleAssets', () => api.getConsoleAssets(['wii', 'ps2', 'x360', 'ps3', 'ps4', 'vita', 'switch', '3ds', 'xone']));
   await probar('getConsoleBackgrounds', () => api.getConsoleBackgrounds('ps3'));
   await probar('getFreeSpace', () => api.getFreeSpace());
   await probar('getSettings', () => api.getSettings());

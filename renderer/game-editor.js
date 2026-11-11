@@ -10,7 +10,7 @@
   const esc = window.NostalHubUtil.escapeHtml;
   const call = (fn, ...a) => (typeof api[fn] === 'function' ? api[fn](...a) : Promise.resolve(null));
 
-  const CONSOLE_NAMES = { wii: 'Wii', ps2: 'PS2', x360: 'Xbox 360', ps4: 'PS4', vita: 'PS Vita', switch: 'Switch', ps3: 'PS3', '3ds': '3DS' };
+  const CONSOLE_NAMES = { wii: 'Wii', ps2: 'PS2', x360: 'Xbox 360', ps4: 'PS4', vita: 'PS Vita', switch: 'Switch', ps3: 'PS3', '3ds': '3DS', xone: 'Xbox One' };
   // Qué imágenes se ven en cada consola (en orden)
   const BY_CONSOLE = {
     wii: ['tile', 'hero', 'logo', 'video', 'music'],
@@ -21,6 +21,7 @@
     switch: ['square', 'hero', 'logo'],
     ps3: ['icon0', 'hero', 'music'],
     '3ds': ['square', 'hero', 'logo'],
+    xone: ['square', 'hero', 'logo'],
   };
   const ALL = ['tile', 'square', 'bubble', 'icon0', 'cover', 'hero', 'logo', 'video', 'model', 'music'];
   // Algunas también se usan en otras consolas aunque no sean "suyas"
