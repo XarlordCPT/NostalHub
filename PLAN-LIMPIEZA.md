@@ -41,8 +41,8 @@ Rama: `limpieza`. `main` no se toca hasta que Cristóbal la junte. Un commit por
 ## Etapa 4: ordenar las consolas (una por commit, de la más chica a la más grande)
 
 - [x] Un ayudante común para moverse por listas y cuadrículas (hoy hay 4 formas distintas): `U.rowWindow`.
-- [ ] Separar el `mount` de cada consola por pantallas (menú, ficha, logros, amigos, ajustes, música).
-      Orden: PS2 → Switch → Xbox 360 → 3DS → PS3 → Wii → PS4 → Vita. **Listas: PS2, Switch, Xbox 360, 3DS, PS3, Wii y PS4.** Falta solo la Vita.
+- [x] Separar el `mount` de cada consola por pantallas (menú, ficha, logros, amigos, ajustes, música).
+      Orden: PS2 → Switch → Xbox 360 → 3DS → PS3 → Wii → PS4 → Vita. **Listas las 8** (la Vita usa el objeto `vita`).
 
 ### Cómo retomarla (notas para la próxima sesión)
 
@@ -97,7 +97,10 @@ Rama: `limpieza`. `main` no se toca hasta que Cristóbal la junte. Un commit por
 
 ## Etapa 5: CSS y HTML
 
-- [ ] Menos `!important` (Vita 56, Switch 20, PS3 13): selectores más precisos.
+- [x] Menos `!important` (Vita 56 → 4, Switch 20 → 2, PS3 13 → 1). Casi todos existían solo para ganarle al reset de botones
+      del tema (`.theme-x button`): el reset pasó a `:where(.theme-x) button` (sin peso, como dice CLAUDE.md) y se quitaron
+      los que no tienen otra regla compitiendo. En la Switch se quitaron 2 declaraciones que nunca se aplicaron (el color de
+      `.sw-sort` y el `padding-top` de `.sw-fr-cell`), para que se vea igual que antes.
 - [ ] HTML larguísimo en una línea → partido en piezas que se lean, y siempre con `esc` en los textos de los juegos.
 
 ## Etapa 6: cierre
@@ -131,5 +134,8 @@ Rama: `limpieza`. `main` no se toca hasta que Cristóbal la junte. Un commit por
   (pasó en la Wii: se borra con `localStorage.removeItem('nostalhub.<consola>.gameSort')` desde un paso `js`). Se quitó una
   prueba de la PS4 (Ajustes → Temas → Fondo): la lista a veces queda corrida unos píxeles, con el código nuevo y sin poder
   descartarlo con el de antes; revisar a mano que esa lista se vea bien.
+- **Etapa 4 lista** (8 consolas) y **etapa 5 a medias**: hecho lo de `!important`; falta partir el HTML larguísimo y revisar
+  `esc` en los textos de los juegos. `npm test`: 56 de lógica + 120 pantallas, 0 diferencias. **Falta** la prueba con la app
+  real después de PS3, Wii, PS4, Vita y el CSS (`npm run test:app-real:consolas`, con NostalHub cerrada) y toda la etapa 6.
 - Ojo para las pruebas con la app real: dentro de una consola, Enter abre un juego de verdad. El script solo aprieta teclas
   con el selector a la vista y sin ninguna consola abierta (una vez se abrió Pokémon Fire Red por apretar Enter a ciegas).
