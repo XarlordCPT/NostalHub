@@ -111,21 +111,7 @@
         const img = name.querySelector('img');
         if (img) img.onerror = () => ((name.textContent = c.name), name.classList.remove('has-logo'));
         // Imagen o modelo 3D de la consola (arriba a la derecha)
-        const ic = $('.hp-hero-ic');
-        ic.innerHTML = '';
-        ic.className = 'hp-hero-ic home-model active';
-        const showImage = () => {
-          ic.querySelectorAll('.sel-model').forEach((m) => m.remove());
-          if (a.icon) {
-            const i = document.createElement('img');
-            i.src = a.icon;
-            i.alt = '';
-            i.draggable = false;
-            ic.appendChild(i);
-          } else ic.innerHTML = ctx.GAMEPAD_SVG;
-        };
-        if (a.model && window.ConsoleModel) window.ConsoleModel.attach(ic, a.model, showImage, ctx.modelTilt(c.id));
-        else showImage();
+        K.showConsole($('.hp-hero-ic'), ctx, c);
         hero.classList.remove('hp-in');
         void hero.offsetWidth;
         hero.classList.add('hp-in');
@@ -198,10 +184,7 @@
         box.innerHTML = rec
           .map((g) => `<div class="hp-g" data-game-id="${esc(g.id)}" title="${esc(g.name)}"><div class="hp-g-art"></div>${g.playtimeMin ? `<em>${esc(U.hours(g.playtimeMin).replace(' jugadas', '').replace(' jugados', ''))}</em>` : ''}<span>${esc(g.name)}</span></div>`)
           .join('');
-        box.querySelectorAll('.hp-g').forEach((el, i) => {
-          const a = K.art(rec[i]);
-          if (a) U.stillBackground(el.querySelector('.hp-g-art'), a);
-        });
+        box.querySelectorAll('.hp-g').forEach((el, i) => K.paintThumb(el.querySelector('.hp-g-art'), rec[i]));
       }
 
       // ---------- Derecha: música, amigos y la semana ----------

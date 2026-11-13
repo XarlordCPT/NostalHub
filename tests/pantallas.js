@@ -218,6 +218,16 @@ const GENERALES = {
   'panel-derecha': { query: { estilo: 'panel' }, pasos: [k('ArrowRight', 3), espera(500)], ve: '.hp-c.sel[data-id="ps4"]' },
   'panel-botones': { query: { estilo: 'panel' }, pasos: [k('ArrowDown', 9), k('ArrowDown', 2)], ve: '.hp-f.kf[data-a="cfg"]' },
   'panel-ajustes': { query: { estilo: 'panel' }, pasos: [k('a'), espera(600), k('ArrowRight', 2), k('ArrowDown'), k('ArrowRight')], ve: '.look-panel .hc-opt.pending' },
+  // Estilo Línea de tiempo (siempre por año; si empatan, por nombre: PS2, Xbox 360, PS3, Wii, 3DS, PS Vita, PS4, Xbox One, Switch)
+  linea: { query: { estilo: 'linea' }, pasos: [], ve: '.hl-c.sel' },
+  'linea-derecha': { query: { estilo: 'linea' }, pasos: [k('ArrowLeft', 9), k('ArrowRight', 3), espera(600)], ve: '.hl-c.sel[data-id="wii"]' },
+  'linea-botones': { query: { estilo: 'linea' }, pasos: [k('ArrowUp'), k('ArrowLeft')], ve: '.hl-pill.kf[data-a="stats"]' },
+  'linea-ajustes': { query: { estilo: 'linea' }, pasos: [k('a'), espera(600), k('ArrowDown', 5), k('ArrowRight')], ve: '.look-linea .hc-opt.kf' },
+  // Estilo Rueda y vista previa (la Wii tiene foto de su menú en los datos de prueba; las demás, no)
+  rueda: { query: { estilo: 'rueda' }, pasos: [], ve: '.hr-w.n0[data-id="wii"]' },
+  'rueda-sin-foto': { query: { estilo: 'rueda' }, pasos: [k('ArrowDown', 2), espera(600)], ve: '.hr-w.n0[data-id="x360"]' },
+  'rueda-barra': { query: { estilo: 'rueda' }, pasos: [k('ArrowLeft'), k('ArrowDown', 3)], ve: '.hr-r.kf[data-a="cfg"]' },
+  'rueda-ajustes': { query: { estilo: 'rueda' }, pasos: [k('a'), espera(600), k('ArrowDown', 3), k('Enter')], ve: '.look-rueda .hc-opt.kf' },
   // Clic derecho sobre un juego del menú principal → Cambiar imágenes (la miniatura es el Canal)
   'panel-imagen': { query: { estilo: 'panel' }, pasos: [espera(800), ['js', `document.querySelector('.hp-g').dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true, clientX: 600, clientY: 800 })), 1`], espera(400), clic('.ge-ci[data-i="0"]')], ve: '#selector .ge-wrap .ge-slot' },
   // Abrir la app con el Clásico ya guardado (pasó: el selector quedaba vacío, solo el fondo)
@@ -238,6 +248,8 @@ const PRELOAD = `
   window.__errores = [];
   window.addEventListener('error', (e) => window.__errores.push(String(e.message)));
   window.addEventListener('unhandledrejection', (e) => window.__errores.push('Promesa: ' + String(e.reason && e.reason.message || e.reason)));
+  // Lo que queda guardado entre pruebas y cambiaría las capturas: las visitas a cada consola (Línea de tiempo)
+  try { localStorage.removeItem('nostalhub.home.visitas'); } catch {}
 `;
 // Antes de cada captura: termina las animaciones, deja quietas las que se repiten y esconde lo que se mueve solo
 // (3D, videos)
@@ -261,7 +273,7 @@ const esperar = (ms) => new Promise((r) => setTimeout(r, ms));
 async function abrirVentana() {
   const preload = path.join(CAPTURAS, 'preload-prueba.js');
   fs.mkdirSync(CAPTURAS, { recursive: true });
-  if (!fs.existsSync(preload)) fs.writeFileSync(preload, PRELOAD);
+  fs.writeFileSync(preload, PRELOAD); // siempre: si cambia PRELOAD, se usa el nuevo
   const w = new BrowserWindow({
     width: 1920,
     height: 1080,
@@ -328,7 +340,10 @@ async function entrar(w, ac, consola, query) {
   if (!(await ac.hasta('#selector', 8000))) throw new Error('no apareció el selector');
   await esperar(500);
   if (!consola) return;
-  await ac.tecla('ArrowRight', ORDEN.indexOf(consola)); // ← → sirven en todos los estilos del menú principal
+  // Se marca la consola sin teclas (cada estilo del menú principal usa flechas distintas) y se entra con Enter
+  for (let i = 0; i < 40 && !(await ac.js(`!!(window.NostalHubSelector && window.NostalHubSelector.current())`)); i++) await esperar(200);
+  await ac.js(`window.NostalHubSelector.select(${JSON.stringify(consola)}), 1`);
+  await esperar(300);
   await ac.tecla('Enter');
   const t0 = Date.now();
   while (Date.now() - t0 < 12000 && !(await ac.js(`!!document.querySelector('#theme-root.theme-${consola}')`))) await esperar(150);

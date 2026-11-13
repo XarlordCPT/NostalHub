@@ -90,7 +90,9 @@
 /* ============ Pantallas (Todo el software, Logros, Grupo, Música, Ajustes) ============ */
 .sw-screen { position: absolute; left: 0; right: 0; top: 0; bottom: 110px; z-index: 3; background: var(--bg); }
 .sw-screen[hidden] { display: none; }
-.sw-screen.enter { animation: sw-in 0.25s ease both; }
+.sw-screen.enter { animation: sw-in 0.25s ease backwards; }
+/* Las entradas con scale van con fill 'backwards' (no 'both'): con 'both' la animación queda pegada al terminar y el texto
+   puede quedar dibujado a la escala de la animación (más grueso / borroso; hacía fallar las pruebas a veces) */
 @keyframes sw-in { from { opacity: 0; transform: scale(1.02); } to { opacity: 1; transform: none; } }
 .sw-sh { position: absolute; left: 22px; right: 22px; top: 0; height: 140px; display: flex; align-items: center; gap: 28px; padding: 0 60px; border-bottom: 3px solid var(--line); font-size: 50px; }
 .sw-sh .sw-ic { font-size: 70px; }
@@ -198,7 +200,7 @@
 .sw-tg.on i { left: 49px; }
 
 /* Ventanita */
-.sw-pop { position: absolute; inset: 0; z-index: 30; display: grid; place-items: center; background: rgba(0, 0, 0, 0.55); animation: sw-in 0.2s ease both; }
+.sw-pop { position: absolute; inset: 0; z-index: 30; display: grid; place-items: center; background: rgba(0, 0, 0, 0.55); animation: sw-in 0.2s ease backwards; }
 .sw-pop[hidden] { display: none; }
 .sw-pop-box { width: 820px; padding: 40px 0 20px; background: var(--panel); color: var(--text); box-shadow: 0 30px 70px rgba(0, 0, 0, 0.5); }
 .sw-pop-title { font-size: 42px; padding: 0 50px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -211,7 +213,7 @@
 .sw-radio.on { border-color: var(--cyan); background: radial-gradient(circle, var(--cyan) 0 9px, transparent 10px); }
 
 /* ============ Jugando: Spotify (izquierda) y Grupo (derecha) ============ */
-.sw-playing { position: absolute; inset: 0; z-index: 40; background: var(--bg); display: grid; place-items: center; animation: sw-in 0.3s ease both; }
+.sw-playing { position: absolute; inset: 0; z-index: 40; background: var(--bg); display: grid; place-items: center; animation: sw-in 0.3s ease backwards; }
 .sw-playing[hidden] { display: none; }
 .sw-playing.leave { opacity: 0; transition: opacity 0.35s ease; }
 .sw-play-card { display: flex; flex-direction: column; align-items: center; text-align: center; max-width: 760px; }
@@ -248,19 +250,19 @@
 .sw-playing .np-msg { flex: 1; display: grid; place-items: center; text-align: center; font-size: 26px; color: var(--sub); }
 
 /* Entrada */
-.theme-switch.intro .sw-track > button { animation: sw-pop 0.5s cubic-bezier(0.34, 1.4, 0.5, 1) both; }
+.theme-switch.intro .sw-track > button { animation: sw-pop 0.5s cubic-bezier(0.34, 1.4, 0.5, 1) backwards; }
 .theme-switch.intro .sw-track > button:nth-child(2) { animation-delay: 0.04s; }
 .theme-switch.intro .sw-track > button:nth-child(3) { animation-delay: 0.08s; }
 .theme-switch.intro .sw-track > button:nth-child(4) { animation-delay: 0.12s; }
 .theme-switch.intro .sw-track > button:nth-child(5) { animation-delay: 0.16s; }
 .theme-switch.intro .sw-track > button:nth-child(6) { animation-delay: 0.2s; }
-.theme-switch.intro .sw-rb { animation: sw-pop 0.5s 0.15s cubic-bezier(0.34, 1.4, 0.5, 1) both; }
+.theme-switch.intro .sw-rb { animation: sw-pop 0.5s 0.15s cubic-bezier(0.34, 1.4, 0.5, 1) backwards; }
 @keyframes sw-pop { from { opacity: 0; transform: scale(0.85); } to { opacity: 1; transform: none; } }
 body.playing .theme-switch .sw-tile.sel, body.playing .theme-switch .sw-all.sel .sw-all-c { animation-play-state: paused; }
 
 /* ============ Cambiar imágenes (clic derecho o tecla I) ============ */
 .theme-switch .ge-wrap { background: rgba(0, 0, 0, 0.55); font-family: var(--sw-font); }
-.theme-switch .ge-panel { background: var(--bg); color: var(--text); box-shadow: 0 30px 70px rgba(0, 0, 0, 0.5); animation: sw-in 0.25s ease both; }
+.theme-switch .ge-panel { background: var(--bg); color: var(--text); box-shadow: 0 30px 70px rgba(0, 0, 0, 0.5); animation: sw-in 0.25s ease backwards; }
 .theme-switch .ge-head { padding: 30px 50px 20px; border-bottom: 3px solid var(--line); }
 .theme-switch .ge-title { font-size: 48px; }
 .theme-switch .ge-sub { font-size: 26px; color: var(--sub); }

@@ -73,9 +73,8 @@ const orden = [...IDS.filter((i) => i !== ULTIMA), ULTIMA];
     // Seguro: solo se aprietan teclas en el selector, nunca dentro de una consola (ahí Enter abre un juego)
     const enSelector = await ev(`!!document.querySelector('#selector') && !document.querySelector('#selector').hidden && !document.querySelector('#theme-root').className`);
     if (!enSelector) throw new Error(`no estoy en el selector antes de ${c}: me detengo sin apretar nada`);
-    await key('ArrowLeft', 10); // ← → sirven en todos los estilos del menú principal
-    const pos = await ev(`window.CONSOLES.findIndex((x) => x.id === ${JSON.stringify(c)})`);
-    await key('ArrowRight', pos);
+    // Se marca sin teclas (cada estilo del menú principal usa flechas distintas); Enter solo si quedó la que corresponde
+    await ev(`window.NostalHubSelector.select(${JSON.stringify(c)}), 1`);
     await wait(500);
     const marcada = await ev(`window.NostalHubSelector ? window.NostalHubSelector.current() : null`);
     if (marcada !== c) throw new Error(`en el selector está marcada ${marcada} y no ${c}: me detengo sin apretar Enter`);

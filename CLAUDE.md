@@ -210,6 +210,10 @@ descripción), `cache\` (arte descargado, `spotify.log`, `discord.log`) y las cl
   (`playtimes`) y se usa la mayor. Al terminar un juego se refrescan logros y horas a los 4 s y a los 30 s.
 - Spotify: `hasApi` depende de que la API esté **conectada** (`spotify.webOn()`), no de que haya algo sonando: con
   Spotify en pausa la API no da `playback` y antes salían los botones básicos. Se apaga con `config.spotifyApi`.
+- Animaciones de entrada con `transform: scale(…)`: usa `animation-fill-mode: backwards`, no `both`. Con `both` la animación
+  queda pegada al terminar y el navegador puede dejar el texto dibujado a la escala de la animación (más grueso, un poco
+  borroso), y solo a veces: hacía fallar al azar las pruebas de la Switch y la Wii en la corrida completa. Las de salida
+  (`reverse`, o que terminan escondidas) sí necesitan `forwards`/`both`.
 - Las `@keyframes` de todos los temas comparten nombre global (todo el CSS se carga junto): usa nombres con prefijo
   (`wii-`, `ps2-`, `x360-`…). `tests/logica/css.test.js` avisa si una se repite o si se usa una que no existe.
 - Errores que no se ven en pantalla: `anotar('dónde', e)` de `src/registro.js` (queda en `cache\nostalhub.log`). Un
@@ -254,9 +258,9 @@ descripción), `cache\` (arte descargado, `spotify.log`, `discord.log`) y las cl
 - Battle.net no tiene API pública de amigos: no se puede. YouTube Music tampoco tiene API oficial: se queda con SMTC.
 - Para probar la app con otra carpeta de datos **no sirve** cambiar `APPDATA`: Electron pide la carpeta a Windows
   directo y usa el `config.json` real de Cristóbal (solo `src/minecraft.js` sí lee `APPDATA`).
-- Menú principal: las pruebas (`tests/pantallas.js`, `tests/app-real/consolas.js`) recorren el selector con ← →, que sirven en
-  todos los estilos, y antes de Enter la de la app real revisa `window.NostalHubSelector.current()`. Un estilo nuevo tiene que
-  mantener eso (← → cambian de consola) o actualizar esas pruebas.
+- Menú principal: cada estilo usa sus flechas (la Rueda gira con ↑ ↓ y ← va a su barra). Por eso las pruebas
+  (`tests/pantallas.js`, `tests/app-real/consolas.js`) marcan la consola con `window.NostalHubSelector.select(id)` (sin teclas) y
+  revisan `current()` antes de Enter.
 - Xbox One: casi todo se mueve con un solo `move(dir)` que va al `[data-nav]` más cercano de la pantalla actual (y Enter
   hace clic en lo marcado). Una pantalla nueva solo necesita poner `data-nav` en lo elegible. Ojo con las clases que
   también pone `U.friendClass` (`game`, `on`, `off`, `busy`): una fila `.xo-row.game` de logros chocó con un amigo jugando.
@@ -288,8 +292,14 @@ descripción), `cache\` (arte descargado, `spotify.log`, `discord.log`) y las cl
 - Al elegir una canción de la cola se **salta hasta ella**.
 - El aviso de logro usa el estilo de la **última consola elegida**.
 - En pantalla completa la app también aparece en la barra de tareas de Windows (se puede apagar).
-- Menú principal con **estilos a elegir** (Ajustes → Pantalla): Estantería (por defecto), Panel y Clásico; vienen Línea de tiempo y
-  Rueda y vista previa (mockups en `mockups/menu-principal/`), uno a la vez. Los Ajustes se abren también desde ahí (A).
+- Menú principal con **estilos a elegir** (Ajustes → Pantalla): Estantería (por defecto), Panel, Línea de tiempo, Rueda y vista
+  previa y Clásico (los mockups: `mockups/menu-principal/`; el 3, Mosaico, se descartó). Los Ajustes se abren también desde ahí (A).
+  - La Rueda muestra una foto real del menú de cada consola: shell.js la pide 3,5 s después de entrar (`api.captureConsoleMenu`,
+    `consoles:capture` en main.js → `cacheistas\<id>.jpg`) y se la pasa al estilo con `style.preview(id, url)`.
+  - La miniatura de los juegos en el menú es su propia imagen (`thumb`, `miniatura.png`; `HomeKit.paintThumb`), **nunca el Canal**:
+    a Cristóbal le gusta el canal con el logo encima del fondo. Sin miniatura: fondo + logo.
+  - Un estilo puede tener orden fijo (`fixedOrder: 'year'` en la Línea de tiempo: no se ordena ni se mueve) y `vertical: true`
+    (Mover con ↑ ↓). Las visitas a cada consola las anota shell.js al entrar (`HomeKit.visit`), con cualquier estilo.
   - El menú principal es **aparte de las consolas**: toma el color de la consola marcada, pero los **sonidos son suyos**.
   - El estilo del menú (`confirmChange` en su opción) no cambia al moverse por los valores: se elige y se **confirma con
     Enter**, se cierran los Ajustes y recién ahí cambia (Esc lo deja como estaba). Las demás opciones cambian al tiro.

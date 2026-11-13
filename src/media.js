@@ -27,6 +27,7 @@ const CUSTOM_FILES = {
   cover: { base: 'caratula', ext: IMAGE_EXT },              // carátula vertical (tema Xbox 360)
   bubble: { base: 'burbuja', ext: IMAGE_EXT },              // imagen de la burbuja redonda (tema PS Vita)
   square: { base: 'cuadrado', ext: IMAGE_EXT },             // imagen cuadrada (tema Nintendo Switch)
+  thumb: { base: 'miniatura', ext: IMAGE_EXT },             // miniatura del juego en el menú principal (Panel, Estantería…)
   icon0: { base: 'icono', ext: IMAGE_EXT },                 // icono rectangular 320×176 (tema PS3)
   music: { base: 'musica', ext: ['.mp3', '.ogg', '.m4a', '.wav', '.opus', '.flac', '.webm'] }, // música del juego (temas Wii y PS3)
 };

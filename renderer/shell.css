@@ -720,3 +720,7 @@ img[src*="media.retroachievements.org"],
 #selector[data-style='estanteria'] .sel-move-hint { top: 160px; font-family: 'M PLUS Rounded 1c', 'Segoe UI', sans-serif; }
 /* Clásico: Ajustes al lado de Resumen */
 #sel-cfg { right: 330px; }
+/* Miniatura de un juego en el menú principal (HomeKit.paintThumb): el fondo con el logo encima */
+#sel-style .hk-compo { display: grid; place-items: center; }
+#sel-style .hk-logo { width: 78%; height: 62%; object-fit: contain; filter: drop-shadow(0 3px 8px rgba(0, 0, 0, 0.45)); }
+#sel-style .hk-pic { position: absolute; inset: 0; display: grid; place-items: center; }

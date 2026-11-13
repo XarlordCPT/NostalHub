@@ -24,6 +24,8 @@ contextBridge.exposeInMainWorld('nostalhub', {
   selectConsole: (id) => ipcRenderer.invoke('console:select', id),
   setModelTilt: (id, tilt) => ipcRenderer.invoke('consoles:model-tilt', id, tilt),
   getConsoleBackgrounds: (id) => ipcRenderer.invoke('consoles:backgrounds', id), // fondos propios (PS3, PS4, 3DS)
+  captureConsoleMenu: (id) => ipcRenderer.invoke('consoles:capture', id), // foto del menú de la consola abierta
+  getConsolePreviews: () => ipcRenderer.invoke('consoles:previews'), // { consola: foto de su menú }
   onShowSelector: on('shell:selector'),
   onConsolesUpdated: on('consoles:updated'),
   getFreeSpace: () => ipcRenderer.invoke('system:free-space'),

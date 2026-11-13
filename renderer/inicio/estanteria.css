@@ -88,7 +88,7 @@
   font-weight: 700;
   color: #3d4450;
   cursor: pointer;
-  animation: home-fade 0.3s 0.15s ease both;
+  animation: home-fade 0.3s 0.15s ease backwards;
 }
 .he-card.sel .he-ic { animation: home-float 5s ease-in-out infinite; }
 @keyframes home-float { 50% { transform: translateY(-8px); } }

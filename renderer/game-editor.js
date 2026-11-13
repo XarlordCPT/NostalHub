@@ -22,13 +22,13 @@
     ps3: ['icon0', 'hero', 'music'],
     '3ds': ['square', 'hero', 'logo'],
     xone: ['square', 'hero', 'logo'],
-    home: ['tile'], // el menú principal (sin consola): la miniatura de los juegos es el canal (si no hay, la cabecera de Steam)
+    home: ['thumb'], // el menú principal (sin consola): la miniatura de cada juego (si no hay: el fondo con el logo)
   };
-  const ALL = ['tile', 'square', 'bubble', 'icon0', 'cover', 'hero', 'logo', 'video', 'model', 'music'];
+  const ALL = ['tile', 'square', 'bubble', 'icon0', 'cover', 'hero', 'logo', 'video', 'model', 'music', 'thumb'];
   // Algunas también se usan en otras consolas aunque no sean "suyas"
   const ALSO = { tile: ['ps4', 'vita'], cover: ['vita'] };
   const SLOTS = {
-    tile: { label: 'Canal', hint: 'El cuadrito del menú, tal cual (imagen o video, 16:9). Si lo cambias, también se usa en la PS4, la PS Vita y en las miniaturas del menú principal.', shape: 'wide' },
+    tile: { label: 'Canal', hint: 'El cuadrito del menú, tal cual (imagen o video, 16:9). Si lo cambias, también se usa en la PS4 y la PS Vita.', shape: 'wide' },
     hero: { label: 'Fondo', hint: 'Imagen grande sin letras, de fondo (ej. 1920×620 o 1920×1080).', shape: 'wide' },
     logo: { label: 'Logo', hint: 'El título del juego. PNG con fondo transparente.', shape: 'logo' },
     video: { label: 'Video del canal', hint: 'La animación al entrar al canal (mp4, webm o gif; 10 a 20 segundos, sin audio).', shape: 'wide' },
@@ -37,6 +37,7 @@
     square: { label: 'Imagen cuadrada', hint: 'El cuadro del juego en la Switch y el icono en la 3DS (ej. 1024×1024). Si no hay, se arma con el fondo y el logo.', shape: 'square' },
     icon0: { label: 'Icono PS3', hint: 'El icono del juego en el menú de la PS3 (320×176). Si no hay, se usa la cabecera de Steam.', shape: 'ps3' },
     music: { label: 'Música', hint: 'Suena en el canal del juego en la Wii y al quedarte sobre él en la PS3 (mp3, ogg, m4a o wav; 30 a 60 segundos, se repite).', shape: 'audio' },
+    thumb: { label: 'Miniatura', hint: 'El cuadro del juego en el menú principal (sin entrar a una consola), cuadrado (ej. 600×600). Si no hay, se arma con el fondo y el logo.', shape: 'square' },
     bubble: { label: 'Burbuja', hint: 'Imagen cuadrada; se recorta en círculo (ej. 512×512). Si no hay, se usa la carátula.', shape: 'circle' },
   };
 
@@ -169,7 +170,7 @@
     else if (url && st.isVideo) prev = `<video src="${url}" muted loop autoplay playsinline></video>`;
     else if (url) prev = `<img src="${url}" alt="" draggable="false" />`;
     else prev = `<div class="ge-empty">${kind === 'video' ? 'Sin video' : 'Sin imagen'}</div>`;
-    const none = { video: 'Sin video', model: 'Sin modelo', music: 'Sin música', bubble: 'Automática', square: 'Automática' }[kind] || 'Sin imagen';
+    const none = { video: 'Sin video', model: 'Sin modelo', music: 'Sin música', bubble: 'Automática', square: 'Automática', thumb: 'Automática' }[kind] || 'Sin imagen';
     const state = st.custom ? ({ model: 'Tu modelo', video: 'Tu video', music: 'Tu música' }[kind] || 'Tu imagen') : url ? (kind === 'bubble' ? 'La carátula' : 'La de Steam') : none;
     const clear = st.custom ? `<button class="ge-b" data-a="clear">${st.auto || kind === 'bubble' ? 'Volver a la automática' : 'Quitar'}</button>` : '';
     const used = ed.all ? `<div class="ge-used">Se ve en: ${esc(usedIn(kind).join(', '))}</div>` : '';
@@ -330,6 +331,7 @@
     logo: [['Libre', 0]],
     cover: [['Caja 2:3', 2 / 3], ['Libre', 0]],
     square: [['Cuadrado', 1]],
+    thumb: [['Cuadrado', 1], ['Libre', 0]],
     bubble: [['Círculo', 1]],
     icon0: [['Icono PS3', 320 / 176], ['Libre', 0]],
   };

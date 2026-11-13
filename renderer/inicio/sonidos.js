@@ -10,6 +10,8 @@
     estanteria: { wave: 'sine', low: 620, high: 930, gain: 2.8 }, // suave y redondo, como burbujas
     clasico: { wave: 'triangle', low: 520, high: 780, gain: 2.3 },
     panel: { wave: 'triangle', low: 660, high: 1180, gain: 2.2 }, // corto y nítido
+    linea: { wave: 'sine', low: 392, high: 588, gain: 3 }, // grave y cálido, como una campanita de museo
+    rueda: { wave: 'sine', low: 520, high: 1040, gain: 2.6 }, // limpio, como un clic de rueda
   };
 
   function play(style, kind, vol = 0.6) {

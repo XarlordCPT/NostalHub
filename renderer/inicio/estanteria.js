@@ -5,7 +5,8 @@
    modelo.glb quepan en la tarjeta.
    Lo que es de todos los estilos (qué consola está marcada, entrar, ordenar, mover, Ajustes, Resumen) lo maneja
    shell.js; este archivo solo dibuja. Contrato de un estilo (window.MenuStyles[id]):
-     mount(root, ctx) → { render(), update(animate), key(e) → true si la usó, visible(on), unmount() } */
+     mount(root, ctx) → { render(), update(animate), key(e) → true si la usó, visible(on), unmount() }
+   y opcionales: vertical (Mover con ↑ ↓), fixedOrder ('year': orden fijo) y preview(id, url) (foto nueva de un menú). */
 (() => {
   const U = window.NostalHubUtil;
   const esc = U.escapeHtml;
@@ -205,7 +206,7 @@
         }
         box.dataset.gameId = g.id; // clic derecho → cambiar su imagen
         box.innerHTML = `<div class="he-thumb"></div><div class="he-tx"><small>Lo último que jugaste</small><b>${esc(g.name)}</b><span>${esc(K.playedLine(g))}</span></div>`;
-        if (K.art(g)) U.stillBackground(box.querySelector('.he-thumb'), K.art(g));
+        K.paintThumb(box.querySelector('.he-thumb'), g);
       }
       function paintWeek(w) {
         const top = w && w.top && w.top[0];

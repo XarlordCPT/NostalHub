@@ -37,7 +37,7 @@ async function clipboardImagePng() {
 
 // ---------- Cambiar imágenes y descripción de un juego desde la app (clic derecho) ----------
 // Las imágenes se guardan en personalizar/<Nombre del juego>/ con el nombre que corresponde (canal.png, burbuja.png…)
-const EDITABLE = ['tile', 'hero', 'logo', 'video', 'model', 'cover', 'bubble', 'square', 'icon0', 'music'];
+const EDITABLE = ['tile', 'hero', 'logo', 'video', 'model', 'cover', 'bubble', 'square', 'icon0', 'music', 'thumb'];
 function gameById(id) {
   return nh.config.games.find((g) => g.id === id) || null;
 }
@@ -106,7 +106,7 @@ function afterCustomChange(id) {
 }
 // Recortar antes de guardar: las imágenes fijas pasan por la pantalla de recorte (renderer/game-editor.js). Lo demás
 // (video, modelo, música, animaciones) se guarda tal cual: recortar una animación dejaría solo un cuadro.
-const CROPPABLE = ['tile', 'hero', 'logo', 'cover', 'square', 'icon0', 'bubble'];
+const CROPPABLE = ['tile', 'hero', 'logo', 'cover', 'square', 'icon0', 'bubble', 'thumb'];
 const CROP_MAX_BYTES = 40 * 1024 * 1024;
 let CROP_DIR = null; // cache\recorte (se sabe al registrar)
 function isStillImage(file) {

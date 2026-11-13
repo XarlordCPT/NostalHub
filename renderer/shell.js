@@ -337,6 +337,7 @@
     }
     mode = 'entering';
     if (api.selectConsole) api.selectConsole(c.id);
+    if (window.HomeKit) window.HomeKit.visit(c.id); // (la Línea de tiempo muestra tu última visita)
 
     const flash = $('#sel-flash');
     const introUrl = settings.intros && assets[c.id] && assets[c.id].intro;
@@ -359,6 +360,12 @@
     Sound.startMusic(c.id);
     await flash.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 600, easing: 'ease-out', fill: 'forwards' }).finished;
     mode = 'theme';
+    // Unos segundos después, una foto de su menú (la vista previa del estilo "Rueda"), si sigues ahí y no jugando
+    setTimeout(async () => {
+      if (mode !== 'theme' || !theme || theme.id !== c.id || document.body.classList.contains('playing') || !api.captureConsoleMenu) return;
+      const url = await api.captureConsoleMenu(c.id);
+      if (url && style && style.preview) style.preview(c.id, url);
+    }, 3500);
   }
 
   async function leave() {
@@ -667,9 +674,11 @@
     const pos = (c) => (customOrder.includes(c.id) ? customOrder.indexOf(c.id) : 1000 + BASE.indexOf(c));
     return [...BASE].sort((a, b) => pos(a) - pos(b));
   }
+  // El orden que se ve: el tuyo, salvo que el estilo del menú tenga uno fijo (la Línea de tiempo va por año)
+  const shownSort = () => (style && style.fixedOrder) || sortMode;
   function applyOrder(rerender = true) {
     const keep = CONSOLES[index] && CONSOLES[index].id;
-    CONSOLES.splice(0, CONSOLES.length, ...orderedList(sortMode));
+    CONSOLES.splice(0, CONSOLES.length, ...orderedList(shownSort()));
     const i = CONSOLES.findIndex((c) => c.id === keep);
     index = i >= 0 ? i : 0;
     $('#sel-sort .sel-sort-l').textContent = SHORT[sortMode];
@@ -685,6 +694,7 @@
   let sortMenu = null; // { el, items, sel }
   function openSortMenu() {
     if (mode !== 'selector' || moving) return;
+    if (style && style.fixedOrder) return toast('En este estilo las consolas van por fecha de salida');
     closeSortMenu();
     const c = CONSOLES[index];
     const items = [
@@ -854,6 +864,7 @@
       if (selector.hidden) style.visible(false);
     }
     if (window.NostalHubHomeSettings) window.NostalHubHomeSettings.setLook(next);
+    if (CONSOLES.length) applyOrder(false); // (un estilo puede tener su propio orden)
     renderItems();
     if (styleShown && !selector.hidden) selector.animate([{ opacity: 0, transform: 'scale(1.02)' }, { opacity: 1, transform: 'none' }], { duration: 450, easing: 'ease-out' });
     styleShown = true; // (al abrir la app no se anima: ya entra con su propia animación)
@@ -986,14 +997,19 @@
   });
 
   // Para las pruebas: qué consola está marcada en el selector (solo leer)
-  window.NostalHubSelector = { current: () => (CONSOLES[index] ? CONSOLES[index].id : null), style: () => styleId };
+  // select(id): marcar una consola sin teclas (cada estilo usa flechas distintas); no entra
+  window.NostalHubSelector = {
+    current: () => (CONSOLES[index] ? CONSOLES[index].id : null),
+    style: () => styleId,
+    select: (id) => select(CONSOLES.findIndex((c) => c.id === id)),
+  };
 
   // ---------- Inicio ----------
   (async () => {
     const [res, first] = await Promise.all([loadAssets(), api.getSettings ? api.getSettings().catch(() => null) : null]);
     setStyle(first && first.menuStyle);
     const last = res && res.last;
-    CONSOLES.splice(0, CONSOLES.length, ...orderedList(sortMode)); // tu orden de consolas
+    CONSOLES.splice(0, CONSOLES.length, ...orderedList(shownSort())); // tu orden de consolas (o el del estilo)
     $('#sel-sort .sel-sort-l').textContent = SHORT[sortMode];
     const i = CONSOLES.findIndex((c) => c.id === last);
     index = i >= 0 ? i : 0;

@@ -114,8 +114,8 @@ hace algo: la **Xbox One** es la más nueva y la más corta de leer (todo se mue
 
 - [ ] Estilo de la **barra de arriba** (minimizar / maximizar / cerrar) en `shell.css`:
       `body[data-console='<id>'] #winbar …`.
-- [ ] **Compatible con cada estilo del menú principal** (Ajustes → Pantalla → Estilo del menú principal; hoy: Clásico y
-      Estantería, y vienen Línea de tiempo y Rueda y vista previa). Cada `renderer/inicio/<estilo>.js` dice al principio, en
+- [ ] **Compatible con cada estilo del menú principal** (Ajustes → Pantalla → Estilo del menú principal; hoy: Estantería,
+      Panel, Línea de tiempo, Rueda y vista previa y Clásico). Cada `renderer/inicio/<estilo>.js` dice al principio, en
       "Consola nueva:", lo que necesita de cada consola (por ejemplo su `year`, su color o una vista previa). Agregarlo y
       **mirar la consola en cada estilo**: que se lean su nombre, empresa, año y color (`uiAccent` sobre fondos claros),
       y que su `icono.png` / `modelo.glb` quepan en la tarjeta o el cuadro de ese estilo.

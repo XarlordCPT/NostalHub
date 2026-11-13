@@ -18,21 +18,25 @@ Para abrirla: pega esa ruta en la barra del Explorador de Windows, o usa **Ajust
 
 ---
 
-## Novedades desde la 1.3.0 (próxima versión)
+## Novedades de la versión 1.4.0
 
 - **Menú principal nuevo, con estilos**: el selector de consolas ahora puede verse como **Estantería** (tarjetas en
   fila, con lo último que jugaste, tus horas de la semana y la canción que suena), como **Panel** (oscuro, con la lista de
-  consolas, los juegos que jugaste hace poco, la música, los amigos en línea y la semana) o como el **Clásico**. Se cambia en
-  **Ajustes → Pantalla → Estilo del menú principal** (se elige con ← → y se confirma con Enter). Vienen más estilos
-  (sección 1). El menú principal tiene **sus propios sonidos**: los de cada consola suenan recién al entrar a ella.
+  consolas, los juegos que jugaste hace poco, la música, los amigos en línea y la semana), como **Línea de tiempo** (las consolas
+  por año, como en un museo), como **Rueda y vista previa** (con una foto real del menú de cada consola) o como el **Clásico**.
+  Se cambia en **Ajustes → Pantalla → Estilo del menú principal** (se elige con ← → y se confirma con Enter; sección 1).
+  El menú principal tiene **sus propios sonidos**: los de cada consola suenan recién al entrar a ella.
 - **Ajustes desde el menú principal**: botón **Ajustes** o tecla **A** (**Options** en el control), sin entrar a una
   consola (sección 8).
 - **Horas en los juegos que no son de Steam** (Fortnite, Riot, Minecraft, emuladores…): ahora muestran las horas que contó
   NostalHub; los de Steam siguen con las de Steam (sección 8).
-- **Cambiar la imagen de un juego desde el menú principal**: clic derecho sobre su miniatura → Cambiar imágenes → **Canal**.
+- **Cambiar la imagen de un juego desde el menú principal**: clic derecho sobre su miniatura → Cambiar imágenes →
+  **Miniatura** (`miniatura.png`, cuadrada). Si no le pones una, se arma con el fondo y el logo del juego.
 - **Consola nueva: Xbox One**, con el menú de 2013 (Pins / Inicio / Tienda, mosaicos de color y "Mi color"). Ver la
   sección 9.
 - **PS4**: la fila de funciones (flecha arriba) y el marco del juego elegido ahora se ven como en la consola real.
+- **Arreglos**: en la Switch y en la Wii el texto ya no queda un poco borroso después de abrir "Jugando a…", un panel o una
+  ventanita; en la Línea de tiempo y el Panel ya no aparecen dos modelos 3D a la vez si cambias rápido de consola.
 
 ## Novedades de la versión 1.3.0
 
@@ -100,6 +104,7 @@ Para abrirla: pega esa ruta en la barra del Explorador de Windows, o usa **Ajust
         ├── caratula.jpg       (Xbox 360; también la PS Vita)
         ├── burbuja.png        (PS Vita)
         ├── cuadrado.png       (Switch y 3DS)
+        ├── miniatura.png      (menú principal)
         ├── icono.png          (PS3)
         ├── musica.mp3         (Wii y PS3)
         └── descripcion.txt    (todas)
@@ -124,6 +129,12 @@ deja como estaba). El menú toma el color de la consola marcada, pero sus sonido
   **Ajustes**), la consola marcada en grande al centro con sus colores y los juegos que jugaste hace poco, y a la derecha la
   hora, la canción que suena (con sus botones, para el mouse), los amigos de Steam en línea y tus horas de la semana. Aquí los
   Ajustes se abren al centro, con las secciones como pestañas (← →).
+- **Línea de tiempo**: las consolas ordenadas por año en una línea abajo (siempre por fecha de salida: aquí no se ordenan ni
+  se mueven). ← → recorren los años; arriba, la ficha de la consola marcada (qué tiene su menú, sus años, su generación y
+  cuándo entraste por última vez) y su imagen o modelo 3D sobre un pedestal. ↑ sube a **Resumen** y **Ajustes**.
+- **Rueda y vista previa**: una barra de íconos a la izquierda (Consolas, Resumen, Ordenar y Ajustes; ← para ir a ella), las
+  consolas en una rueda (↑ ↓) y a la derecha **cómo se ve su menú**: una foto que NostalHub saca sola unos segundos después de
+  que entras a una consola (se guarda en `cacheistas\`). Hasta que entres una vez, se ve su imagen con su fondo.
 - **Clásico**: la consola a la izquierda (empresa, nombre y año) y su imagen a la derecha. ↑ ↓ (o ← →), la rueda o las
   flechas de arriba y abajo para cambiar.
 
@@ -214,6 +225,7 @@ NostalHub. También puedes poner los archivos a mano:
 | `caratula.jpg` / `caratula.png` | Xbox 360 (y PS Vita) | Carátula vertical de la caja (2:3, ej. 600×900). En la Vita se usa para la burbuja si no hay `burbuja.png` |
 | `burbuja.png` / `burbuja.jpg` | PS Vita | La imagen de la **burbuja redonda** (cuadrada, ej. 512×512; se recorta en círculo) |
 | `cuadrado.png` / `cuadrado.jpg` | Switch y 3DS | El **cuadro del juego** en la Switch y su **icono** en la 3DS (cuadrado, ej. 1024×1024). Si no está, se arma con el fondo y el logo |
+| `miniatura.png` / `miniatura.jpg` | Menú principal (Panel, Estantería…) | El **cuadro del juego** en el menú principal, sin entrar a una consola (cuadrado, ej. 600×600). Si no está, se arma con el fondo y el logo |
 | `icono.png` / `icono.jpg` | PS3 | El **icono del juego** en el menú de la PS3 (rectangular, **320×176**). Si no está, se usa la cabecera de Steam |
 | `musica.mp3` | Wii y PS3 | La música del juego, en vez de la de la consola: en la Wii suena en la **pantalla de su canal**, y en la PS3 **al quedarte sobre el juego**. También `.ogg`, `.m4a`, `.wav`. Ideal 30 a 60 segundos; se repite |
 | `descripcion.txt` | Todas | La descripción del juego (reemplaza la de Steam) |

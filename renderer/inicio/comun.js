@@ -12,9 +12,31 @@
     music: '<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M19 35V11l19-4v24"/><circle cx="14" cy="35" r="5"/><circle cx="33" cy="31" r="5"/></svg>',
   };
 
-  // La imagen horizontal de un juego (para miniaturas): el canal propio si le pusiste uno (clic derecho → Cambiar
-  // imágenes → Canal), si no la cabecera de Steam, el canal o el fondo
-  const art = (g) => (g && ((g.tileIsCustom && !g.tileIsVideo && g.tile) || g.header || (g.tileIsVideo ? null : g.tile) || g.hero)) || null;
+  // La miniatura de un juego en el menú principal: la tuya (miniatura.png; clic derecho → Cambiar imágenes → Miniatura);
+  // si no hay, el fondo con el logo encima (como en las consolas); si no, la cabecera de Steam o el fondo solo.
+  // Las animadas quedan quietas. el: el cuadro (se le pone la imagen de fondo y, si va, el logo adentro)
+  function paintThumb(el, g) {
+    el.innerHTML = '';
+    el.classList.remove('hk-compo');
+    el.style.backgroundImage = '';
+    if (!g) return;
+    if (g.thumb) return U.stillBackground(el, g.thumb);
+    const bg = g.heroIsReal ? g.hero : null;
+    if (bg && g.logo) {
+      U.stillBackground(el, bg);
+      el.classList.add('hk-compo');
+      const logo = document.createElement('img');
+      logo.className = 'hk-logo';
+      logo.alt = '';
+      logo.draggable = false;
+      logo.onerror = () => logo.remove();
+      el.appendChild(logo);
+      U.stillBackground(logo, g.logo);
+      return;
+    }
+    const a = g.header || bg || (g.tileIsVideo ? null : g.tile);
+    if (a) U.stillBackground(el, a);
+  }
   // Los juegos jugados, del más reciente al más antiguo
   const recent = (games) => (games || []).filter((g) => g.lastPlayed).sort((a, b) => b.lastPlayed - a.lastPlayed);
   // "hace 3 horas · 24,3 h jugadas"
@@ -72,5 +94,43 @@
     if (api.getSteamProfile) api.getSteamProfile().then((p) => p && p.name && cb(p)).catch(() => {});
   }
 
-  window.HomeKit = { ICON, art, recent, playedLine, hoursText, weekBars, live, profile };
+  // Cuándo entraste por última vez a cada consola (lo anota shell.js al entrar, con cualquier estilo; solo en este equipo)
+  const VISITS = 'nostalhub.home.visitas';
+  function visits() {
+    try {
+      return JSON.parse(localStorage.getItem(VISITS) || '{}') || {};
+    } catch {
+      return {};
+    }
+  }
+  function visit(id) {
+    try {
+      localStorage.setItem(VISITS, JSON.stringify({ ...visits(), [id]: Date.now() }));
+    } catch {}
+  }
+
+  // La imagen de una consola en grande: su modelo 3D (gira), su icono.png o el control. Cada vez en un cuadro nuevo: si
+  // cambias de consola mientras un modelo carga, ese modelo ya no aparece (antes quedaban dos encima).
+  function showConsole(box, ctx, c) {
+    const a = ctx.assets()[c.id] || {};
+    const pic = document.createElement('div');
+    pic.className = 'hk-pic home-model active';
+    box.innerHTML = '';
+    box.appendChild(pic);
+    const showImage = () => {
+      if (!pic.isConnected) return;
+      pic.querySelectorAll('.sel-model').forEach((m) => m.remove());
+      if (a.icon) {
+        const i = document.createElement('img');
+        i.src = a.icon;
+        i.alt = '';
+        i.draggable = false;
+        pic.appendChild(i);
+      } else pic.innerHTML = ctx.GAMEPAD_SVG;
+    };
+    if (a.model && window.ConsoleModel) window.ConsoleModel.attach(pic, a.model, showImage, ctx.modelTilt(c.id));
+    else showImage();
+  }
+
+  window.HomeKit = { ICON, paintThumb, showConsole, visits, visit, recent, playedLine, hoursText, weekBars, live, profile };
 })();

@@ -348,6 +348,7 @@ function ensureCustomFolders() {
     '  descripcion.txt                     -> descripción propia del juego (reemplaza la de Steam)',
     '  icono.png                           -> icono del juego en la PS3 (320×176)',
     '  musica.mp3                          -> música que suena al quedarte sobre el juego en la PS3',
+    '  miniatura.png                       -> cuadro del juego en el menú principal (sin entrar a una consola)',
     '',
     'Los cambios se aplican solos al guardar el archivo. Para volver al arte automático, borra el archivo.',
     '',
@@ -409,6 +410,7 @@ function gamesView() {
         cover: fileUrl(c.cover || m.cover), // carátula vertical (Xbox 360)
         bubble: fileUrl(c.bubble), // burbuja redonda propia (PS Vita)
         square: fileUrl(c.square), // imagen cuadrada propia (Switch)
+        thumb: fileUrl(c.thumb), // miniatura propia en el menú principal (miniatura.png)
         icon0: fileUrl(c.icon0), // icono propio de la PS3 (320×176)
         header: fileUrl(m.header), // cabecera horizontal de Steam (460×215)
         music: fileUrl(c.music), // música propia del juego (Wii y PS3)
@@ -1033,6 +1035,8 @@ ipcMain.handle('system:free-space', async () => {
 const MENU_STYLES = [
   ['estanteria', 'Estantería'],
   ['panel', 'Panel'],
+  ['linea', 'Línea de tiempo'],
+  ['rueda', 'Rueda y vista previa'],
   ['clasico', 'Clásico'],
 ];
 
@@ -1053,6 +1057,34 @@ ipcMain.handle('settings:get', () => soundSettings());
 ipcMain.handle('console:select', (_e, id) => {
   config.data.lastConsole = String(id);
   config.save();
+});
+
+// Foto del menú de cada consola (para la vista previa del menú principal "Rueda"): la toma el renderer unos segundos
+// después de entrar a una consola. Se guarda chica en cacheistas\<consola>.jpg
+const PREVIEW_DIR = path.join(DATA_DIR, 'cache', 'vistas');
+ipcMain.handle('consoles:capture', async (_e, id) => {
+  if (!CONSOLE_NAMES[id] || !win || win.isDestroyed() || win.isMinimized() || !win.isVisible()) return null;
+  try {
+    const img = await win.webContents.capturePage();
+    if (img.isEmpty()) return null;
+    fs.mkdirSync(PREVIEW_DIR, { recursive: true });
+    const file = path.join(PREVIEW_DIR, `${id}.jpg`);
+    fs.writeFileSync(file, img.resize({ width: 960, quality: 'good' }).toJPEG(82));
+    return `${fileUrl(file)}?v=${Date.now()}`;
+  } catch (e) {
+    anotar('vistas', e);
+    return null;
+  }
+});
+ipcMain.handle('consoles:previews', () => {
+  const out = {};
+  for (const id of Object.keys(CONSOLE_NAMES)) {
+    const file = path.join(PREVIEW_DIR, `${id}.jpg`);
+    try {
+      out[id] = `${fileUrl(file)}?v=${Math.round(fs.statSync(file).mtimeMs)}`;
+    } catch {}
+  }
+  return out;
 });
 
 ipcMain.handle('game:launch', async (_e, id) => {
