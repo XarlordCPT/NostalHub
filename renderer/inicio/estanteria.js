@@ -11,12 +11,8 @@
   const esc = U.escapeHtml;
   window.MenuStyles = window.MenuStyles || {};
 
-  const ICON = {
-    stats: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M5 20V11M12 20V4M19 20v-6"/></svg>',
-    sort: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4v16M3 16l4 4 4-4M17 20V4M13 8l4-4 4 4"/></svg>',
-    cfg: '<svg viewBox="0 0 48 48" fill="currentColor"><path fill-rule="evenodd" d="M39.07 20.38 L43.82 21.34 L43.82 26.66 L39.07 27.62 L37.22 32.10 L39.90 36.13 L36.13 39.90 L32.10 37.22 L27.62 39.07 L26.66 43.82 L21.34 43.82 L20.38 39.07 L15.90 37.22 L11.87 39.90 L8.10 36.13 L10.78 32.10 L8.93 27.62 L4.18 26.66 L4.18 21.34 L8.93 20.38 L10.78 15.90 L8.10 11.87 L11.87 8.10 L15.90 10.78 L20.38 8.93 L21.34 4.18 L26.66 4.18 L27.62 8.93 L32.10 10.78 L36.13 8.10 L39.90 11.87 L37.22 15.90 Z M30.5 24 A6.5 6.5 0 1 0 17.5 24 A6.5 6.5 0 1 0 30.5 24 Z"/></svg>',
-    music: '<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M19 35V11l19-4v24"/><circle cx="14" cy="35" r="5"/><circle cx="33" cy="31" r="5"/></svg>',
-  };
+  const K = window.HomeKit;
+  const ICON = K.ICON;
   const PILLS = [
     { a: 'stats', label: 'Resumen', key: 'R' },
     { a: 'sort', label: 'Ordenar', key: 'O' },
@@ -27,7 +23,6 @@
   const CARD = { w: 250, h: 330 };
   const GAP = 34;
   const SHELF_Y = 500; // centro vertical de la fila
-  const REFRESH_MS = 30000;
 
   function xOf(d) {
     if (!d) return 0;
@@ -59,12 +54,8 @@
       const $ = (s) => root.querySelector(s);
       const shelf = $('.he-shelf');
       const kf = { area: 'shelf', pill: 0 }; // ↑ lleva a los botones de arriba
+      let data = null; // datos en vivo (HomeKit.live), después del primer dibujo
       let order = ''; // las consolas dibujadas (para redibujar si cambian)
-      let alive = true;
-      let shown = true;
-      let lastLoad = 0;
-      let spotify = null;
-      const offs = [];
 
       // ---------- Tarjetas ----------
       function render() {
@@ -155,7 +146,7 @@
           img.classList.toggle('on', !!a.background);
         }
         paintKf();
-        if (shown && Date.now() - lastLoad > REFRESH_MS) loadData();
+        if (data && data.shown()) data.refresh();
       }
 
       // ---------- Botones de arriba ----------
@@ -204,73 +195,44 @@
       }
 
       // ---------- Abajo: lo último que jugaste, la semana y la música ----------
-      async function loadData() {
-        lastLoad = Date.now();
-        const [state, week] = await Promise.all([api.getState ? api.getState().catch(() => null) : null, api.getStats ? api.getStats('week', 0).catch(() => null) : null]);
-        if (!alive) return;
-        paintLast((state && state.games) || []);
-        paintWeek(week);
-      }
       function paintLast(games) {
-        const g = games.filter((x) => x.lastPlayed).sort((a, b) => b.lastPlayed - a.lastPlayed)[0];
+        const g = K.recent(games)[0];
         const box = $('.he-last');
         if (!g) {
           box.innerHTML = `<div class="he-thumb"></div><div class="he-tx"><small>Lo último que jugaste</small><b>Todavía nada</b><span>Entra a una consola y elige un juego</span></div>`;
           return;
         }
-        const art = g.header || (g.tileIsVideo ? null : g.tile) || g.hero;
-        box.innerHTML = `<div class="he-thumb"></div><div class="he-tx"><small>Lo último que jugaste</small><b>${esc(g.name)}</b><span>${esc([U.ago(g.lastPlayed), U.hours(g.playtimeMin)].filter(Boolean).join(' · '))}</span></div>`;
-        if (art) U.stillBackground(box.querySelector('.he-thumb'), art);
+        box.innerHTML = `<div class="he-thumb"></div><div class="he-tx"><small>Lo último que jugaste</small><b>${esc(g.name)}</b><span>${esc(K.playedLine(g))}</span></div>`;
+        if (K.art(g)) U.stillBackground(box.querySelector('.he-thumb'), K.art(g));
       }
       function paintWeek(w) {
-        const box = $('.he-week');
-        const buckets = (w && w.ok && w.buckets) || [];
-        const max = Math.max(1, ...buckets.map((b) => b.sec));
-        const bars = buckets.map((b) => `<i class="${b.now ? 'now' : ''}" style="height:${Math.max(8, Math.round((b.sec / max) * 100))}%"></i>`).join('');
-        const total = w && w.ok ? w.totalSec : 0;
-        const hrs = total >= 3600 ? `${String(Math.round(total / 360) / 10).replace('.', ',')} horas` : total ? `${Math.max(1, Math.round(total / 60))} min` : 'Sin jugar';
         const top = w && w.top && w.top[0];
-        box.innerHTML = `<div class="he-bars">${bars}</div><div class="he-tx"><small>Esta semana</small><b>${hrs}</b><span>${top ? `Más jugado: ${esc(top.name)}` : 'Todavía sin horas esta semana'}</span></div>`;
+        $('.he-week').innerHTML = `<div class="he-bars">${K.weekBars(w)}</div><div class="he-tx"><small>Esta semana</small><b>${K.hoursText(w && w.ok ? w.totalSec : 0)}</b><span>${top ? `Más jugado: ${esc(top.name)}` : 'Todavía sin horas esta semana'}</span></div>`;
       }
-      function paintSong() {
-        const v = U.spotifyView(spotify || {});
+      function paintSong(st) {
+        const v = U.spotifyView(st || {});
         const box = $('.he-song');
         box.classList.toggle('off', !v.on);
         box.innerHTML = `<div class="he-cover"${v.cover ? ` style="background-image:url('${esc(v.cover)}')"` : ''}>${v.cover ? '' : ICON.music}</div><div class="he-tx"><small>${v.on ? `${v.playing ? 'Suena' : 'En pausa'} en ${esc(v.app)}` : 'Música'}</small><b>${esc(v.title)}</b><span>${esc(v.artist)}</span></div>`;
       }
-      if (api.onSpotify) offs.push(api.onSpotify((s) => ((spotify = s), paintSong())));
-      if (api.onGamesUpdated) offs.push(api.onGamesUpdated((games) => paintLast(games || [])));
-      paintSong();
-
-      // Mientras estás dentro de una consola, no se pide la música ni se recargan los datos
-      function visible(on) {
-        if (on === shown) return;
-        shown = on;
-        if (api.spotifyWatch) api.spotifyWatch(on).then((s) => on && alive && s && ((spotify = s), paintSong()));
-        if (on) loadData();
-      }
-      if (api.spotifyWatch) api.spotifyWatch(true).then((s) => alive && s && ((spotify = s), paintSong()));
-      if (api.getSteamProfile)
-        api.getSteamProfile().then((p) => {
-          if (!alive || !p || !p.name) return;
-          const me = $('.he-me');
-          me.hidden = false;
-          me.title = p.name;
-          me.innerHTML = p.avatar ? `<img src="${esc(p.avatar)}" alt="" draggable="false" />` : `<b>${esc(p.name.trim().charAt(0).toUpperCase())}</b>`;
-        });
+      K.profile(api, (p) => {
+        const me = $('.he-me');
+        if (!me) return;
+        me.hidden = false;
+        me.title = p.name;
+        me.innerHTML = p.avatar ? `<img src="${esc(p.avatar)}" alt="" draggable="false" />` : `<b>${esc(p.name.trim().charAt(0).toUpperCase())}</b>`;
+      });
 
       render();
-      loadData();
+      data = K.live(api, { data: ({ games, week }) => (paintLast(games), paintWeek(week)), games: paintLast, music: paintSong });
 
       return {
         render,
         update,
         key,
-        visible,
+        visible: (on) => data.visible(on),
         unmount() {
-          alive = false;
-          offs.forEach((off) => off && off());
-          if (shown && api.spotifyWatch) api.spotifyWatch(false);
+          data.dispose();
           root.innerHTML = '';
           root.style.removeProperty('--c');
           root.classList.remove('he-at-top');

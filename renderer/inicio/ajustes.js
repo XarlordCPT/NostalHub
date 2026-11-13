@@ -6,6 +6,7 @@
   const U = window.NostalHubUtil;
   const esc = U.escapeHtml;
   const HIDE = new Set(['consoles']); // "Cambiar de consola" no tiene sentido aquí: ya estás en el selector
+  const TABS = new Set(['panel']); // estilos con las secciones como pestañas arriba (← → cambian de sección)
 
   // ask: la opción que espera un segundo Enter (Salir). pending: { id, value } elegido sin aplicar (confirmChange)
   let st = null; // { el, api, toast, onClose, model, sec, opt, area: 'nav' | 'opts', ask, pending }
@@ -23,7 +24,7 @@
         <div class="hc-body"><h3 class="hc-title"></h3><div class="hc-opts"></div><p class="hc-desc"></p></div>
       </section>`;
     host.appendChild(el);
-    st = { el, api, toast, onClose, model: [], sec: 0, opt: 0, area: 'nav', ask: null, pending: null };
+    st = { el, api, toast, onClose, look, model: [], sec: 0, opt: 0, area: 'nav', ask: null, pending: null };
     el.querySelector('.hc-veil').addEventListener('click', close);
     window.addEventListener('keydown', onKey, true);
     st.model = (api.getMenu && (await api.getMenu())) || [];
@@ -31,8 +32,13 @@
     paint();
   }
 
+  const tabs = () => !!st && TABS.has(st.look);
+
   function setLook(look) {
-    if (st) st.el.className = `home-cfg look-${look}`;
+    if (!st) return;
+    st.look = look;
+    st.el.className = `home-cfg look-${look}`;
+    paint();
   }
 
   async function close() {
@@ -51,6 +57,7 @@
     const secs = sections();
     st.sec = Math.max(0, Math.min(secs.length - 1, st.sec));
     const sec = secs[st.sec];
+    st.el.querySelector('.hc-keys').textContent = tabs() ? '← → secciones · ↓ opciones · Esc volver' : '↑ ↓ elegir · Enter · Esc volver';
     const nav = st.el.querySelector('.hc-secs');
     nav.innerHTML = secs.map((s, i) => `<button class="hc-sec${i === st.sec ? ' on' : ''}" data-s="${i}">${esc(s.short || s.title)}</button>`).join('');
     nav.querySelectorAll('[data-s]').forEach((b) =>
@@ -180,25 +187,29 @@
     const secs = sections();
     const sec = secs[st.sec];
     const it = sec && sec.items[st.opt];
+    // Con pestañas (Panel): ← → cambian de sección y ↓ entra a las opciones. En lista: ↑ ↓ y →
+    const nextSec = tabs() ? ['ArrowRight', 'ArrowLeft'] : ['ArrowDown', 'ArrowUp'];
+    const enter = tabs() ? 'ArrowDown' : 'ArrowRight';
     if (st.area === 'nav') {
-      if (k === 'ArrowDown' || k === 'ArrowUp') {
-        st.sec = (st.sec + (k === 'ArrowDown' ? 1 : -1) + secs.length) % secs.length;
+      if (nextSec.includes(k)) {
+        st.sec = (st.sec + (k === nextSec[0] ? 1 : -1) + secs.length) % secs.length;
         st.opt = 0;
         paint();
-      } else if (k === 'ArrowRight' || k === 'Enter' || k === ' ') {
+      } else if (k === enter || k === 'Enter' || k === ' ') {
         st.area = 'opts';
         focus();
       } else if (k === 'Escape' || k === 'Backspace' || k === 'a' || k === 'A') close();
       if (k === ' ' || k === 'Enter') e.preventDefault();
       return;
     }
+    if (k === 'ArrowUp' && tabs() && st.opt === 0) return back(); // de la primera opción, arriba a las pestañas
     if (k === 'ArrowDown' || k === 'ArrowUp') {
       if (!sec) return;
       st.opt = (st.opt + (k === 'ArrowDown' ? 1 : -1) + sec.items.length) % sec.items.length;
       if (!clearTemp()) focus();
     } else if (k === 'ArrowLeft' || k === 'ArrowRight') {
       if (it && it.type === 'choice') change(it, k === 'ArrowRight' ? 1 : -1);
-      else if (k === 'ArrowLeft') back();
+      else if (k === 'ArrowLeft' && !tabs()) back();
     } else if (k === 'Enter' || k === ' ') {
       e.preventDefault();
       pick(it);

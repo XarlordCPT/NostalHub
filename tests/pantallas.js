@@ -213,9 +213,15 @@ const GENERALES = {
   'ajustes-salir': { pasos: [k('a'), espera(600), k('Enter'), k('ArrowDown', 3), k('Enter')], ve: '.hc-opt.ask' },
   'ajustes-estilo': { pasos: [k('a'), espera(600), k('ArrowDown', 2), k('ArrowRight'), k('ArrowRight')], ve: '.hc-opt.pending' }, // elegido, sin aplicar
   'ajustes-estilo-esc': { pasos: [k('a'), espera(600), k('ArrowDown', 2), k('ArrowRight'), k('ArrowRight'), k('Escape'), k('Escape'), espera(700)], ve: '#selector[data-style="estanteria"] .he-card.sel' }, // Esc: queda como estaba
+  // Estilo Panel (index.html?estilo=panel)
+  panel: { query: { estilo: 'panel' }, pasos: [], ve: '.hp-c.sel' },
+  'panel-derecha': { query: { estilo: 'panel' }, pasos: [k('ArrowRight', 3), espera(500)], ve: '.hp-c.sel[data-id="ps4"]' },
+  'panel-botones': { query: { estilo: 'panel' }, pasos: [k('ArrowDown', 9), k('ArrowDown', 2)], ve: '.hp-f.kf[data-a="cfg"]' },
+  'panel-ajustes': { query: { estilo: 'panel' }, pasos: [k('a'), espera(600), k('ArrowRight', 2), k('ArrowDown'), k('ArrowRight')], ve: '.look-panel .hc-opt.pending' },
   // Abrir la app con el Clásico ya guardado (pasó: el selector quedaba vacío, solo el fondo)
   'inicio-clasico': { query: { estilo: 'clasico' }, pasos: [], ve: '#selector[data-style="clasico"] .sel-item.active' },
-  'selector-clasico': { pasos: [k('a'), espera(600), k('ArrowDown', 2), k('ArrowRight'), k('ArrowRight'), k('Enter'), espera(1200)], ve: '#selector[data-style="clasico"] .sel-item.active' },
+  // ← desde Estantería: el último estilo (Clásico)
+  'selector-clasico': { pasos: [k('a'), espera(600), k('ArrowDown', 2), k('ArrowRight'), k('ArrowLeft'), k('Enter'), espera(1200)], ve: '#selector[data-style="clasico"] .sel-item.active' },
 };
 
 // ---------- Ventana de prueba ----------

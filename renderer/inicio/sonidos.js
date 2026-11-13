@@ -5,9 +5,11 @@
   let ac = null;
 
   // Cada estilo: forma de onda y dos alturas (grave y aguda). Si un estilo no está, usa 'estanteria'.
+  // gain: qué tan fuerte (con "Volumen de los sonidos" en Medio tienen que oírse claro, como los de las consolas)
   const VOCES = {
-    estanteria: { wave: 'sine', low: 620, high: 930, gain: 1 }, // suave y redondo, como burbujas
-    clasico: { wave: 'triangle', low: 520, high: 780, gain: 0.85 },
+    estanteria: { wave: 'sine', low: 620, high: 930, gain: 2.8 }, // suave y redondo, como burbujas
+    clasico: { wave: 'triangle', low: 520, high: 780, gain: 2.3 },
+    panel: { wave: 'triangle', low: 660, high: 1180, gain: 2.2 }, // corto y nítido
   };
 
   function play(style, kind, vol = 0.6) {

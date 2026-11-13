@@ -21,7 +21,8 @@ Para abrirla: pega esa ruta en la barra del Explorador de Windows, o usa **Ajust
 ## Novedades desde la 1.3.0 (próxima versión)
 
 - **Menú principal nuevo, con estilos**: el selector de consolas ahora puede verse como **Estantería** (tarjetas en
-  fila, con lo último que jugaste, tus horas de la semana y la canción que suena) o como el **Clásico**. Se cambia en
+  fila, con lo último que jugaste, tus horas de la semana y la canción que suena), como **Panel** (oscuro, con la lista de
+  consolas, los juegos que jugaste hace poco, la música, los amigos en línea y la semana) o como el **Clásico**. Se cambia en
   **Ajustes → Pantalla → Estilo del menú principal** (se elige con ← → y se confirma con Enter). Vienen más estilos
   (sección 1). El menú principal tiene **sus propios sonidos**: los de cada consola suenan recién al entrar a ella.
 - **Ajustes desde el menú principal**: botón **Ajustes** o tecla **A** (**Options** en el control), sin entrar a una
@@ -116,6 +117,10 @@ deja como estaba). El menú toma el color de la consola marcada, pero sus sonido
 - **Estantería** (el que viene puesto): las consolas en una fila de tarjetas; la marcada crece y tiñe el fondo con su
   color. ← → (o la rueda) para cambiar; Enter o clic para entrar. ↑ sube a los botones de arriba (**Resumen**,
   **Ordenar** y **Ajustes**). Abajo: lo último que jugaste, tus horas de la semana y la canción que suena.
+- **Panel** (oscuro): la lista de consolas a la izquierda (↑ ↓ o ← →; ↓ desde la última baja a **Resumen**, **Ordenar** y
+  **Ajustes**), la consola marcada en grande al centro con sus colores y los juegos que jugaste hace poco, y a la derecha la
+  hora, la canción que suena (con sus botones, para el mouse), los amigos de Steam en línea y tus horas de la semana. Aquí los
+  Ajustes se abren al centro, con las secciones como pestañas (← →).
 - **Clásico**: la consola a la izquierda (empresa, nombre y año) y su imagen a la derecha. ↑ ↓ (o ← →), la rueda o las
   flechas de arriba y abajo para cambiar.
 

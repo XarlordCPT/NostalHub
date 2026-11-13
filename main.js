@@ -1029,6 +1029,7 @@ ipcMain.handle('system:free-space', async () => {
 // Estilos del menú principal (renderer/inicio/ y el clásico de shell.js). El primero es el que viene puesto.
 const MENU_STYLES = [
   ['estanteria', 'Estantería'],
+  ['panel', 'Panel'],
   ['clasico', 'Clásico'],
 ];
 

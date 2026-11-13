@@ -78,3 +78,40 @@
 .hc-opt.ask .hc-go { color: #d33a3f; font-size: 20px; }
 .hc-desc { flex: none; min-height: 72px; margin: 22px 6px 0; font-size: 22px; font-weight: 600; line-height: 1.4; color: var(--hc-soft); }
 .hc-opt.pending { border-color: var(--hc-acc); border-style: dashed; }
+
+/* Panel: oscuro, sobre la columna del centro, con las secciones como pestañas y las opciones en dos columnas */
+.home-cfg.look-panel {
+  --hc-bg: #151c28;
+  --hc-nav: transparent;
+  --hc-card: #1d2635;
+  --hc-line: transparent;
+  --hc-text: #e9edf5;
+  --hc-soft: #8a96a8;
+  --hc-acc: #4cc2ff;
+  --hc-font: 'Segoe UI', 'Selawik', sans-serif;
+}
+.look-panel .hc-veil { left: 400px; right: 470px; background: rgba(13, 17, 24, 0.55); }
+.look-panel .hc-panel { left: 450px; right: 520px; top: 44px; bottom: 44px; width: auto; display: flex; flex-direction: column; border: 0; border-radius: 34px; box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5); animation: home-cfg-pop 0.25s var(--ease) both; }
+@keyframes home-cfg-pop { from { opacity: 0; transform: scale(0.97); } }
+.home-cfg.look-panel.leave .hc-panel { transform: scale(0.97); opacity: 0; transition: transform 0.2s ease-in, opacity 0.2s; }
+.look-panel .hc-nav { flex: none; padding: 46px 54px 0; border: 0; display: block; }
+.look-panel .hc-nav h2 { font-size: 46px; font-weight: 300; margin: 0 0 22px; }
+.look-panel .hc-secs { flex-direction: row; flex-wrap: wrap; gap: 10px; }
+.look-panel .hc-sec { height: 54px; padding: 0 22px; border-radius: 27px; font-size: 21px; font-weight: 600; background: #1d2635; }
+.look-panel .hc-sec.on { color: #0d1118; background: var(--hc-acc); }
+.look-panel .hc-sec.kf { box-shadow: 0 0 0 3px #151c28, 0 0 0 6px var(--hc-acc); }
+.look-panel .hc-keys { position: absolute; right: 54px; top: 60px; padding: 0; font-size: 17px; font-weight: 600; }
+.look-panel .hc-body { flex: 1; padding: 26px 54px 30px; }
+.look-panel .hc-title { display: none; }
+.look-panel .hc-opts { display: grid; grid-template-columns: 1fr 1fr; align-content: start; gap: 16px; }
+.look-panel .hc-opt { min-height: 110px; border-radius: 22px; border: 0; padding: 0 26px; }
+.look-panel .hc-opt.kf { box-shadow: inset 0 0 0 3px var(--hc-acc); }
+.look-panel .hc-opt.pending { box-shadow: inset 0 0 0 3px var(--hc-acc); outline: 2px dashed var(--hc-acc); outline-offset: 4px; }
+.look-panel .hc-l { font-size: 23px; font-weight: 600; }
+.look-panel .hc-val { font-size: 20px; }
+.look-panel .hc-val b { max-width: 220px; filter: none; }
+.look-panel .hc-tg { background: #344055; width: 76px; height: 40px; }
+.look-panel .hc-tg::after { width: 30px; height: 30px; }
+.look-panel .hc-tg.on::after { left: 41px; }
+.look-panel .hc-tg.on { background: var(--hc-acc); }
+.look-panel .hc-desc { font-size: 19px; }

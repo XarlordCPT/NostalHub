@@ -110,8 +110,10 @@ renderer/inicio/        Menú principal: estilos (window.MenuStyles[id] = { name
                         NostalHubHomeSettings, mismas opciones de menuSections, aspecto con look-<estilo>). El estilo se elige
                         en Ajustes → Pantalla (config.menuStyle, MENU_STYLES de main.js; 'clasico' = el de shell.js). El
                         menú tiene sus propios sonidos (sonidos.js, VOCES por estilo): no usa los de la consola marcada.
-                        Un estilo nuevo: su archivo + .css, su voz en VOCES, su look en ajustes.css, su entrada en
-                        MENU_STYLES y en el mock, ← → para cambiar de consola, y "Consola nueva:" al principio de su .js
+                        Un estilo nuevo: su archivo + .css, su voz en VOCES, su look en ajustes.css (TABS si las secciones
+                        van como pestañas), su entrada en MENU_STYLES y en el mock, ← → para cambiar de consola, "Consola
+                        nueva:" al principio de su .js y sus pantallas en GENERALES (tests/pantallas.js, query { estilo }).
+                        Lo común (íconos, último juego, semana, datos en vivo y música) está en comun.js (HomeKit)
 renderer/consoles.js    Lista de consolas (id, empresa, nombre, año, colores)
 renderer/common.js      window.NostalHubUtil: helpers compartidos (ver abajo)
 renderer/gamepad.js     Control (PS5/Xbox): convierte botones en las teclas de cada tema (BY_CONSOLE) y cambia
@@ -283,7 +285,7 @@ descripción), `cache\` (arte descargado, `spotify.log`, `discord.log`) y las cl
 - Al elegir una canción de la cola se **salta hasta ella**.
 - El aviso de logro usa el estilo de la **última consola elegida**.
 - En pantalla completa la app también aparece en la barra de tareas de Windows (se puede apagar).
-- Menú principal con **estilos a elegir** (Ajustes → Pantalla): Estantería (por defecto) y Clásico; vienen Línea de tiempo y
+- Menú principal con **estilos a elegir** (Ajustes → Pantalla): Estantería (por defecto), Panel y Clásico; vienen Línea de tiempo y
   Rueda y vista previa (mockups en `mockups/menu-principal/`), uno a la vez. Los Ajustes se abren también desde ahí (A).
   - El menú principal es **aparte de las consolas**: toma el color de la consola marcada, pero los **sonidos son suyos**.
   - El estilo del menú (`confirmChange` en su opción) no cambia al moverse por los valores: se elige y se **confirma con

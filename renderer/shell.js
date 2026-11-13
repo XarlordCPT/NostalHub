@@ -740,7 +740,7 @@
     moving = { before: CONSOLES.map((c) => c.id) };
     selector.classList.add('moving');
     const hint = $('.sel-move-hint');
-    hint.innerHTML = `Moviendo <b>${CONSOLES[index].name}</b> · ${style ? '<kbd>←</kbd><kbd>→</kbd>' : '<kbd>↑</kbd><kbd>↓</kbd>'} para cambiarla de lugar · <kbd>Enter</kbd> dejarla · <kbd>Esc</kbd> cancelar`;
+    hint.innerHTML = `Moviendo <b>${CONSOLES[index].name}</b> · ${style && !style.vertical ? '<kbd>←</kbd><kbd>→</kbd>' : '<kbd>↑</kbd><kbd>↓</kbd>'} para cambiarla de lugar · <kbd>Enter</kbd> dejarla · <kbd>Esc</kbd> cancelar`;
     hint.hidden = false;
     layout();
   }
