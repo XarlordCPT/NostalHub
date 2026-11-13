@@ -113,7 +113,8 @@ renderer/inicio/        Menú principal: estilos (window.MenuStyles[id] = { name
                         Un estilo nuevo: su archivo + .css, su voz en VOCES, su look en ajustes.css (TABS si las secciones
                         van como pestañas), su entrada en MENU_STYLES y en el mock, ← → para cambiar de consola, "Consola
                         nueva:" al principio de su .js y sus pantallas en GENERALES (tests/pantallas.js, query { estilo }).
-                        Lo común (íconos, último juego, semana, datos en vivo y música) está en comun.js (HomeKit)
+                        Lo común (íconos, último juego, semana, datos en vivo y música) está en comun.js (HomeKit). Los
+                        juegos que muestre llevan data-game-id: el clic derecho abre el editor ('home' en game-editor.js)
 renderer/consoles.js    Lista de consolas (id, empresa, nombre, año, colores)
 renderer/common.js      window.NostalHubUtil: helpers compartidos (ver abajo)
 renderer/gamepad.js     Control (PS5/Xbox): convierte botones en las teclas de cada tema (BY_CONSOLE) y cambia
@@ -234,6 +235,8 @@ descripción), `cache\` (arte descargado, `spotify.log`, `discord.log`) y las cl
   solo se anima el canal marcado, solo se dibuja la página visible y la transición usa una foto (`setZoomerImage`).
 - RetroArch reescribe `retroarch.cfg` al cerrarse y guarda las rutas con `~` (carpeta personal) o `:` (su carpeta): hay
   que expandirlas (`retroarchOption`). Si no, no encuentra ningún juego.
+- Horas de cada juego (`playtimeMin` de `gamesView`): los de Steam, las de Steam (la mayor entre `localStats` y la Web API);
+  los demás, las que contó NostalHub (`playLog.totals()`, suma de sus sesiones en `estadisticas.db`).
 - Horas: `trackTick` de `main.js` revisa cada 15 s qué juego está abierto (`RunningAppID` de Steam o
   `launcher.playingId()`), le avisa a `PlayLog` y actualiza la presencia. Un salto de más de 3 min entre revisiones es
   PC suspendido: corta la sesión.

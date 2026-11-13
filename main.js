@@ -378,10 +378,12 @@ function removeEmptyCustomFolders() {
 
 // Lo que ve la interfaz (rutas convertidas a file:// y prioridades resueltas).
 function gamesView() {
+  const own = playLog.totals(); // lo que contó NostalHub (para los juegos que no son de Steam)
   return config.games
     .filter((g) => !g.hidden && !g.uninstalled)
     .map((g) => {
       const c = { ...customFilesFor(g), ...pickExisting(g.custom) };
+      const mine = g.type !== 'steam' ? own.get(g.id) : null;
       const m = g.media || {};
       const tile = c.tile || m.tile;
       const video = c.video || null;
@@ -410,8 +412,9 @@ function gamesView() {
         icon0: fileUrl(c.icon0), // icono propio de la PS3 (320×176)
         header: fileUrl(m.header), // cabecera horizontal de Steam (460×215)
         music: fileUrl(c.music), // música propia del juego (Wii y PS3)
-        lastPlayed: Math.max((g.appId && localStats[g.appId] && localStats[g.appId].lastPlayed) || 0, (g.appId && webPlay[g.appId] && webPlay[g.appId].lastPlayed) || 0, (config.data.launchLog || {})[g.id] || 0),
-        playtimeMin: Math.max((g.appId && localStats[g.appId] && localStats[g.appId].playtimeMin) || 0, (g.appId && webPlay[g.appId] && webPlay[g.appId].playtimeMin) || 0),
+        lastPlayed: Math.max((g.appId && localStats[g.appId] && localStats[g.appId].lastPlayed) || 0, (g.appId && webPlay[g.appId] && webPlay[g.appId].lastPlayed) || 0, (config.data.launchLog || {})[g.id] || 0, (mine && mine.last) || 0),
+        // Horas: los de Steam, las de Steam; los demás (Epic, Riot, emuladores…), las que contó NostalHub
+        playtimeMin: g.type === 'steam' ? Math.max((localStats[g.appId] && localStats[g.appId].playtimeMin) || 0, (webPlay[g.appId] && webPlay[g.appId].playtimeMin) || 0) : mine ? Math.round(mine.ms / 60000) : 0,
       };
     });
 }

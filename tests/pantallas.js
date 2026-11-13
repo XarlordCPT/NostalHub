@@ -218,6 +218,8 @@ const GENERALES = {
   'panel-derecha': { query: { estilo: 'panel' }, pasos: [k('ArrowRight', 3), espera(500)], ve: '.hp-c.sel[data-id="ps4"]' },
   'panel-botones': { query: { estilo: 'panel' }, pasos: [k('ArrowDown', 9), k('ArrowDown', 2)], ve: '.hp-f.kf[data-a="cfg"]' },
   'panel-ajustes': { query: { estilo: 'panel' }, pasos: [k('a'), espera(600), k('ArrowRight', 2), k('ArrowDown'), k('ArrowRight')], ve: '.look-panel .hc-opt.pending' },
+  // Clic derecho sobre un juego del menú principal → Cambiar imágenes (la miniatura es el Canal)
+  'panel-imagen': { query: { estilo: 'panel' }, pasos: [espera(800), ['js', `document.querySelector('.hp-g').dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true, clientX: 600, clientY: 800 })), 1`], espera(400), clic('.ge-ci[data-i="0"]')], ve: '#selector .ge-wrap .ge-slot' },
   // Abrir la app con el Clásico ya guardado (pasó: el selector quedaba vacío, solo el fondo)
   'inicio-clasico': { query: { estilo: 'clasico' }, pasos: [], ve: '#selector[data-style="clasico"] .sel-item.active' },
   // ← desde Estantería: el último estilo (Clásico)

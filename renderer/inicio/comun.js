@@ -12,8 +12,9 @@
     music: '<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M19 35V11l19-4v24"/><circle cx="14" cy="35" r="5"/><circle cx="33" cy="31" r="5"/></svg>',
   };
 
-  // La imagen horizontal de un juego (para miniaturas)
-  const art = (g) => (g && (g.header || (g.tileIsVideo ? null : g.tile) || g.hero)) || null;
+  // La imagen horizontal de un juego (para miniaturas): el canal propio si le pusiste uno (clic derecho → Cambiar
+  // imágenes → Canal), si no la cabecera de Steam, el canal o el fondo
+  const art = (g) => (g && ((g.tileIsCustom && !g.tileIsVideo && g.tile) || g.header || (g.tileIsVideo ? null : g.tile) || g.hero)) || null;
   // Los juegos jugados, del más reciente al más antiguo
   const recent = (games) => (games || []).filter((g) => g.lastPlayed).sort((a, b) => b.lastPlayed - a.lastPlayed);
   // "hace 3 horas · 24,3 h jugadas"

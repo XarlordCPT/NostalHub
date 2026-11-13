@@ -55,6 +55,18 @@ class PlayLog {
     this.cur = null;
   }
 
+  // Lo jugado de cada juego (contado por NostalHub): Map(id del juego → { ms, last }). Incluye la sesión que va en curso.
+  totals() {
+    const out = new Map();
+    if (!this.db) return out;
+    try {
+      for (const r of this.db.prepare('SELECT game_id, SUM(ended_at - started_at) AS ms, MAX(ended_at) AS last FROM sessions GROUP BY game_id').all()) out.set(r.game_id, { ms: Number(r.ms) || 0, last: Number(r.last) || 0 });
+    } catch (e) {
+      this.log(`no se pudieron leer las horas por juego: ${e.message}`);
+    }
+    return out;
+  }
+
   dispose() {
     this.close();
     if (this.db) this.db.close();

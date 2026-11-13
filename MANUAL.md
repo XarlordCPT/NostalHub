@@ -27,6 +27,9 @@ Para abrirla: pega esa ruta en la barra del Explorador de Windows, o usa **Ajust
   (sección 1). El menú principal tiene **sus propios sonidos**: los de cada consola suenan recién al entrar a ella.
 - **Ajustes desde el menú principal**: botón **Ajustes** o tecla **A** (**Options** en el control), sin entrar a una
   consola (sección 8).
+- **Horas en los juegos que no son de Steam** (Fortnite, Riot, Minecraft, emuladores…): ahora muestran las horas que contó
+  NostalHub; los de Steam siguen con las de Steam (sección 8).
+- **Cambiar la imagen de un juego desde el menú principal**: clic derecho sobre su miniatura → Cambiar imágenes → **Canal**.
 - **Consola nueva: Xbox One**, con el menú de 2013 (Pins / Inicio / Tienda, mosaicos de color y "Mi color"). Ver la
   sección 9.
 - **PS4**: la fila de funciones (flecha arriba) y el marco del juego elegido ahora se ven como en la consola real.
@@ -554,6 +557,8 @@ General → Resumen de horas**.
   abres desde NostalHub y se puede saber cuándo se cierran. Eso incluye los accesos `.url` de Epic cuyo ícono es el programa
   del juego, pero no otros enlaces de launchers. **Volver al menú** no detiene la cuenta: sigue hasta que cierras el juego.
 - Mide el tiempo con el juego abierto, aunque no lo estés usando. Las sesiones de menos de 30 segundos no cuentan.
+- **Horas de cada juego** (las que salen en el menú de cada consola y en el principal): los juegos de **Steam** muestran
+  las horas de Steam; los demás (Epic, Riot, Minecraft, emuladores, programas) muestran las que contó NostalHub.
 
 ### Mostrar en Discord lo que juegas
 

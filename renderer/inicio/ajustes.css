@@ -115,3 +115,40 @@
 .look-panel .hc-tg.on::after { left: 41px; }
 .look-panel .hc-tg.on { background: var(--hc-acc); }
 .look-panel .hc-desc { font-size: 19px; }
+
+/* Cambiar imágenes de un juego (clic derecho) desde el menú principal: claro; oscuro en el Panel */
+#selector {
+  --ge-bg: #f7f9fb;
+  --ge-card: #fff;
+  --ge-line: #e3e8ed;
+  --ge-text: #3d4450;
+  --ge-soft: #8b95a1;
+  --ge-acc: var(--sel-ui, #34bfed);
+}
+#selector[data-style='panel'] { --ge-bg: #151c28; --ge-card: #1d2635; --ge-line: #2a3446; --ge-text: #e9edf5; --ge-soft: #8a96a8; --ge-acc: #4cc2ff; }
+#selector .ge-wrap { z-index: 45; background: rgba(15, 20, 30, 0.55); font-family: 'M PLUS Rounded 1c', 'Segoe UI', sans-serif; }
+#selector .ge-panel { width: 1200px; border-radius: 34px; background: var(--ge-bg); color: var(--ge-text); border-top: 8px solid var(--ge-acc); box-shadow: 0 30px 80px rgba(0, 0, 0, 0.4); }
+#selector .ge-head { padding: 30px 46px 18px; border-bottom: 2px solid var(--ge-line); }
+#selector .ge-title { font-size: 42px; font-weight: 800; }
+#selector .ge-sub { font-size: 22px; font-weight: 700; color: var(--ge-soft); }
+#selector .ge-body { padding: 24px 46px; }
+#selector .ge-grid { grid-template-columns: 1fr; }
+#selector .ge-slot, #selector .ge-desc { padding: 20px; border-radius: 24px; background: var(--ge-card); border: 3px solid var(--ge-line); }
+#selector .ge-slot.on, #selector .ge-desc.on { border-color: var(--ge-acc); }
+#selector .ge-prev { border-radius: 16px; background: var(--ge-line); color: var(--ge-soft); }
+#selector .ge-name { font-size: 30px; font-weight: 800; }
+#selector .ge-state { font-size: 18px; font-weight: 700; padding: 3px 12px; border-radius: 12px; background: var(--ge-line); color: var(--ge-soft); }
+#selector .is-custom .ge-state { background: var(--ge-acc); color: #fff; }
+#selector .ge-hint, #selector .ge-used { font-size: 20px; font-weight: 600; color: var(--ge-soft); line-height: 1.35; }
+#selector .ge-b { height: 56px; padding: 0 26px; border-radius: 28px; border: 3px solid var(--ge-line); background: var(--ge-card); color: var(--ge-text); font-size: 22px; font-weight: 700; }
+#selector .ge-b.kf, #selector .ge-b:hover { border-color: var(--ge-acc); box-shadow: 0 0 0 5px color-mix(in srgb, var(--ge-acc) 22%, transparent); }
+#selector .ge-text { border-radius: 18px; border: 3px solid var(--ge-line); padding: 14px 18px; font-size: 23px; color: var(--ge-text); background: var(--ge-card); line-height: 1.4; }
+#selector .ge-text.kf, #selector .ge-text:focus { border-color: var(--ge-acc); }
+#selector .ge-msg { padding: 8px 46px; font-size: 23px; font-weight: 700; color: #2f9e44; }
+#selector .ge-msg.bad { color: #e5484d; }
+#selector .ge-foot { padding: 18px 46px 26px; border-top: 2px solid var(--ge-line); }
+#selector .ge-drop { border-radius: 16px; background: color-mix(in srgb, var(--ge-acc) 85%, transparent); color: #fff; }
+#selector .ge-ctx { position: absolute; z-index: 46; width: 460px; padding: 12px; border-radius: 26px; background: var(--ge-bg); color: var(--ge-text); border: 4px solid var(--ge-acc); box-shadow: 0 18px 40px rgba(0, 0, 0, 0.3); font-family: 'M PLUS Rounded 1c', 'Segoe UI', sans-serif; }
+#selector .ge-ctx-title { font-size: 21px; font-weight: 700; color: var(--ge-soft); padding: 6px 16px 10px; }
+#selector .ge-ci { display: block; width: 100%; height: 64px; padding: 0 18px; border: 0; border-radius: 18px; background: none; text-align: left; font: inherit; font-size: 26px; font-weight: 700; color: var(--ge-text); cursor: pointer; }
+#selector .ge-ci.kf, #selector .ge-ci:hover { background: color-mix(in srgb, var(--ge-acc) 16%, transparent); box-shadow: inset 0 0 0 3px var(--ge-acc); }

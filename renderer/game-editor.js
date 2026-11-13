@@ -10,7 +10,7 @@
   const esc = window.NostalHubUtil.escapeHtml;
   const call = (fn, ...a) => (typeof api[fn] === 'function' ? api[fn](...a) : Promise.resolve(null));
 
-  const CONSOLE_NAMES = { wii: 'Wii', ps2: 'PS2', x360: 'Xbox 360', ps4: 'PS4', vita: 'PS Vita', switch: 'Switch', ps3: 'PS3', '3ds': '3DS', xone: 'Xbox One' };
+  const CONSOLE_NAMES = { wii: 'Wii', ps2: 'PS2', x360: 'Xbox 360', ps4: 'PS4', vita: 'PS Vita', switch: 'Switch', ps3: 'PS3', '3ds': '3DS', xone: 'Xbox One', home: 'el menú principal' };
   // Qué imágenes se ven en cada consola (en orden)
   const BY_CONSOLE = {
     wii: ['tile', 'hero', 'logo', 'video', 'music'],
@@ -22,12 +22,13 @@
     ps3: ['icon0', 'hero', 'music'],
     '3ds': ['square', 'hero', 'logo'],
     xone: ['square', 'hero', 'logo'],
+    home: ['tile'], // el menú principal (sin consola): la miniatura de los juegos es el canal (si no hay, la cabecera de Steam)
   };
   const ALL = ['tile', 'square', 'bubble', 'icon0', 'cover', 'hero', 'logo', 'video', 'model', 'music'];
   // Algunas también se usan en otras consolas aunque no sean "suyas"
   const ALSO = { tile: ['ps4', 'vita'], cover: ['vita'] };
   const SLOTS = {
-    tile: { label: 'Canal', hint: 'El cuadrito del menú, tal cual (imagen o video, 16:9). Si lo cambias, también se usa en la PS4 y la PS Vita.', shape: 'wide' },
+    tile: { label: 'Canal', hint: 'El cuadrito del menú, tal cual (imagen o video, 16:9). Si lo cambias, también se usa en la PS4, la PS Vita y en las miniaturas del menú principal.', shape: 'wide' },
     hero: { label: 'Fondo', hint: 'Imagen grande sin letras, de fondo (ej. 1920×620 o 1920×1080).', shape: 'wide' },
     logo: { label: 'Logo', hint: 'El título del juego. PNG con fondo transparente.', shape: 'logo' },
     video: { label: 'Video del canal', hint: 'La animación al entrar al canal (mp4, webm o gif; 10 a 20 segundos, sin audio).', shape: 'wide' },
@@ -39,7 +40,11 @@
     bubble: { label: 'Burbuja', hint: 'Imagen cuadrada; se recorta en círculo (ej. 512×512). Si no hay, se usa la carátula.', shape: 'circle' },
   };
 
-  const themeId = () => (themeRoot.className.match(/theme-(\w+)/) || [])[1] || '';
+  // Sin consola abierta, el editor se abre sobre el menú principal (#selector) y se llama 'home'
+  const selectorEl = document.getElementById('selector');
+  const inHome = () => themeRoot.hidden && selectorEl && !selectorEl.hidden;
+  const host = () => (inHome() ? selectorEl : themeRoot);
+  const themeId = () => (inHome() ? 'home' : (themeRoot.className.match(/theme-(\w+)/) || [])[1] || '');
   const usedIn = (kind) =>
     Object.keys(BY_CONSOLE)
       .filter((c) => BY_CONSOLE[c].includes(kind) || (ALSO[kind] || []).includes(c))
@@ -93,7 +98,7 @@
     ];
     shield(el);
     el.innerHTML = `<div class="ge-ctx-title"></div>${items.map((it, i) => `<button class="ge-ci" data-i="${i}"><span>${esc(it.label)}</span></button>`).join('')}`;
-    themeRoot.appendChild(el);
+    host().appendChild(el);
     call('getGameCustom', id).then((info) => info && el.isConnected && (el.querySelector('.ge-ctx-title').textContent = info.name));
     const p = toStage(x, y);
     const w = 460;
@@ -131,7 +136,7 @@
     const el = document.createElement('div');
     el.className = 'ge-wrap';
     el.innerHTML = `<div class="ge-panel"><div class="ge-head"><div class="ge-title"></div><div class="ge-sub"></div></div><div class="ge-body"></div><div class="ge-msg"></div><div class="ge-foot"></div></div>`;
-    themeRoot.appendChild(el);
+    host().appendChild(el);
     el.addEventListener('pointerdown', (e) => {
       if (e.target === el) closeEditor();
     });
@@ -585,6 +590,14 @@
     if (id) openMenu(id, e.clientX, e.clientY);
     else closeMenu();
   });
+  // Clic derecho sobre un juego del menú principal (los que muestra cada estilo, con data-game-id)
+  if (selectorEl)
+    selectorEl.addEventListener('contextmenu', (e) => {
+      const el = e.target.closest('[data-game-id]');
+      if (!el || ed) return;
+      e.preventDefault();
+      openMenu(el.dataset.gameId, e.clientX, e.clientY);
+    });
   // Clic afuera cierra el menú
   document.addEventListener(
     'pointerdown',

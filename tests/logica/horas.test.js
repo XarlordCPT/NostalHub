@@ -85,3 +85,16 @@ test('períodos: semana de lunes a domingo, mes con sus días y año con 12 mese
   assert.equal(log.period('year', 0, null, jueves).buckets.length, 12);
   assert.equal(log.period('week', -1, null, jueves).title, 'La semana pasada');
 });
+
+test('horas por juego (los que no son de Steam las muestran así): suma sus sesiones y la última vez', (t) => {
+  const log = nuevo(t);
+  const fortnite = { id: 'epic-fortnite', name: 'Fortnite' };
+  const t0 = Date.now() - 5 * 60 * MIN;
+  jugar(log, fortnite, t0, 60);
+  log.tick(null, t0 + 61 * MIN);
+  jugar(log, fortnite, t0 + 120 * MIN, 30); // otra sesión, todavía abierta: también cuenta
+  const tot = log.totals();
+  assert.equal(Math.round(tot.get('epic-fortnite').ms / MIN), 91); // 61 + 30 minutos
+  assert.equal(tot.get('epic-fortnite').last, t0 + 150 * MIN);
+  assert.equal(tot.get('steam-1'), undefined);
+});

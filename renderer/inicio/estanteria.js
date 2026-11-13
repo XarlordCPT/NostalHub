@@ -199,9 +199,11 @@
         const g = K.recent(games)[0];
         const box = $('.he-last');
         if (!g) {
+          delete box.dataset.gameId;
           box.innerHTML = `<div class="he-thumb"></div><div class="he-tx"><small>Lo último que jugaste</small><b>Todavía nada</b><span>Entra a una consola y elige un juego</span></div>`;
           return;
         }
+        box.dataset.gameId = g.id; // clic derecho → cambiar su imagen
         box.innerHTML = `<div class="he-thumb"></div><div class="he-tx"><small>Lo último que jugaste</small><b>${esc(g.name)}</b><span>${esc(K.playedLine(g))}</span></div>`;
         if (K.art(g)) U.stillBackground(box.querySelector('.he-thumb'), K.art(g));
       }
