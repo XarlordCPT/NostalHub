@@ -1,5 +1,5 @@
 // npm run test:app-real:consolas  (NostalHub tiene que estar CERRADA; abre la app real con tus datos en tu pantalla)
-// Al terminar una etapa: entra a las 8 consolas, abre el Resumen y elige una opción del menú. OJO: dentro de una
+// Al terminar una etapa: entra a las 9 consolas, abre los Ajustes del menú principal y el Resumen y elige una opción del menú. OJO: dentro de una
 // consola, Enter abre un juego de verdad. Por eso solo aprieta teclas con el selector a la vista y sin ninguna consola
 // abierta (una vez se abrió Pokémon Fire Red por apretar Enter a ciegas). Las capturas quedan en tests/capturas/app-real.
 // Prueba con la app real (tus datos): arranca NostalHub de la rama, abre el Resumen, entra a las 8 consolas,
@@ -54,7 +54,14 @@ const orden = [...IDS.filter((i) => i !== ULTIMA), ULTIMA];
 
   const r = {};
   r.selector = await hasta(`!!document.querySelector('#selector') && !document.querySelector('#selector').hidden`, 20000);
-  await wait(1500);
+  await wait(2500);
+  await shot('real-selector'); // el menú principal con tus íconos y modelos
+  await key('a'); // Ajustes del menú principal (sin entrar a una consola)
+  r.ajustes = await hasta(`!!document.querySelector('.home-cfg .hc-sec')`, 5000);
+  await wait(600);
+  await shot('real-ajustes');
+  await key('Escape');
+  await wait(600);
   await key('r');
   r.resumen = await hasta(`!!document.querySelector('#stats') && !document.querySelector('#stats').hidden`, 6000);
   await wait(1200);
@@ -66,9 +73,12 @@ const orden = [...IDS.filter((i) => i !== ULTIMA), ULTIMA];
     // Seguro: solo se aprietan teclas en el selector, nunca dentro de una consola (ahí Enter abre un juego)
     const enSelector = await ev(`!!document.querySelector('#selector') && !document.querySelector('#selector').hidden && !document.querySelector('#theme-root').className`);
     if (!enSelector) throw new Error(`no estoy en el selector antes de ${c}: me detengo sin apretar nada`);
-    await key('ArrowUp', 10);
+    await key('ArrowLeft', 10); // ← → sirven en todos los estilos del menú principal
     const pos = await ev(`window.CONSOLES.findIndex((x) => x.id === ${JSON.stringify(c)})`);
-    await key('ArrowDown', pos);
+    await key('ArrowRight', pos);
+    await wait(500);
+    const marcada = await ev(`window.NostalHubSelector ? window.NostalHubSelector.current() : null`);
+    if (marcada !== c) throw new Error(`en el selector está marcada ${marcada} y no ${c}: me detengo sin apretar Enter`);
     await key('Enter');
     // Nunca un Enter a ciegas: dentro de una consola, Enter abre un juego de verdad
     const dentro = await hasta(`!!document.querySelector('#theme-root.theme-${c}')`, 25000);
@@ -90,7 +100,7 @@ const orden = [...IDS.filter((i) => i !== ULTIMA), ULTIMA];
   await wait(1500);
   r.menu = await hasta(`!!document.querySelector('#selector') && !document.querySelector('#selector').hidden`, 20000);
   console.log('opción del menú (Recargar):', r.menu ? 'volvió al selector' : 'NO', '· errores:', errores.length - antesMenu);
-  console.log('selector', r.selector, '· resumen', r.resumen, '· errores en total', errores.length);
+  console.log('selector', r.selector, '· ajustes', r.ajustes, '· resumen', r.resumen, '· errores en total', errores.length);
   ev('window.nostalhub.quitApp()').catch(() => {});
   await Promise.race([new Promise((res) => proc.on('exit', res)), wait(8000)]);
   console.log('cerró:', proc.exitCode !== null ? `sí (${proc.exitCode})` : 'NO');

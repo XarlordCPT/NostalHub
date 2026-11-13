@@ -708,3 +708,15 @@ body[data-console='3ds'] .wb-close:hover { background: #fde8e8; color: #e2402a; 
    borrosos (en todas las consolas, sean <img> o un fondo puesto con style="background-image: url(…)") */
 img[src*="media.retroachievements.org"],
 [style*="media.retroachievements.org"] { image-rendering: pixelated; }
+
+/* ============ Estilo del menú principal (renderer/inicio/) ============ */
+#sel-style { position: absolute; inset: 0; z-index: 2; }
+#sel-style:empty { display: none; }
+/* Con otro estilo, lo del clásico se esconde (la lógica sigue en shell.js) */
+#selector:not([data-style='clasico']) #sel-track,
+#selector:not([data-style='clasico']) .sel-arrow,
+#selector:not([data-style='clasico']) .sel-sort { display: none; }
+#selector[data-style='estanteria'] .sel-sortmenu { left: auto; right: 300px; top: 140px; bottom: auto; font-family: 'M PLUS Rounded 1c', 'Segoe UI', sans-serif; }
+#selector[data-style='estanteria'] .sel-move-hint { top: 160px; font-family: 'M PLUS Rounded 1c', 'Segoe UI', sans-serif; }
+/* Clásico: Ajustes al lado de Resumen */
+#sel-cfg { right: 330px; }

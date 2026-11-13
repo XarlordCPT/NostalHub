@@ -2,7 +2,7 @@
 // (fuera de Electron), para trabajar en el diseño sin abrir la app.
 (() => {
   // Opciones de prueba (las de verdad vienen de main.js → menuSections)
-  const mockOpts = { tileTitle: true, trailers: true, display: 'auto', fullscreen: true, autoStart: true, music: true, sounds: true, intros: true, musicVolume: 0.35, sfxVolume: 0.6, musicApp: 'spotify', spotifyApi: true };
+  const mockOpts = { tileTitle: true, trailers: true, display: 'auto', fullscreen: true, autoStart: true, music: true, sounds: true, intros: true, musicVolume: 0.35, sfxVolume: 0.6, musicApp: 'spotify', spotifyApi: true, menuStyle: new URLSearchParams(location.search).get('estilo') || 'estanteria' }; // (index.html?estilo=clasico: abrir con otro estilo guardado)
   function mockMenu() {
     const o = mockOpts;
     const t = (id, label, desc) => ({ id, type: 'toggle', label, desc, value: !!o[id] });
@@ -10,7 +10,7 @@
     return [
       { id: 'general', title: 'General', items: [a('consoles', 'Cambiar de consola', 'Vuelve al selector de consolas.', { closes: true }), a('open-stats', 'Resumen de horas', 'Cuánto has jugado y a qué, por semana, mes y año.', { closes: true }), a('reload', 'Recargar', 'Vuelve a cargar la pantalla, por si algo se ve raro.', { closes: true }), a('open-manual', 'Abrir manual', 'Dónde va cada archivo que pones a mano.'), a('quit', 'Salir de NostalHub', 'Cierra la app.', { confirm: true })] },
       { id: 'games', title: 'Juegos', items: [a('import', 'Buscar juegos nuevos de Steam', 'Agrega los juegos de Steam que instalaste desde la última vez.'), a('add-game', 'Agregar juego o programa', 'Elige el .exe o el acceso directo de un juego que no es de Steam.'), a('add-riot', 'Agregar juegos de Riot', 'VALORANT, League of Legends y Teamfight Tactics. Se abren por el Riot Client y vuelven solos al menú.'), a('add-minecraft', 'Agregar Minecraft (Java)', 'Con el launcher oficial. Sus progresos salen como logros encima del juego (Minecraft en inglés).'), a('art', 'Volver a descargar el arte', 'Descarga otra vez las imágenes de Steam de todos los juegos.'), t('tileTitle', 'Título encima de cada canal', 'En la Wii, pone el logo del juego encima de su imagen de fondo.'), t('trailers', 'Mostrar tráileres de Steam', 'Usa el tráiler de Steam como animación del juego.')] },
-      { id: 'screen', title: 'Pantalla', items: [{ id: 'windowMode', type: 'choice', label: 'Modo', desc: 'Pantalla completa, o una ventana que puedes mover, achicar y minimizar.', options: [{ value: 'fullscreen', label: 'Pantalla completa' }, { value: 'window', label: 'Ventana' }], value: 'fullscreen' }, { id: 'display', type: 'choice', label: 'Pantalla', desc: 'En qué pantalla se muestra NostalHub.', options: [{ value: 'auto', label: 'Automática (la secundaria)', short: 'Automática' }, { value: '1', label: 'Pantalla 1 — 1920×1080 (principal)', short: 'Pantalla 1' }, { value: '2', label: 'Pantalla 2 — 1920×1080', short: 'Pantalla 2' }], value: String(o.display) }, t('fullscreen', 'Cubrir la barra de tareas', 'Desactívalo si la barra de Windows aparece encima del menú.'), t('autoStart', 'Iniciar con Windows', 'Abre NostalHub sola al prender el PC.')] },
+      { id: 'screen', title: 'Pantalla', items: [{ id: 'menuStyle', type: 'choice', label: 'Estilo del menú principal', desc: 'Cómo se ve el menú donde eliges la consola.', confirmChange: true, options: [{ value: 'estanteria', label: 'Estantería' }, { value: 'clasico', label: 'Clásico' }], value: o.menuStyle }, { id: 'windowMode', type: 'choice', label: 'Modo', desc: 'Pantalla completa, o una ventana que puedes mover, achicar y minimizar.', options: [{ value: 'fullscreen', label: 'Pantalla completa' }, { value: 'window', label: 'Ventana' }], value: 'fullscreen' }, { id: 'display', type: 'choice', label: 'Pantalla', desc: 'En qué pantalla se muestra NostalHub.', options: [{ value: 'auto', label: 'Automática (la secundaria)', short: 'Automática' }, { value: '1', label: 'Pantalla 1 — 1920×1080 (principal)', short: 'Pantalla 1' }, { value: '2', label: 'Pantalla 2 — 1920×1080', short: 'Pantalla 2' }], value: String(o.display) }, t('fullscreen', 'Cubrir la barra de tareas', 'Desactívalo si la barra de Windows aparece encima del menú.'), t('autoStart', 'Iniciar con Windows', 'Abre NostalHub sola al prender el PC.')] },
       { id: 'sound', title: 'Sonido', items: [t('music', 'Música de fondo', 'La música de cada consola (musica.mp3).'), t('sounds', 'Sonidos del menú', 'Los sonidos al moverte, elegir y volver.'), t('intros', 'Videos de inicio de las consolas', 'El video (intro.mp4) al entrar a una consola.'), { id: 'musicVolume', type: 'choice', label: 'Volumen de la música', options: [['Bajo', 0.15], ['Medio', 0.35], ['Alto', 0.6], ['Máximo', 1]].map(([label, value]) => ({ label, value })), value: Number(o.musicVolume) }, { id: 'sfxVolume', type: 'choice', label: 'Volumen de los sonidos', options: [['Bajo', 0.3], ['Medio', 0.6], ['Alto', 1]].map(([label, value]) => ({ label, value })), value: Number(o.sfxVolume) }, { id: 'musicApp', type: 'choice', label: 'App de música', desc: 'De qué app se muestra la canción en la sección Música y al jugar.', options: [{ value: 'spotify', label: 'Spotify' }, { value: 'apple', label: 'Apple Music' }, { value: 'ytmusic', label: 'YouTube Music (en el navegador)', short: 'YouTube Music' }, { value: 'auto', label: 'Automático (la que esté sonando)', short: 'Automático' }], value: o.musicApp }, ...(o.musicApp === 'spotify' ? [t('spotifyApi', 'Spotify conectado directamente', 'Muestra la cola, el avance, aleatorio, repetir, me gusta, volumen y dispositivos. Apagado: solo los botones básicos.')] : [])] },
       { id: 'emulators', title: 'Implementación de Emuladores', short: 'Emuladores', items: [a('add-pcsx2', 'Buscar juegos de PS2 (PCSX2)', 'Agrega los juegos nuevos de tus carpetas de PCSX2. Al elegir uno, se abre directo en el emulador.'), a('add-gba', 'Buscar juegos de GBA (RetroArch)', 'Agrega los juegos de la carpeta de RetroArch, con su núcleo mGBA. Al elegir uno, se abre directo en el emulador.')] },
       { id: 'accounts', title: 'Cuentas', items: [a('setup-steam', 'Conectar Steam (logros)', 'Pega tu clave de Steam aquí mismo para ver tus logros, tu nombre y tu foto.', { closes: true }), a('setup-retro', 'Conectar RetroAchievements', 'Para ver y recibir los logros de tus juegos de emulador. Tu cuenta también tiene que estar iniciada en el emulador.', { closes: true }), a('setup-discord', 'Conectar Discord (grupo)', 'Conecta tu Discord para ver tu canal de voz y quiénes están contigo.', { closes: true }), t('discordPresence', 'Mostrar en Discord lo que juegas', 'Tu estado dice que usas NostalHub, con el juego y tus logros. Lo ve cualquiera que abra tu perfil. Necesita Discord abierto.')] },
@@ -21,6 +21,8 @@
   if (window.nostalhub) return;
 
   let mockRetro = { connected: false, user: null };
+  const settingsCbs = [];
+  const mockSettings = () => ({ music: mockOpts.music, sounds: mockOpts.sounds, intros: mockOpts.intros, musicVolume: Number(mockOpts.musicVolume), sfxVolume: Number(mockOpts.sfxVolume), menuStyle: mockOpts.menuStyle });
   const palettes = [
     ['#ff7a59', '#7b2cbf'], ['#00b4d8', '#023e8a'], ['#80ed99', '#38a3a5'], ['#ffd166', '#ef476f'],
     ['#c77dff', '#3c096c'], ['#f4a261', '#264653'], ['#90e0ef', '#0077b6'], ['#ff99c8', '#a06cd5'],
@@ -159,6 +161,7 @@
       console.log('[mock] opción', id, value);
       if (it && it.type === 'toggle') mockOpts[id] = value === undefined ? !it.value : !!value;
       if (it && it.type === 'choice') mockOpts[id] = value;
+      if (it && it.type !== 'action') settingsCbs.forEach((cb) => cb(mockSettings()));
       if (id === 'open-stats' && window.NostalHubStats) window.NostalHubStats.open();
       if (/^setup-/.test(id)) window.NostalHubSetup && window.NostalHubSetup.open(id.slice(6));
       return mockMenu();
@@ -311,8 +314,8 @@
     discordWatch: async () => dcState,
     discordAuthorize: async () => dcState,
     onDiscord: (cb) => (dcCbs.add(cb), () => dcCbs.delete(cb)),
-    getSettings: async () => ({ music: true, sounds: true, intros: true, musicVolume: 0.35, sfxVolume: 0.6 }),
-    onSettings: noop,
+    getSettings: async () => mockSettings(),
+    onSettings: (cb) => (settingsCbs.push(cb), () => settingsCbs.splice(settingsCbs.indexOf(cb), 1)),
     // Ventana: en el navegador se puede probar la barra con mockNostalHub.__win('window')
     getWindowState: async () => ({ ...winState }),
     windowControl: async (a) => (a === 'maximize' && (winState.maximized = !winState.maximized), { ...winState }),

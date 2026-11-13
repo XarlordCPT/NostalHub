@@ -207,6 +207,15 @@ const PANTALLAS = {
 const GENERALES = {
   selector: { pasos: [], ve: '#selector' },
   resumen: { pasos: [k('r')], ve: '#stats:not([hidden])' },
+  'selector-derecha': { pasos: [k('ArrowRight', 3), espera(500)], ve: '.he-card.sel[data-id="ps4"]' },
+  'selector-botones': { pasos: [k('ArrowUp'), k('ArrowRight', 2)], ve: '.he-pill.kf[data-a="cfg"]' },
+  ajustes: { pasos: [k('a'), espera(600), k('ArrowDown', 2), k('ArrowRight')], ve: '.hc-opt.kf' },
+  'ajustes-salir': { pasos: [k('a'), espera(600), k('Enter'), k('ArrowDown', 3), k('Enter')], ve: '.hc-opt.ask' },
+  'ajustes-estilo': { pasos: [k('a'), espera(600), k('ArrowDown', 2), k('ArrowRight'), k('ArrowRight')], ve: '.hc-opt.pending' }, // elegido, sin aplicar
+  'ajustes-estilo-esc': { pasos: [k('a'), espera(600), k('ArrowDown', 2), k('ArrowRight'), k('ArrowRight'), k('Escape'), k('Escape'), espera(700)], ve: '#selector[data-style="estanteria"] .he-card.sel' }, // Esc: queda como estaba
+  // Abrir la app con el Clásico ya guardado (pasó: el selector quedaba vacío, solo el fondo)
+  'inicio-clasico': { query: { estilo: 'clasico' }, pasos: [], ve: '#selector[data-style="clasico"] .sel-item.active' },
+  'selector-clasico': { pasos: [k('a'), espera(600), k('ArrowDown', 2), k('ArrowRight'), k('ArrowRight'), k('Enter'), espera(1200)], ve: '#selector[data-style="clasico"] .sel-item.active' },
 };
 
 // ---------- Ventana de prueba ----------
@@ -306,12 +315,12 @@ function acciones(w) {
 }
 
 // Abre la app de prueba y entra a la consola (o se queda en el selector)
-async function entrar(w, ac, consola) {
-  await w.loadFile(path.join(ROOT, 'renderer', 'index.html'));
+async function entrar(w, ac, consola, query) {
+  await w.loadFile(path.join(ROOT, 'renderer', 'index.html'), query ? { query } : undefined); // query: datos de prueba distintos (ver mock.js)
   if (!(await ac.hasta('#selector', 8000))) throw new Error('no apareció el selector');
   await esperar(500);
   if (!consola) return;
-  await ac.tecla('ArrowDown', ORDEN.indexOf(consola));
+  await ac.tecla('ArrowRight', ORDEN.indexOf(consola)); // ← → sirven en todos los estilos del menú principal
   await ac.tecla('Enter');
   const t0 = Date.now();
   while (Date.now() - t0 < 12000 && !(await ac.js(`!!document.querySelector('#theme-root.theme-${consola}')`))) await esperar(150);
@@ -401,7 +410,7 @@ async function probarPantalla(consola, nombre, receta) {
   const ac = acciones(w);
   const r = { etiqueta, ok: true, nota: '' };
   try {
-    await entrar(w, ac, consola);
+    await entrar(w, ac, consola, receta.query);
     for (const p of receta.pasos) await ac.paso(p);
     if (!(await ac.hasta(receta.ve))) throw new Error(`no se abrió (no se ve ${receta.ve})`);
     await esperar(1200);

@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<title>Mockup 3 · Mosaico</title>
+<style>
+  /* Mockup 3 — Mosaico: todas las consolas a la vista en cuadros de su color; la marcada se agranda. Resumen, Música y
+     Ajustes son cuadros más. Ajustes: pantalla completa con las secciones como cuadros (abre con #ajustes). */
+  * { box-sizing: border-box; margin: 0; }
+  #ajustes { position: absolute; }
+  html, body { width: 1920px; height: 1080px; overflow: hidden; }
+  body { font-family: 'Segoe UI', 'Selawik', sans-serif; color: #fff; background: linear-gradient(160deg, #24292f 0%, #16191d 100%); position: relative; }
+  .head { position: absolute; left: 145px; right: 145px; top: 60px; display: flex; align-items: baseline; gap: 30px; }
+  .head h1 { font-size: 64px; font-weight: 300; }
+  .head .who { margin-left: auto; display: flex; align-items: center; gap: 18px; font-size: 26px; color: #c8ced6; }
+  .head .who i { width: 64px; height: 64px; background: linear-gradient(135deg, #7fd6f6, #1b90c8); display: grid; place-items: center; font-style: normal; font-weight: 700; font-size: 30px; color: #fff; }
+  .head .time { font-size: 30px; color: #c8ced6; }
+
+  .grid { position: absolute; left: 145px; top: 190px; display: grid; grid-template-columns: repeat(6, 260px); grid-auto-rows: 240px; gap: 14px; }
+  .t { position: relative; background: var(--c); padding: 22px 24px; display: flex; flex-direction: column; justify-content: flex-end; overflow: hidden; }
+  .t b { font-size: 28px; font-weight: 600; line-height: 1.15; }
+  .t small { font-size: 18px; opacity: 0.8; }
+  .t svg { position: absolute; right: 18px; top: 18px; width: 64px; height: 64px; opacity: 0.85; }
+  .t.big { grid-column: span 2; grid-row: span 2; outline: 6px solid #fff; outline-offset: -6px; box-shadow: 0 0 0 8px rgba(255,255,255,0.25), 0 24px 50px rgba(0,0,0,0.5); }
+  .t.big svg { width: 180px; height: 180px; right: 40px; top: 40px; }
+  .t.big b { font-size: 64px; font-weight: 300; }
+  .t.big small { font-size: 24px; }
+  .t.big .go { margin-top: 22px; align-self: flex-start; padding: 12px 34px; background: rgba(0,0,0,0.25); font-size: 26px; font-weight: 600; }
+  .t.wide { grid-column: span 2; }
+  .t.sys { --c: #3a4048; }
+  .t.sys svg { opacity: 0.7; }
+  .mini { display: flex; gap: 16px; align-items: center; margin-bottom: 6px; }
+  .mini .cov { width: 90px; height: 90px; background: linear-gradient(135deg, #f72585, #4361ee); flex: none; }
+  .mini div { font-size: 20px; opacity: 0.85; }
+  .mini div b { display: block; font-size: 24px; }
+  .bars { display: flex; align-items: flex-end; gap: 8px; height: 90px; margin-bottom: 8px; }
+  .bars i { width: 22px; background: rgba(255,255,255,0.35); }
+  .bars i.t2 { background: #fff; }
+  .hint { position: absolute; left: 145px; bottom: 54px; font-size: 22px; color: #8a929c; }
+
+  /* Ajustes */
+  .settings { position: absolute; inset: 0; background: linear-gradient(160deg, #24292f 0%, #16191d 100%); display: none; padding: 60px 110px; }
+  #ajustes:target ~ .settings { display: block; }
+  .settings h1 { font-size: 64px; font-weight: 300; margin-bottom: 40px; }
+  .settings h1 span { color: #8a929c; }
+  .s-grid { display: grid; grid-template-columns: 560px 1fr; gap: 50px; }
+  .secs { display: grid; grid-template-columns: repeat(2, 1fr); grid-auto-rows: 170px; gap: 14px; }
+  .sec { background: var(--c); padding: 20px 22px; display: flex; flex-direction: column; justify-content: flex-end; position: relative; font-size: 26px; font-weight: 600; }
+  .sec svg { position: absolute; right: 16px; top: 16px; width: 46px; height: 46px; opacity: 0.85; }
+  .sec.on { outline: 6px solid #fff; outline-offset: -6px; }
+  .list { display: flex; flex-direction: column; gap: 10px; }
+  .opt { height: 100px; background: #2b3138; display: flex; align-items: center; padding: 0 34px; gap: 20px; }
+  .opt.sel { background: #0f7b6c; }
+  .opt > div:first-child { flex: 1; }
+  .opt b { display: block; font-size: 27px; font-weight: 600; }
+  .opt span { font-size: 19px; color: #b7bec7; }
+  .opt.sel span { color: #d3f2ec; }
+  .val { font-size: 24px; font-weight: 600; }
+  .tg { width: 80px; height: 38px; border: 3px solid #fff; position: relative; flex: none; }
+  .tg::after { content: ''; position: absolute; left: 5px; top: 5px; width: 22px; height: 22px; background: #fff; }
+  .tg.on { background: #fff; }
+  .tg.on::after { left: 47px; background: #16191d; }
+</style>
+</head>
+<body>
+  <a id="ajustes"></a>
+  <header class="head">
+    <h1>Elige una consola</h1>
+    <span class="time">10:42 PM · jueves 13</span>
+    <span class="who"><i>C</i>Cristóbal</span>
+  </header>
+
+  <main class="grid">
+    <div class="t big" style="--c:linear-gradient(140deg,#2bb24c,#107c10)"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M14 16h20a9 9 0 0 1 8.6 11.4l-2 7a4.5 4.5 0 0 1-7.6 1.8L29 32H19l-4 4.2a4.5 4.5 0 0 1-7.6-1.8l-2-7A9 9 0 0 1 14 16Z"/><path d="M15 22v6M12 25h6"/><circle cx="32" cy="23" r="1.4" fill="currentColor"/><circle cx="35.5" cy="27" r="1.4" fill="currentColor"/></svg><small>Microsoft · 2013</small><b>Xbox One</b><span class="go">Entrar</span></div>
+    <div class="t" style="--c:#34bfed"><small>2006</small><b>Wii</b></div>
+    <div class="t" style="--c:#2a55c9"><small>2000</small><b>PlayStation 2</b></div>
+    <div class="t" style="--c:#4a9a2a"><small>2005</small><b>Xbox 360</b></div>
+    <div class="t" style="--c:#1d4fbf"><small>2013</small><b>PlayStation 4</b></div>
+    <div class="t" style="--c:#2d8fd0"><small>2011</small><b>PS Vita</b></div>
+    <div class="t" style="--c:#d0021b"><small>2017</small><b>Nintendo Switch</b></div>
+    <div class="t" style="--c:#5b6573"><small>2006</small><b>PlayStation 3</b></div>
+    <div class="t" style="--c:#1f8fc4"><small>2011</small><b>Nintendo 3DS</b></div>
+    <div class="t wide sys" style="--c:#7b2fbf"><div class="mini"><div class="cov"></div><div><b>Canción para el menú</b>Banda de Prueba</div></div><small>Música · Spotify</small></div>
+    <div class="t wide sys" style="--c:#c2571a"><div class="bars"><i style="height:30%"></i><i style="height:55%"></i><i style="height:20%"></i><i style="height:80%"></i><i style="height:45%"></i><i style="height:65%"></i><i class="t2" style="height:100%"></i></div><b>12,4 h esta semana</b><small>Resumen de horas</small></div>
+    <div class="t sys"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/></svg><b>Ajustes</b></div>
+    <div class="t sys" style="--c:#0f7b6c"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.5a3.5 3.5 0 0 1 0 7M18 14.5a6 6 0 0 1 3.5 5.5"/></svg><small>3 en línea</small><b>Amigos</b></div>
+  </main>
+  <div class="hint">Flechas moverse · Enter entrar · O ordenar · Esc salir</div>
+
+  <section class="settings">
+    <h1>Ajustes <span>· Juegos</span></h1>
+    <div class="s-grid">
+      <div class="secs">
+        <div class="sec" style="--c:#3a4048">General</div>
+        <div class="sec on" style="--c:#2a55c9">Juegos</div>
+        <div class="sec" style="--c:#0f7b6c">Pantalla</div>
+        <div class="sec" style="--c:#7b2fbf">Sonido</div>
+        <div class="sec" style="--c:#c2571a">Emuladores</div>
+        <div class="sec" style="--c:#d0021b">Cuentas</div>
+        <div class="sec" style="--c:#5b6573">Archivos</div>
+      </div>
+      <div class="list">
+        <div class="opt sel"><div><b>Buscar juegos nuevos de Steam</b><span>Agrega los que instalaste</span></div></div>
+        <div class="opt"><div><b>Agregar juego o programa</b><span>Un .exe o un acceso directo</span></div></div>
+        <div class="opt"><div><b>Agregar juegos de Riot</b><span>VALORANT, League of Legends y TFT</span></div></div>
+        <div class="opt"><div><b>Agregar Minecraft (Java)</b><span>Con el launcher oficial</span></div></div>
+        <div class="opt"><div><b>Volver a descargar el arte</b><span>Portadas, fondos y logos de Steam</span></div></div>
+        <div class="opt"><div><b>Título encima de cada canal</b><span>En la Wii</span></div><div class="tg on"></div></div>
+        <div class="opt"><div><b>Mostrar tráileres de Steam</b><span>En la pantalla de cada juego</span></div><div class="tg"></div></div>
+      </div>
+    </div>
+  </section>
+</body>
+</html>

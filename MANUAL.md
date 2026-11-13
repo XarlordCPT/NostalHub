@@ -20,6 +20,12 @@ Para abrirla: pega esa ruta en la barra del Explorador de Windows, o usa **Ajust
 
 ## Novedades desde la 1.3.0 (próxima versión)
 
+- **Menú principal nuevo, con estilos**: el selector de consolas ahora puede verse como **Estantería** (tarjetas en
+  fila, con lo último que jugaste, tus horas de la semana y la canción que suena) o como el **Clásico**. Se cambia en
+  **Ajustes → Pantalla → Estilo del menú principal** (se elige con ← → y se confirma con Enter). Vienen más estilos
+  (sección 1). El menú principal tiene **sus propios sonidos**: los de cada consola suenan recién al entrar a ella.
+- **Ajustes desde el menú principal**: botón **Ajustes** o tecla **A** (**Options** en el control), sin entrar a una
+  consola (sección 8).
 - **Consola nueva: Xbox One**, con el menú de 2013 (Pins / Inicio / Tienda, mosaicos de color y "Mi color"). Ver la
   sección 9.
 - **PS4**: la fila de funciones (flecha arriba) y el marco del juego elegido ahora se ven como en la consola real.
@@ -102,11 +108,23 @@ emulador, por el nombre del archivo) y los sonidos que la app trae hechos con c�
 
 ## 1. Selector de consolas — `consolas\<consola>\`
 
-Al abrir NostalHub aparece el selector: la consola a la izquierda (empresa, nombre y año) y su imagen a la derecha.
-↑ ↓, la rueda o los botones de arriba y abajo para cambiar; Enter o clic para entrar.
+Al abrir NostalHub aparece el selector (el menú principal). Su aspecto se elige en **Ajustes → Pantalla → Estilo del
+menú principal**: con ← → eliges el estilo y con **Enter** lo confirmas (se cierran los Ajustes y cambia el menú; Esc lo
+deja como estaba). El menú toma el color de la consola marcada, pero sus sonidos son propios: los de cada consola
+(`mover.wav`, `elegir.wav`…) suenan recién dentro de ella.
 
+- **Estantería** (el que viene puesto): las consolas en una fila de tarjetas; la marcada crece y tiñe el fondo con su
+  color. ← → (o la rueda) para cambiar; Enter o clic para entrar. ↑ sube a los botones de arriba (**Resumen**,
+  **Ordenar** y **Ajustes**). Abajo: lo último que jugaste, tus horas de la semana y la canción que suena.
+- **Clásico**: la consola a la izquierda (empresa, nombre y año) y su imagen a la derecha. ↑ ↓ (o ← →), la rueda o las
+  flechas de arriba y abajo para cambiar.
+
+En todos:
+
+- **A**: Ajustes, sin entrar a una consola (sección 8).
+- **R**: resumen de horas.
 - **O**: ordenar las consolas (personalizado, fecha de salida, nombre o empresa). Con *Mover…* cambias una de lugar
-  con ↑ ↓.
+  con las flechas.
 - **Esc**: pregunta si quieres cerrar NostalHub (Esc otra vez = cerrar).
 
 Las carpetas se llaman `wii`, `ps2`, `x360`, `ps3`, `ps4`, `vita`, `switch` y `3ds`.
@@ -475,6 +493,7 @@ Son las mismas opciones del menú del ícono junto al reloj, con el estilo de ca
 
 | Consola | Cómo se abre | Cómo se usa |
 |---|---|---|
+| Menú principal (sin consola) | Botón **Ajustes** o la tecla **A** (**Options** en el control) | Secciones a la izquierda y opciones a la derecha: ↑ ↓ elegir, → o Enter entra a la sección, ← → cambian una opción de elegir, Esc vuelve |
 | Wii | Botón del **engranaje** (abajo a la izquierda) | "Configuración de NostalHub" con una página por sección. Al elegir una opción se abre su pantalla con **Atrás / Confirmar** |
 | PS2 | Botón **Configuración** (abajo a la derecha) o la tecla **C** | "Configuración del sistema": ↑ ↓ elegir, ← → cambiar, Enter aceptar |
 | Xbox 360 | Mosaico **Ajustes** (home o settings) o la tecla **G** | **La Guía**: pestañas con íconos (Q / E o ← →), Enter cambia la opción |
@@ -775,12 +794,12 @@ mientras usas el control en otra cosa o en un juego.
 | □ | Cambiar imágenes del juego (tecla I) |
 | L1 / R1 | Pestaña, página o tarjeta anterior / siguiente (Xbox 360 y PS Vita: Q / E) |
 | L2 / R2 | Subir / bajar rápido (RePág / AvPág) |
-| Options | Menú de la consola: Guía (Xbox 360), menú rápido (PS4 y PS Vita), Configuración (PS2), ordenar (selector) |
+| Options | Menú de la consola: Guía (Xbox 360), menú rápido (PS4 y PS Vita), Configuración (PS2), Ajustes (selector) |
 | Create | Ordenar (tecla S); en la Wii y la PS2, Amigos; en el selector, el Resumen de horas |
 | Stick derecho | Como la rueda del mouse |
 
 En la Wii, la PS2, la PS Vita, la 3DS, la Xbox 360 (Mis juegos) y el inicio de la PS4, **△** abre el orden de los
-juegos.
+juegos. En el selector, **△** ordena las consolas y **Options** abre los Ajustes.
 
 - Cuando usas el control, las pistas de la pantalla muestran sus botones (✕ ○ △ □); si vuelves al teclado,
   vuelven las teclas.
@@ -797,7 +816,7 @@ juegos.
 
 | Dónde | Teclas |
 |---|---|
-| Selector de consolas | ↑ ↓ elegir · Enter entrar · **O** ordenar las consolas · **R** resumen de horas · **Esc** pregunta si cerrar la app (Esc otra vez = cerrar) |
+| Selector de consolas | Flechas elegir (Estantería: ← →, y ↑ a los botones de arriba) · Enter entrar · **A** ajustes · **O** ordenar las consolas · **R** resumen de horas · **Esc** pregunta si cerrar la app (Esc otra vez = cerrar) |
 | Resumen de horas | ← → semana, mes, año o todo · **Q / E** período anterior o siguiente · Esc cerrar |
 | Recortar una imagen | Flechas mover · **Q / E** o la rueda cambiar el tamaño · **O** forma · **I** usar completa · Enter recortar y guardar · Esc cancelar |
 | Cualquier consola | **Clic derecho** sobre un juego, o **I** con el juego marcado: cambiar imágenes y descripción · **F3** FPS · **Ctrl + Alt + Shift + L** logro de prueba |

@@ -103,7 +103,15 @@ src/riot.js             Juegos de Riot (PRODUCTS: valorant, league_of_legends, t
                         "Jugar" directo: launchProduct (POST /product-launcher/v1/products/<id>/patchlines/live por la
                         conexión local del Riot Client; puerto y contraseña del lockfile, nunca se anota)
 renderer/index.html     Carga todo (un <script> y un <link> por tema)
-renderer/shell.js/.css  Selector de consolas, escalado del escenario, sonidos, barra de ventana, F3
+renderer/shell.js/.css  Selector de consolas, escalado del escenario, sonidos, barra de ventana, F3. La lógica del selector
+                        (consola marcada, entrar, ordenar, mover, Ajustes con A, Resumen) es de todos los estilos del menú
+renderer/inicio/        Menú principal: estilos (window.MenuStyles[id] = { name, mount(root, ctx) → { render, update(animate),
+                        key(e) → true si la usó, visible(on), unmount } }; solo dibujan) y sus Ajustes (ajustes.js:
+                        NostalHubHomeSettings, mismas opciones de menuSections, aspecto con look-<estilo>). El estilo se elige
+                        en Ajustes → Pantalla (config.menuStyle, MENU_STYLES de main.js; 'clasico' = el de shell.js). El
+                        menú tiene sus propios sonidos (sonidos.js, VOCES por estilo): no usa los de la consola marcada.
+                        Un estilo nuevo: su archivo + .css, su voz en VOCES, su look en ajustes.css, su entrada en
+                        MENU_STYLES y en el mock, ← → para cambiar de consola, y "Consola nueva:" al principio de su .js
 renderer/consoles.js    Lista de consolas (id, empresa, nombre, año, colores)
 renderer/common.js      window.NostalHubUtil: helpers compartidos (ver abajo)
 renderer/gamepad.js     Control (PS5/Xbox): convierte botones en las teclas de cada tema (BY_CONSOLE) y cambia
@@ -241,6 +249,9 @@ descripción), `cache\` (arte descargado, `spotify.log`, `discord.log`) y las cl
 - Battle.net no tiene API pública de amigos: no se puede. YouTube Music tampoco tiene API oficial: se queda con SMTC.
 - Para probar la app con otra carpeta de datos **no sirve** cambiar `APPDATA`: Electron pide la carpeta a Windows
   directo y usa el `config.json` real de Cristóbal (solo `src/minecraft.js` sí lee `APPDATA`).
+- Menú principal: las pruebas (`tests/pantallas.js`, `tests/app-real/consolas.js`) recorren el selector con ← →, que sirven en
+  todos los estilos, y antes de Enter la de la app real revisa `window.NostalHubSelector.current()`. Un estilo nuevo tiene que
+  mantener eso (← → cambian de consola) o actualizar esas pruebas.
 - Xbox One: casi todo se mueve con un solo `move(dir)` que va al `[data-nav]` más cercano de la pantalla actual (y Enter
   hace clic en lo marcado). Una pantalla nueva solo necesita poner `data-nav` en lo elegible. Ojo con las clases que
   también pone `U.friendClass` (`game`, `on`, `off`, `busy`): una fila `.xo-row.game` de logros chocó con un amigo jugando.
@@ -272,3 +283,9 @@ descripción), `cache\` (arte descargado, `spotify.log`, `discord.log`) y las cl
 - Al elegir una canción de la cola se **salta hasta ella**.
 - El aviso de logro usa el estilo de la **última consola elegida**.
 - En pantalla completa la app también aparece en la barra de tareas de Windows (se puede apagar).
+- Menú principal con **estilos a elegir** (Ajustes → Pantalla): Estantería (por defecto) y Clásico; vienen Línea de tiempo y
+  Rueda y vista previa (mockups en `mockups/menu-principal/`), uno a la vez. Los Ajustes se abren también desde ahí (A).
+  - El menú principal es **aparte de las consolas**: toma el color de la consola marcada, pero los **sonidos son suyos**.
+  - El estilo del menú (`confirmChange` en su opción) no cambia al moverse por los valores: se elige y se **confirma con
+    Enter**, se cierran los Ajustes y recién ahí cambia (Esc lo deja como estaba). Las demás opciones cambian al tiro.
+  - **Cada consola nueva tiene que quedar bien en todos los estilos del menú principal** (ver `CONSOLA-NUEVA.md`, sección 6).

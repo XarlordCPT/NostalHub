@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<title>Mockup 2 · Panel</title>
+<style>
+  /* Mockup 2 — Panel de inicio: lista de consolas a la izquierda, la elegida en grande al medio y a la derecha lo que pasa
+     ahora (música, amigos, horas). Ajustes: reemplaza el centro, con pestañas arriba (abre con #ajustes). */
+  * { box-sizing: border-box; margin: 0; }
+  #ajustes { position: absolute; }
+  html, body { width: 1920px; height: 1080px; overflow: hidden; }
+  body { font-family: 'Segoe UI', 'Selawik', sans-serif; color: #e9edf5; background: #0d1118; display: grid; grid-template-columns: 400px 1fr 470px; gap: 0; }
+
+  /* Izquierda: consolas */
+  .side { background: #121823; padding: 46px 26px; display: flex; flex-direction: column; gap: 6px; border-right: 1px solid #1f2836; }
+  .logo { font-size: 34px; font-weight: 700; margin: 0 16px 26px; letter-spacing: 0.5px; }
+  .logo b { color: #4cc2ff; font-weight: 700; }
+  .side h4 { font-size: 16px; font-weight: 700; letter-spacing: 2px; color: #6b778a; margin: 0 16px 10px; }
+  .con { height: 66px; border-radius: 16px; display: flex; align-items: center; gap: 18px; padding: 0 18px; font-size: 25px; font-weight: 600; color: #b9c2d0; }
+  .con i { width: 14px; height: 38px; border-radius: 7px; background: var(--c); flex: none; }
+  .con small { margin-left: auto; font-size: 18px; color: #5d697b; }
+  .con.sel { background: #1d2635; color: #fff; box-shadow: inset 0 0 0 2px var(--c); }
+  .side .foot { margin-top: auto; display: flex; flex-direction: column; gap: 6px; }
+  .side .foot .con i { background: none; width: 30px; height: 30px; color: #8a96a8; display: grid; place-items: center; }
+  .side .foot svg { width: 30px; height: 30px; }
+
+  /* Centro: la consola elegida */
+  .main { position: relative; padding: 46px 50px; display: flex; flex-direction: column; gap: 30px; }
+  .hero { position: relative; height: 560px; border-radius: 34px; overflow: hidden; background: radial-gradient(ellipse 60% 70% at 75% 40%, rgba(255,255,255,0.18), rgba(255,255,255,0) 70%), linear-gradient(140deg, #1d5fd8 0%, #0b3aa3 50%, #04206b 100%); padding: 60px 64px; display: flex; flex-direction: column; justify-content: flex-end; box-shadow: 0 30px 60px rgba(0,0,0,0.4); }
+  .hero .pad { position: absolute; right: 60px; top: 40px; width: 230px; height: 230px; color: rgba(255,255,255,0.9); }
+  .hero small { font-size: 24px; font-weight: 600; letter-spacing: 3px; color: #a9c6ff; }
+  .hero h1 { font-size: 100px; font-weight: 300; line-height: 1.05; margin: 4px 0 30px; }
+  .hero .btns { display: flex; gap: 18px; }
+  .btn { height: 76px; padding: 0 44px; border-radius: 38px; display: grid; place-items: center; font-size: 28px; font-weight: 700; background: #fff; color: #0b3aa3; }
+  .btn.ghost { background: rgba(255,255,255,0.14); color: #fff; box-shadow: inset 0 0 0 2px rgba(255,255,255,0.45); }
+  .row h3 { font-size: 22px; font-weight: 700; letter-spacing: 2px; color: #6b778a; margin-bottom: 16px; }
+  .games { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
+  .g { height: 190px; border-radius: 20px; position: relative; overflow: hidden; background: var(--g); }
+  .g span { position: absolute; left: 16px; bottom: 12px; font-size: 22px; font-weight: 700; text-shadow: 0 2px 6px rgba(0,0,0,0.5); }
+  .g em { position: absolute; right: 14px; top: 12px; font-style: normal; font-size: 16px; font-weight: 700; padding: 4px 10px; border-radius: 10px; background: rgba(0,0,0,0.45); }
+
+  /* Derecha: ahora */
+  .now { background: #121823; border-left: 1px solid #1f2836; padding: 40px 30px; display: flex; flex-direction: column; gap: 18px; }
+  .clock { font-size: 54px; font-weight: 300; line-height: 1; }
+  .clock span { display: block; font-size: 22px; font-weight: 600; color: #6b778a; margin-top: 8px; }
+  .w { background: #182030; border-radius: 26px; padding: 22px 24px; }
+  .w h3 { font-size: 18px; font-weight: 700; letter-spacing: 2px; color: #4cc2ff; margin-bottom: 16px; }
+  .song { display: flex; gap: 20px; align-items: center; }
+  .cov { width: 90px; height: 90px; border-radius: 16px; background: linear-gradient(135deg, #f72585, #4361ee); flex: none; }
+  .song b { display: block; font-size: 23px; }
+  .song span { font-size: 20px; color: #8a96a8; }
+  .bar { margin-top: 20px; height: 8px; border-radius: 4px; background: #2a3446; }
+  .bar i { display: block; width: 36%; height: 100%; border-radius: inherit; background: #4cc2ff; }
+  .ctl { margin-top: 14px; display: flex; justify-content: center; gap: 26px; }
+  .ctl b { width: 60px; height: 60px; border-radius: 50%; display: grid; place-items: center; background: #222c3e; font-size: 22px; }
+  .ctl b.big { width: 72px; height: 72px; background: #fff; color: #0d1118; }
+  .fr { display: flex; align-items: center; gap: 16px; padding: 5px 0; }
+  .fr i { width: 56px; height: 56px; border-radius: 14px; background: var(--a); display: grid; place-items: center; font-style: normal; font-weight: 700; font-size: 24px; position: relative; flex: none; }
+  .fr i::after { content: ''; position: absolute; right: -4px; bottom: -4px; width: 16px; height: 16px; border-radius: 50%; background: #4cd25e; border: 3px solid #182030; }
+  .fr b { display: block; font-size: 22px; }
+  .fr span { font-size: 18px; color: #4cc2ff; }
+  .week { display: flex; align-items: flex-end; gap: 12px; height: 70px; }
+  .week i { flex: 1; border-radius: 8px; background: #2a3446; }
+  .week i.t { background: #4cc2ff; }
+  .week-l { display: flex; justify-content: space-between; margin-top: 8px; font-size: 16px; color: #6b778a; }
+  .big-n { font-size: 34px; font-weight: 700; margin-bottom: 10px; }
+  .big-n span { font-size: 20px; color: #8a96a8; font-weight: 600; }
+
+  /* Ajustes en el centro */
+  .settings { position: absolute; inset: 46px 50px; border-radius: 34px; background: #151c28; box-shadow: 0 30px 60px rgba(0,0,0,0.5); display: none; flex-direction: column; padding: 46px 54px; }
+  #ajustes:target ~ .main .settings { display: flex; }
+  #ajustes:target ~ .side .cfg { background: #1d2635; color: #fff; box-shadow: inset 0 0 0 2px #4cc2ff; }
+  .settings h2 { font-size: 46px; font-weight: 300; margin-bottom: 26px; }
+  .tabs { display: flex; gap: 10px; margin-bottom: 30px; flex-wrap: wrap; }
+  .tabs a { height: 54px; padding: 0 20px; border-radius: 28px; display: grid; place-items: center; font-size: 22px; font-weight: 600; color: #8a96a8; background: #1d2635; }
+  .tabs a.on { background: #4cc2ff; color: #0d1118; }
+  .opts { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  .opt { min-height: 120px; border-radius: 22px; background: #1d2635; padding: 24px 28px; display: flex; align-items: center; gap: 20px; }
+  .opt.sel { box-shadow: inset 0 0 0 3px #4cc2ff; }
+  .opt > div:first-child { flex: 1; }
+  .opt b { display: block; font-size: 25px; }
+  .opt span { font-size: 18px; color: #8a96a8; }
+  .tg { flex: none; width: 76px; height: 40px; border-radius: 20px; background: #344055; position: relative; }
+  .tg::after { content: ''; position: absolute; left: 4px; top: 4px; width: 32px; height: 32px; border-radius: 50%; background: #fff; }
+  .tg.on { background: #4cc2ff; }
+  .tg.on::after { left: 40px; }
+  .val { flex: none; font-size: 22px; font-weight: 700; color: #4cc2ff; }
+  .settings .note { margin-top: auto; font-size: 20px; color: #6b778a; }
+</style>
+</head>
+<body>
+  <a id="ajustes"></a>
+  <aside class="side">
+    <div class="logo">Nostal<b>Hub</b></div>
+    <h4>CONSOLAS</h4>
+    <div class="con" style="--c:#34bfed"><i></i>Wii<small>2006</small></div>
+    <div class="con" style="--c:#3d7bff"><i></i>PlayStation 2<small>2000</small></div>
+    <div class="con" style="--c:#45b52a"><i></i>Xbox 360<small>2005</small></div>
+    <div class="con sel" style="--c:#7fb2ff"><i></i>PlayStation 4<small>2013</small></div>
+    <div class="con" style="--c:#5ac8ff"><i></i>PS Vita<small>2011</small></div>
+    <div class="con" style="--c:#e60012"><i></i>Nintendo Switch<small>2017</small></div>
+    <div class="con" style="--c:#c9d1dc"><i></i>PlayStation 3<small>2006</small></div>
+    <div class="con" style="--c:#29a8e0"><i></i>Nintendo 3DS<small>2011</small></div>
+    <div class="con" style="--c:#107c10"><i></i>Xbox One<small>2013</small></div>
+    <div class="foot">
+      <div class="con"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M5 20V11M12 20V4M19 20v-6"/></svg></i>Resumen de horas</div>
+      <div class="con cfg"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/></svg></i>Ajustes</div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <section class="hero">
+      <svg class="pad" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 16h20a9 9 0 0 1 8.6 11.4l-2 7a4.5 4.5 0 0 1-7.6 1.8L29 32H19l-4 4.2a4.5 4.5 0 0 1-7.6-1.8l-2-7A9 9 0 0 1 14 16Z"/><path d="M15 22v6M12 25h6"/><circle cx="32" cy="23" r="1.4" fill="currentColor"/><circle cx="35.5" cy="27" r="1.4" fill="currentColor"/></svg>
+      <small>SONY · 2013</small>
+      <h1>PlayStation 4</h1>
+      <div class="btns"><div class="btn">Entrar</div><div class="btn ghost">Jugar Minecraft</div></div>
+    </section>
+    <section class="row">
+      <h3>JUGADOS HACE POCO</h3>
+      <div class="games">
+        <div class="g" style="--g:linear-gradient(135deg,#5fa84a,#2e6b2a)"><em>41 h</em><span>Minecraft</span></div>
+        <div class="g" style="--g:linear-gradient(135deg,#ff4655,#7a1d2a)"><em>12 h</em><span>VALORANT</span></div>
+        <div class="g" style="--g:linear-gradient(135deg,#f08a24,#b5321a)"><em>8 h</em><span>Pokémon Rojo Fuego</span></div>
+        <div class="g" style="--g:linear-gradient(135deg,#7b5cff,#2a1d6b)"><em>5 h</em><span>Balatro</span></div>
+      </div>
+    </section>
+
+    <section class="settings">
+      <h2>Ajustes</h2>
+      <div class="tabs"><a>General</a><a>Juegos</a><a>Pantalla</a><a class="on">Sonido</a><a>Emuladores</a><a>Cuentas</a><a>Archivos</a></div>
+      <div class="opts">
+        <div class="opt sel"><div><b>Música de fondo</b><span>La música de cada consola</span></div><div class="tg on"></div></div>
+        <div class="opt"><div><b>Sonidos del menú</b><span>Al moverte, elegir y volver</span></div><div class="tg on"></div></div>
+        <div class="opt"><div><b>Videos de inicio</b><span>El video al entrar a una consola</span></div><div class="tg"></div></div>
+        <div class="opt"><div><b>App de música</b><span>De dónde sale la canción</span></div><div class="val">Spotify</div></div>
+        <div class="opt"><div><b>Volumen de la música</b><span>Bajo · Medio · Alto · Máximo</span></div><div class="val">Medio</div></div>
+        <div class="opt"><div><b>Volumen de los sonidos</b><span>Bajo · Medio · Alto</span></div><div class="val">Medio</div></div>
+        <div class="opt"><div><b>Spotify conectado directamente</b><span>Cola, avance, me gusta, volumen…</span></div><div class="tg on"></div></div>
+      </div>
+      <div class="note">Los mismos ajustes que dentro de las consolas · Esc volver</div>
+    </section>
+  </main>
+
+  <aside class="now">
+    <div class="clock">10:42 PM<span>Jueves 13 de noviembre</span></div>
+    <div class="w">
+      <h3>SUENA AHORA · SPOTIFY</h3>
+      <div class="song"><div class="cov"></div><div><b>Canción para el menú</b><span>Banda de Prueba</span></div></div>
+      <div class="bar"><i></i></div>
+      <div class="ctl"><b>⏮</b><b class="big">❚❚</b><b>⏭</b></div>
+    </div>
+    <div class="w">
+      <h3>AMIGOS EN LÍNEA · 3</h3>
+      <div class="fr"><i style="--a:#5c7cfa">B</i><div><b>Borealis</b><span>Jugando a Baldur's Gate 3</span></div></div>
+      <div class="fr"><i style="--a:#20c997">A</i><div><b>Agnt-P</b><span>En línea</span></div></div>
+      <div class="fr"><i style="--a:#f08c00">D</i><div><b>DonShelo</b><span>En línea</span></div></div>
+    </div>
+    <div class="w">
+      <h3>ESTA SEMANA</h3>
+      <div class="big-n">12,4 h <span>· 3 h más</span></div>
+      <div class="week"><i style="height:30%"></i><i style="height:55%"></i><i style="height:20%"></i><i style="height:80%"></i><i style="height:45%"></i><i style="height:65%"></i><i class="t" style="height:100%"></i></div>
+      <div class="week-l"><span>V</span><span>S</span><span>D</span><span>L</span><span>M</span><span>M</span><span>J</span></div>
+    </div>
+  </aside>
+</body>
+</html>

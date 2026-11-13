@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<title>Mockup 1 · Estantería</title>
+<link rel="stylesheet" href="../../node_modules/@fontsource/m-plus-rounded-1c/500.css" />
+<link rel="stylesheet" href="../../node_modules/@fontsource/m-plus-rounded-1c/700.css" />
+<link rel="stylesheet" href="../../node_modules/@fontsource/m-plus-rounded-1c/800.css" />
+<style>
+  /* Mockup 1 — Estantería: las consolas en una fila de tarjetas; la marcada crece y tiñe el fondo con su color.
+     Ajustes: un panel que entra por la derecha (abre con #ajustes). */
+  * { box-sizing: border-box; margin: 0; }
+  html, body { width: 1920px; height: 1080px; overflow: hidden; }
+  body { font-family: 'M PLUS Rounded 1c', 'Segoe UI', sans-serif; color: #3d4450; background: #e9eef3; position: relative; }
+  .bg { position: absolute; inset: 0; background: radial-gradient(ellipse 60% 55% at 50% 52%, #ffffff 0%, rgba(255,255,255,0) 70%), radial-gradient(ellipse 80% 70% at 50% 100%, rgba(52,191,237,0.28), rgba(52,191,237,0) 70%), repeating-linear-gradient(to bottom, #eef1f4 0 3px, #e5e9ed 3px 4px); }
+
+  /* Barra de arriba */
+  .top { position: absolute; left: 70px; right: 70px; top: 44px; height: 84px; display: flex; align-items: center; gap: 22px; }
+  .brand { font-size: 40px; font-weight: 800; letter-spacing: 1px; color: #3d4450; }
+  .brand b { color: #34bfed; }
+  .clock { margin: 0 auto; text-align: center; line-height: 1.1; }
+  .clock .h { font-size: 52px; font-weight: 700; color: #6c7480; letter-spacing: 2px; }
+  .clock .d { font-size: 22px; font-weight: 700; color: #9aa2ad; }
+  .pill { height: 70px; padding: 0 30px 0 22px; display: flex; align-items: center; gap: 14px; border-radius: 35px; border: 4px solid #cfd8e0; background: linear-gradient(#fff 0 45%, #f0f3f6 46% 100%); font-size: 26px; font-weight: 700; color: #4b5563; box-shadow: 0 6px 16px rgba(0,0,0,0.06); }
+  .pill svg { width: 34px; height: 34px; color: #34bfed; }
+  .pill.on { border-color: #34bfed; box-shadow: 0 0 0 7px rgba(52,191,237,0.22); }
+  .pill kbd { font: inherit; font-size: 18px; padding: 0 9px; border-radius: 8px; border: 2px solid #cfd8e0; color: #8b95a1; }
+  .avatar { width: 70px; height: 70px; border-radius: 20px; background: linear-gradient(135deg, #7fd6f6, #1b90c8); color: #fff; display: grid; place-items: center; font-size: 34px; font-weight: 800; box-shadow: 0 0 0 4px #fff, 0 6px 14px rgba(0,0,0,0.12); }
+
+  /* La fila de consolas */
+  .shelf { position: absolute; left: 0; right: 0; top: 230px; height: 560px; display: flex; align-items: center; justify-content: center; gap: 34px; }
+  .card { flex: none; width: 250px; height: 330px; border-radius: 40px; background: #fff; border: 4px solid #e3e8ed; box-shadow: 0 14px 30px rgba(0,0,0,0.08); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; color: var(--c); opacity: 0.75; }
+  .card svg { width: 110px; height: 110px; }
+  .card .n { font-size: 26px; font-weight: 800; color: #5b6470; text-align: center; padding: 0 12px; }
+  .card.far { opacity: 0.4; transform: scale(0.9); }
+  .card.sel { width: 440px; height: 540px; opacity: 1; border: 6px solid var(--c); box-shadow: 0 0 0 12px color-mix(in srgb, var(--c) 25%, transparent), 0 30px 60px rgba(0,0,0,0.16); gap: 10px; }
+  .card.sel svg { width: 190px; height: 190px; margin-bottom: 18px; }
+  .card.sel .n { font-size: 54px; color: #3d4450; }
+  .card.sel .y { font-size: 26px; font-weight: 700; color: #8b95a1; letter-spacing: 2px; }
+  .enter { margin-top: 22px; height: 80px; padding: 0 64px; border-radius: 40px; border: 5px solid var(--c); background: linear-gradient(#fff 0 45%, #eef2f5 46% 100%); font-size: 34px; font-weight: 700; color: #3d4450; display: grid; place-items: center; }
+
+  /* Abajo: lo de siempre a mano */
+  .strip { position: absolute; left: 160px; right: 160px; bottom: 70px; height: 150px; display: grid; grid-template-columns: 1.2fr 1fr 1.2fr; gap: 26px; }
+  .box { border-radius: 30px; background: rgba(255,255,255,0.85); border: 3px solid #e1e7ec; display: flex; align-items: center; gap: 22px; padding: 0 28px; box-shadow: 0 10px 24px rgba(0,0,0,0.05); }
+  .box small { display: block; font-size: 19px; font-weight: 700; color: #34bfed; letter-spacing: 1px; text-transform: uppercase; }
+  .box b { display: block; font-size: 30px; font-weight: 800; color: #3d4450; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .box span { font-size: 22px; font-weight: 700; color: #8b95a1; }
+  .thumb { flex: none; width: 150px; height: 92px; border-radius: 18px; background: linear-gradient(135deg, #5fa84a, #2e6b2a); }
+  .cover { flex: none; width: 96px; height: 96px; border-radius: 18px; background: linear-gradient(135deg, #f72585, #4361ee); }
+  .bars { flex: none; display: flex; align-items: flex-end; gap: 8px; height: 80px; }
+  .bars i { width: 18px; border-radius: 6px; background: #b9e6f7; }
+  .bars i.t { background: #34bfed; }
+  .hint { position: absolute; left: 0; right: 0; bottom: 26px; text-align: center; font-size: 20px; font-weight: 700; color: #9aa2ad; }
+
+  /* Ajustes: panel de la derecha */
+  .veil { position: absolute; inset: 0; background: rgba(30,40,55,0.25); opacity: 0; pointer-events: none; }
+  .settings { position: absolute; top: 0; right: 0; bottom: 0; width: 1060px; background: #f7f9fb; box-shadow: -30px 0 60px rgba(0,0,0,0.15); transform: translateX(100%); display: grid; grid-template-columns: 300px 1fr; border-left: 6px solid #34bfed; }
+  #ajustes:target ~ .veil { opacity: 1; }
+  #ajustes:target ~ .settings { transform: none; }
+  #ajustes:target ~ .top .pill.cfg { border-color: #34bfed; }
+  .s-nav { background: #fff; padding: 60px 22px; display: flex; flex-direction: column; gap: 8px; border-right: 3px solid #e6ebf0; }
+  .s-nav h2 { font-size: 40px; font-weight: 800; margin: 0 14px 30px; color: #3d4450; }
+  .s-nav a { height: 70px; border-radius: 22px; padding: 0 22px; display: flex; align-items: center; font-size: 26px; font-weight: 700; color: #6c7480; text-decoration: none; }
+  .s-nav a.on { background: #e3f6fd; color: #1b90c8; box-shadow: inset 0 0 0 3px #34bfed; }
+  .s-body { padding: 60px 50px; display: flex; flex-direction: column; gap: 14px; }
+  .s-body h3 { font-size: 34px; font-weight: 800; margin-bottom: 18px; }
+  .opt { height: 96px; border-radius: 26px; background: #fff; border: 3px solid #e3e8ed; display: flex; align-items: center; padding: 0 30px; gap: 20px; }
+  .opt.sel { border-color: #34bfed; box-shadow: 0 0 0 6px rgba(52,191,237,0.2); }
+  .opt > div:first-child { flex: 1; min-width: 0; }
+  .tg, .val { flex: none; }
+  .opt b { display: block; font-size: 27px; font-weight: 800; }
+  .opt span { font-size: 19px; font-weight: 600; color: #8b95a1; }
+  .tg { width: 86px; height: 46px; border-radius: 23px; background: #d6dde3; position: relative; }
+  .tg::after { content: ''; position: absolute; left: 5px; top: 5px; width: 36px; height: 36px; border-radius: 50%; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+  .tg.on { background: #34bfed; }
+  .tg.on::after { left: 45px; }
+  .val { font-size: 24px; font-weight: 800; color: #1b90c8; }
+</style>
+</head>
+<body>
+  <a id="ajustes"></a>
+  <div class="bg"></div>
+
+  <header class="top">
+    <div class="brand">Nostal<b>Hub</b></div>
+    <div class="clock"><div class="h">10:42 PM</div><div class="d">Jueves 13 de noviembre</div></div>
+    <div class="pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M5 20V11M12 20V4M19 20v-6"/></svg>Resumen<kbd>R</kbd></div>
+    <div class="pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4v16M3 16l4 4 4-4M17 20V4M13 8l4-4 4 4"/></svg>Ordenar<kbd>O</kbd></div>
+    <div class="pill cfg"><svg viewBox="0 0 48 48" fill="currentColor"><path fill-rule="evenodd" d="M39.07 20.38 L43.82 21.34 L43.82 26.66 L39.07 27.62 L37.22 32.10 L39.90 36.13 L36.13 39.90 L32.10 37.22 L27.62 39.07 L26.66 43.82 L21.34 43.82 L20.38 39.07 L15.90 37.22 L11.87 39.90 L8.10 36.13 L10.78 32.10 L8.93 27.62 L4.18 26.66 L4.18 21.34 L8.93 20.38 L10.78 15.90 L8.10 11.87 L11.87 8.10 L15.90 10.78 L20.38 8.93 L21.34 4.18 L26.66 4.18 L27.62 8.93 L32.10 10.78 L36.13 8.10 L39.90 11.87 L37.22 15.90 Z M30.5 24 A6.5 6.5 0 1 0 17.5 24 A6.5 6.5 0 1 0 30.5 24 Z"/></svg>Ajustes<kbd>A</kbd></div>
+    <div class="avatar">C</div>
+  </header>
+
+  <main class="shelf">
+    <div class="card far" style="--c:#45b52a"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M14 16h20a9 9 0 0 1 8.6 11.4l-2 7a4.5 4.5 0 0 1-7.6 1.8L29 32H19l-4 4.2a4.5 4.5 0 0 1-7.6-1.8l-2-7A9 9 0 0 1 14 16Z"/><path d="M15 22v6M12 25h6"/></svg><div class="n">Xbox 360</div></div>
+    <div class="card" style="--c:#3d7bff"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M14 16h20a9 9 0 0 1 8.6 11.4l-2 7a4.5 4.5 0 0 1-7.6 1.8L29 32H19l-4 4.2a4.5 4.5 0 0 1-7.6-1.8l-2-7A9 9 0 0 1 14 16Z"/><path d="M15 22v6M12 25h6"/></svg><div class="n">PlayStation 2</div></div>
+    <div class="card sel" style="--c:#34bfed"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M14 16h20a9 9 0 0 1 8.6 11.4l-2 7a4.5 4.5 0 0 1-7.6 1.8L29 32H19l-4 4.2a4.5 4.5 0 0 1-7.6-1.8l-2-7A9 9 0 0 1 14 16Z"/><path d="M15 22v6M12 25h6"/><circle cx="32" cy="23" r="1.6" fill="currentColor"/><circle cx="35.5" cy="27" r="1.6" fill="currentColor"/></svg><div class="n">Wii</div><div class="y">NINTENDO · 2006</div><div class="enter">Entrar</div></div>
+    <div class="card" style="--c:#e8ecf2;color:#7a8594"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M14 16h20a9 9 0 0 1 8.6 11.4l-2 7a4.5 4.5 0 0 1-7.6 1.8L29 32H19l-4 4.2a4.5 4.5 0 0 1-7.6-1.8l-2-7A9 9 0 0 1 14 16Z"/><path d="M15 22v6M12 25h6"/></svg><div class="n">PlayStation 3</div></div>
+    <div class="card far" style="--c:#e60012"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M14 16h20a9 9 0 0 1 8.6 11.4l-2 7a4.5 4.5 0 0 1-7.6 1.8L29 32H19l-4 4.2a4.5 4.5 0 0 1-7.6-1.8l-2-7A9 9 0 0 1 14 16Z"/><path d="M15 22v6M12 25h6"/></svg><div class="n">Switch</div></div>
+  </main>
+
+  <section class="strip">
+    <div class="box"><div class="thumb"></div><div><small>Seguir jugando</small><b>Minecraft</b><span>Hace 2 horas · 41 h en total</span></div></div>
+    <div class="box"><div class="bars"><i style="height:30%"></i><i style="height:55%"></i><i style="height:20%"></i><i style="height:80%"></i><i style="height:45%"></i><i style="height:65%"></i><i class="t" style="height:100%"></i></div><div><small>Esta semana</small><b>12,4 horas</b><span>7 días seguidos</span></div></div>
+    <div class="box"><div class="cover"></div><div><small>Suena en Spotify</small><b>Canción para el menú</b><span>Banda de Prueba</span></div></div>
+  </section>
+  <div class="hint">← → elegir consola · Enter entrar · A ajustes · R resumen · O ordenar</div>
+
+  <div class="veil"></div>
+  <aside class="settings">
+    <nav class="s-nav">
+      <h2>Ajustes</h2>
+      <a>General</a><a>Juegos</a><a class="on">Pantalla</a><a>Sonido</a><a>Emuladores</a><a>Cuentas</a><a>Archivos</a>
+    </nav>
+    <div class="s-body">
+      <h3>Pantalla</h3>
+      <div class="opt sel"><div><b>Modo</b><span>Pantalla completa o en una ventana</span></div><div class="val">Pantalla completa</div></div>
+      <div class="opt"><div><b>Pantalla</b><span>Dónde se abre NostalHub</span></div><div class="val">Automática</div></div>
+      <div class="opt"><div><b>Cubrir la barra de tareas</b><span>Usa toda la pantalla</span></div><div class="tg on"></div></div>
+      <div class="opt"><div><b>Mostrar en la barra de Windows</b><span>También en pantalla completa</span></div><div class="tg on"></div></div>
+      <div class="opt"><div><b>Logros sobre el juego</b><span>El aviso al ganar un logro</span></div><div class="tg on"></div></div>
+      <div class="opt"><div><b>Iniciar con Windows</b><span>Se abre al prender el PC</span></div><div class="tg"></div></div>
+    </div>
+  </aside>
+</body>
+</html>

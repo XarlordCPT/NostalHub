@@ -130,7 +130,7 @@
         mixer.clipAction(clip).play();
       }
 
-      const h = { canvas, ctx: canvas.getContext('2d'), scene, camera, pivot, mixer, extra: 0, item: container.closest('.sel-item') };
+      const h = { canvas, ctx: canvas.getContext('2d'), scene, camera, pivot, mixer, extra: 0, item: container.closest('.sel-item, .home-model') };
       this.handles.add(h);
 
       // Arrastrar con el mouse lo hace girar a mano

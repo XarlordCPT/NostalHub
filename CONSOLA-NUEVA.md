@@ -110,12 +110,16 @@ hace algo: la **Xbox One** es la más nueva y la más corta de leer (todo se mue
 - [ ] Sonido propio opcional: `consolas\<id>\logro.wav`.
 - [ ] Probar con **Ctrl + Alt + Shift + L** estando en esa consola.
 
-## 6. Ventana y selector
+## 6. Ventana y menú principal (todos sus estilos)
 
 - [ ] Estilo de la **barra de arriba** (minimizar / maximizar / cerrar) en `shell.css`:
       `body[data-console='<id>'] #winbar …`.
-- [ ] Selector de consolas: imagen `consolas\<id>\icono.png` (o `modelo.glb`) y que se vea bien su fondo,
-      nombre y año (el orden por fecha usa `year`).
+- [ ] **Compatible con cada estilo del menú principal** (Ajustes → Pantalla → Estilo del menú principal; hoy: Clásico y
+      Estantería, y vienen Línea de tiempo y Rueda y vista previa). Cada `renderer/inicio/<estilo>.js` dice al principio, en
+      "Consola nueva:", lo que necesita de cada consola (por ejemplo su `year`, su color o una vista previa). Agregarlo y
+      **mirar la consola en cada estilo**: que se lean su nombre, empresa, año y color (`uiAccent` sobre fondos claros),
+      y que su `icono.png` / `modelo.glb` quepan en la tarjeta o el cuadro de ese estilo.
+- [ ] Una consola nueva va **al final** de `consoles.js`: las pruebas llegan a cada una contando ← → en el selector.
 
 ## 7. Documentación y entrega
 

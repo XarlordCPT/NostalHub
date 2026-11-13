@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<title>Mockup 4 · Línea de tiempo</title>
+<link rel="stylesheet" href="../../node_modules/@fontsource/m-plus-rounded-1c/500.css" />
+<link rel="stylesheet" href="../../node_modules/@fontsource/m-plus-rounded-1c/700.css" />
+<link rel="stylesheet" href="../../node_modules/@fontsource/m-plus-rounded-1c/800.css" />
+<style>
+  /* Mockup 4 — Línea de tiempo: las consolas ordenadas por año, como en un museo; ← → recorren los años y la marcada sube
+     con su ficha. Ajustes: una ventana al centro con las secciones a la izquierda (abre con #ajustes). */
+  * { box-sizing: border-box; margin: 0; }
+  #ajustes { position: absolute; }
+  html, body { width: 1920px; height: 1080px; overflow: hidden; }
+  body { font-family: 'M PLUS Rounded 1c', 'Segoe UI', sans-serif; color: #f4ece2; background: radial-gradient(ellipse 70% 60% at 50% 35%, #3a2d24 0%, #1d1612 60%, #120d0a 100%); position: relative; }
+  .spot { position: absolute; left: 660px; top: -80px; width: 600px; height: 760px; background: radial-gradient(ellipse 50% 60% at 50% 0%, rgba(255,226,180,0.22), rgba(255,226,180,0) 70%); }
+  .top { position: absolute; left: 80px; right: 80px; top: 50px; display: flex; align-items: center; gap: 20px; }
+  .brand { font-size: 34px; font-weight: 800; letter-spacing: 6px; color: #e8c79a; }
+  .top .sp { flex: 1; }
+  .ico { height: 64px; padding: 0 26px; border-radius: 32px; display: flex; align-items: center; gap: 12px; background: rgba(255,255,255,0.07); box-shadow: inset 0 0 0 2px rgba(232,199,154,0.35); font-size: 24px; font-weight: 700; color: #e8d9c4; }
+  .ico svg { width: 30px; height: 30px; color: #e8c79a; }
+  .clock { font-size: 30px; font-weight: 700; color: #b7a48c; margin-right: 10px; }
+
+  /* La ficha de la consola marcada */
+  .plaque { position: absolute; left: 50%; top: 170px; transform: translateX(-50%); width: 980px; text-align: center; }
+  .plaque small { font-size: 26px; font-weight: 700; letter-spacing: 8px; color: #e8c79a; }
+  .plaque h1 { font-size: 130px; font-weight: 800; line-height: 1.1; margin: 6px 0 14px; color: #fff4e6; text-shadow: 0 6px 30px rgba(0,0,0,0.5); }
+  .plaque p { font-size: 28px; font-weight: 500; color: #c8b8a2; line-height: 1.5; }
+  .plaque .stats { margin-top: 26px; display: flex; justify-content: center; gap: 50px; font-size: 24px; font-weight: 700; color: #e8d9c4; }
+  .plaque .stats b { display: block; font-size: 40px; color: #fff4e6; }
+  .enter { margin: 34px auto 0; width: 300px; height: 80px; border-radius: 40px; background: linear-gradient(#f2d3a4, #d6a868); color: #2a1d12; font-size: 32px; font-weight: 800; display: grid; place-items: center; box-shadow: 0 10px 30px rgba(214,168,104,0.35); }
+
+  /* La línea */
+  .line { position: absolute; left: 100px; right: 60px; bottom: 150px; height: 4px; background: linear-gradient(to right, rgba(232,199,154,0), #e8c79a 8%, #e8c79a 92%, rgba(232,199,154,0)); }
+  .yr { position: absolute; bottom: 92px; transform: translateX(-50%); font-size: 26px; font-weight: 800; color: #8d7b66; }
+  .yr.on { color: #e8c79a; }
+  .c { position: absolute; bottom: 168px; transform: translateX(-50%); width: 170px; height: 120px; border-radius: 26px; background: rgba(255,255,255,0.06); box-shadow: inset 0 0 0 2px rgba(232,199,154,0.25); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; font-size: 19px; font-weight: 700; color: #c8b8a2; text-align: center; }
+  .c svg { width: 52px; height: 52px; color: var(--c); }
+  .c.up { bottom: 306px; }
+  .c::after { content: ''; position: absolute; left: 50%; bottom: -24px; width: 14px; height: 14px; border-radius: 50%; background: #e8c79a; transform: translateX(-50%); }
+  .c.up::after { bottom: -162px; }
+  .c.up::before { content: ''; position: absolute; left: 50%; top: 100%; width: 2px; height: 140px; background: rgba(232,199,154,0.35); }
+  .c.sel { width: 220px; height: 160px; bottom: 180px; background: rgba(232,199,154,0.16); box-shadow: inset 0 0 0 4px #e8c79a, 0 0 40px rgba(232,199,154,0.3); color: #fff4e6; font-size: 23px; }
+  .c.sel svg { width: 70px; height: 70px; }
+  .hint { position: absolute; left: 0; right: 0; bottom: 36px; text-align: center; font-size: 20px; font-weight: 700; color: #7d6c59; }
+
+  /* Ajustes: ventana al centro */
+  .veil { position: absolute; inset: 0; background: rgba(10,7,5,0.7); display: none; }
+  .win { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 1300px; height: 780px; border-radius: 40px; background: #241b15; box-shadow: inset 0 0 0 3px rgba(232,199,154,0.4), 0 40px 80px rgba(0,0,0,0.6); display: none; grid-template-columns: 330px 1fr; overflow: hidden; }
+  #ajustes:target ~ .veil { display: block; }
+  #ajustes:target ~ .win { display: grid; }
+  .nav { background: rgba(255,255,255,0.04); padding: 50px 26px; display: flex; flex-direction: column; gap: 6px; }
+  .nav h2 { font-size: 40px; font-weight: 800; color: #e8c79a; margin: 0 16px 30px; }
+  .nav a { height: 66px; border-radius: 20px; padding: 0 20px; display: flex; align-items: center; font-size: 25px; font-weight: 700; color: #b7a48c; }
+  .nav a.on { background: rgba(232,199,154,0.16); color: #fff4e6; box-shadow: inset 0 0 0 3px #e8c79a; }
+  .body { padding: 56px 54px; display: flex; flex-direction: column; gap: 14px; }
+  .body h3 { font-size: 32px; font-weight: 800; margin-bottom: 14px; }
+  .opt { min-height: 96px; border-radius: 24px; background: rgba(255,255,255,0.05); display: flex; align-items: center; padding: 0 30px; gap: 20px; }
+  .opt.sel { box-shadow: inset 0 0 0 3px #e8c79a; background: rgba(232,199,154,0.1); }
+  .opt > div:first-child { flex: 1; }
+  .opt b { display: block; font-size: 26px; font-weight: 800; color: #fff4e6; }
+  .opt span { font-size: 19px; font-weight: 500; color: #a8967f; }
+  .badge { flex: none; height: 46px; padding: 0 20px; border-radius: 23px; display: grid; place-items: center; font-size: 19px; font-weight: 800; }
+  .badge.ok { background: rgba(110,200,120,0.18); color: #8fe09a; }
+  .badge.no { background: rgba(255,255,255,0.08); color: #b7a48c; }
+</style>
+</head>
+<body>
+  <a id="ajustes"></a>
+  <div class="spot"></div>
+  <header class="top">
+    <div class="brand">NOSTALHUB</div>
+    <div class="sp"></div>
+    <div class="clock">10:42 PM</div>
+    <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M5 20V11M12 20V4M19 20v-6"/></svg>Resumen</div>
+    <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/></svg>Ajustes</div>
+  </header>
+
+  <section class="plaque">
+    <small>SONY · 2006</small>
+    <h1>PlayStation 3</h1>
+    <p>Barra de categorías que cruza la pantalla, ola de colores<br />y la música de cada juego al quedarte sobre él.</p>
+    <div class="stats"><div><b>27</b>juegos</div><div><b>186 h</b>jugadas aquí</div><div><b>Ayer</b>última vez</div></div>
+    <div class="enter">Entrar</div>
+  </section>
+
+  <div class="line"></div>
+
+  <div class="c" style="left:200px;--c:#3d7bff"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M14 16h20a9 9 0 0 1 8.6 11.4l-2 7a4.5 4.5 0 0 1-7.6 1.8L29 32H19l-4 4.2a4.5 4.5 0 0 1-7.6-1.8l-2-7A9 9 0 0 1 14 16Z"/><path d="M15 22v6M12 25h6"/></svg>PlayStation 2</div>
+  <span class="yr" style="left:200px">2000</span>
+  <div class="c" style="left:385px;--c:#45b52a"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M14 16h20a9 9 0 0 1 8.6 11.4l-2 7a4.5 4.5 0 0 1-7.6 1.8L29 32H19l-4 4.2a4.5 4.5 0 0 1-7.6-1.8l-2-7A9 9 0 0 1 14 16Z"/><path d="M15 22v6M12 25h6"/></svg>Xbox 360</div>
+  <span class="yr" style="left:385px">2005</span>
+  <div class="c" style="left:570px;--c:#34bfed"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M14 16h20a9 9 0 0 1 8.6 11.4l-2 7a4.5 4.5 0 0 1-7.6 1.8L29 32H19l-4 4.2a4.5 4.5 0 0 1-7.6-1.8l-2-7A9 9 0 0 1 14 16Z"/><path d="M15 22v6M12 25h6"/></svg>Wii</div>
+  <span class="yr" style="left:570px">2006</span>
+  <div class="c sel" style="left:800px;--c:#f4ece2"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M14 16h20a9 9 0 0 1 8.6 11.4l-2 7a4.5 4.5 0 0 1-7.6 1.8L29 32H19l-4 4.2a4.5 4.5 0 0 1-7.6-1.8l-2-7A9 9 0 0 1 14 16Z"/><path d="M15 22v6M12 25h6"/><circle cx="32" cy="23" r="1.5" fill="currentColor"/><circle cx="35.5" cy="27" r="1.5" fill="currentColor"/></svg>PlayStation 3</div>
+  <span class="yr on" style="left:800px">2006</span>
+  <div class="c" style="left:1030px;--c:#5ac8ff"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M14 16h20a9 9 0 0 1 8.6 11.4l-2 7a4.5 4.5 0 0 1-7.6 1.8L29 32H19l-4 4.2a4.5 4.5 0 0 1-7.6-1.8l-2-7A9 9 0 0 1 14 16Z"/><path d="M15 22v6M12 25h6"/></svg>PS Vita</div>
+  <span class="yr" style="left:1030px">2011</span>
+  <div class="c" style="left:1215px;--c:#29a8e0"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M14 16h20a9 9 0 0 1 8.6 11.4l-2 7a4.5 4.5 0 0 1-7.6 1.8L29 32H19l-4 4.2a4.5 4.5 0 0 1-7.6-1.8l-2-7A9 9 0 0 1 14 16Z"/><path d="M15 22v6M12 25h6"/></svg>Nintendo 3DS</div>
+  <span class="yr" style="left:1215px">2011</span>
+  <div class="c" style="left:1400px;--c:#7fb2ff"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M14 16h20a9 9 0 0 1 8.6 11.4l-2 7a4.5 4.5 0 0 1-7.6 1.8L29 32H19l-4 4.2a4.5 4.5 0 0 1-7.6-1.8l-2-7A9 9 0 0 1 14 16Z"/><path d="M15 22v6M12 25h6"/></svg>PlayStation 4</div>
+  <span class="yr" style="left:1400px">2013</span>
+  <div class="c" style="left:1585px;--c:#2bb24c"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M14 16h20a9 9 0 0 1 8.6 11.4l-2 7a4.5 4.5 0 0 1-7.6 1.8L29 32H19l-4 4.2a4.5 4.5 0 0 1-7.6-1.8l-2-7A9 9 0 0 1 14 16Z"/><path d="M15 22v6M12 25h6"/></svg>Xbox One</div>
+  <span class="yr" style="left:1585px">2013</span>
+  <div class="c" style="left:1770px;--c:#ff4b5c"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M14 16h20a9 9 0 0 1 8.6 11.4l-2 7a4.5 4.5 0 0 1-7.6 1.8L29 32H19l-4 4.2a4.5 4.5 0 0 1-7.6-1.8l-2-7A9 9 0 0 1 14 16Z"/><path d="M15 22v6M12 25h6"/></svg>Switch</div>
+  <span class="yr" style="left:1770px">2017</span>
+  <div class="hint">← → recorrer los años · Enter entrar · A ajustes · R resumen</div>
+
+  <div class="veil"></div>
+  <section class="win">
+    <nav class="nav"><h2>Ajustes</h2><a>General</a><a>Juegos</a><a>Pantalla</a><a>Sonido</a><a>Emuladores</a><a class="on">Cuentas</a><a>Archivos</a></nav>
+    <div class="body">
+      <h3>Cuentas</h3>
+      <div class="opt sel"><div><b>Steam</b><span>Logros, amigos y horas</span></div><div class="badge ok">Conectado</div></div>
+      <div class="opt"><div><b>Spotify</b><span>Cola, avance, me gusta (necesita Premium)</span></div><div class="badge ok">Conectado</div></div>
+      <div class="opt"><div><b>RetroAchievements</b><span>Logros de los juegos de emulador</span></div><div class="badge ok">Conectado</div></div>
+      <div class="opt"><div><b>Discord (grupo)</b><span>Tu canal de voz en las consolas</span></div><div class="badge no">Conectar</div></div>
+      <div class="opt"><div><b>Mostrar en Discord lo que juegas</b><span>Público: cada uno decide</span></div><div class="badge no">Apagado</div></div>
+    </div>
+  </section>
+</body>
+</html>

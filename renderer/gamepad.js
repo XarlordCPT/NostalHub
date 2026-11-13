@@ -31,7 +31,7 @@
     right: 'ArrowRight',
   };
   const BY_CONSOLE = {
-    selector: { options: 'o', create: 'r' }, // ordenar las consolas y el resumen de horas
+    selector: { options: 'a', create: 'r' }, // Ajustes y el resumen de horas (ordenar las consolas: △)
     x360: { l1: 'q', r1: 'e', options: 'g' }, // pestañas y la Guía
     xone: { l1: 'q', r1: 'e', options: 'o' }, // páginas (Pins / Inicio / Tienda) y opciones del juego
     vita: { l1: 'q', r1: 'e', options: 'p' }, // tarjetas y menú rápido
@@ -46,7 +46,7 @@
 
   // Lo que muestran las pistas cuando se usa el control
   const PAD_LABEL = { Enter: '✕', Esc: '○', Escape: '○', O: '△', o: '△', I: '□', 'Q / E': 'L1 / R1', G: 'Options', P: 'Options', C: 'Options', S: 'Create', A: 'Create', R: 'Create', '+': '△' };
-  const HINT_KEYS = '.ps-key, .xb-key, .xo-key, .p4-key, .p3-hints kbd, .sw-hint > b, .sw-fr-hint > b, .st-key, .gc-key, #sel-sort kbd, #sel-stats kbd, .sel-move-hint kbd';
+  const HINT_KEYS = '.ps-key, .xb-key, .xo-key, .p4-key, .p3-hints kbd, .sw-hint > b, .sw-fr-hint > b, .st-key, .gc-key, #sel-sort kbd, #sel-stats kbd, #sel-cfg kbd, .he-pill kbd, .sel-move-hint kbd';
 
   const consoleId = () => document.body.dataset.console || 'selector';
   const keyFor = (name) => {
@@ -99,9 +99,10 @@
     document.querySelectorAll(HINT_KEYS).forEach((el) => {
       if (el.dataset.key === undefined) el.dataset.key = el.textContent.trim();
       const k = el.dataset.key;
-      const text = mode === 'pad' && PAD_LABEL[k] ? PAD_LABEL[k] : k;
+      const pad = el.dataset.pad || PAD_LABEL[k]; // data-pad: el botón del control, si no es el de siempre
+      const text = mode === 'pad' && pad ? pad : k;
       if (el.textContent !== text) el.textContent = text;
-      el.classList.toggle('pad-glyph', mode === 'pad' && !!PAD_LABEL[k]);
+      el.classList.toggle('pad-glyph', mode === 'pad' && !!pad);
     });
   }
   const queueRelabel = () => {

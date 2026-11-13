@@ -11,6 +11,9 @@
   <link rel="stylesheet" href="../node_modules/@fontsource/m-plus-rounded-1c/800.css" />
   <link rel="stylesheet" href="shell.css" />
   <link rel="stylesheet" href="stats.css" />
+  <!-- Menú principal: estilos (Ajustes → Pantalla → Estilo del menú principal) y sus Ajustes -->
+  <link rel="stylesheet" href="inicio/ajustes.css" />
+  <link rel="stylesheet" href="inicio/estanteria.css" />
   <!-- Rutas de la librería 3D. OJO: si cambias esta línea, hay que actualizar el 'sha256-...' de arriba -->
   <script type="importmap">{ "imports": { "three": "../node_modules/three/build/three.module.js", "three/addons/": "../node_modules/three/examples/jsm/" } }</script>
 </head>
@@ -20,6 +23,8 @@
     <section id="selector">
       <div class="sel-bg" id="sel-bg-a"></div>
       <div class="sel-bg" id="sel-bg-b"></div>
+      <!-- El estilo del menú principal, si no es el clásico (renderer/inicio/) -->
+      <div id="sel-style"></div>
       <button class="sel-arrow up" id="sel-up" aria-label="Consola anterior"></button>
       <div id="sel-track"></div>
       <button class="sel-arrow down" id="sel-down" aria-label="Consola siguiente"></button>
@@ -27,6 +32,8 @@
       <button class="sel-sort" id="sel-sort"><svg viewBox="0 0 24 24"><path d="M7 4v16M3 16l4 4 4-4M17 20V4M13 8l4-4 4 4"/></svg><span class="sel-sort-l"></span><kbd>O</kbd></button>
       <!-- Resumen de horas (tecla R) -->
       <button class="sel-sort sel-stats" id="sel-stats"><svg viewBox="0 0 24 24"><path d="M5 20V11M12 20V4M19 20v-6"/></svg><span>Resumen</span><kbd>R</kbd></button>
+      <!-- Ajustes (tecla A) -->
+      <button class="sel-sort sel-stats sel-cfg" id="sel-cfg"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/></svg><span>Ajustes</span><kbd data-pad="Options">A</kbd></button>
       <div class="sel-move-hint" hidden></div>
     </section>
 
@@ -70,6 +77,10 @@
   <script src="models/registry.js"></script>
   <script src="models/bloque-neon.js"></script>
   <script src="console-model.js"></script>
+  <!-- Menú principal: sus Ajustes y sus estilos (antes que shell.js) -->
+  <script src="inicio/sonidos.js"></script>
+  <script src="inicio/ajustes.js"></script>
+  <script src="inicio/estanteria.js"></script>
   <!-- Un <script> por cada tema de consola -->
   <script src="themes/wii/theme.js"></script>
   <script src="themes/ps2/theme.js"></script>

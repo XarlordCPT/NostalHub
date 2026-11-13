@@ -1,0 +1,80 @@
+/* Ajustes del menú principal (renderer/inicio/ajustes.js). Por defecto: un panel claro que entra por la derecha.
+   Cada estilo del menú cambia colores y forma con su clase look-<estilo>. */
+.home-cfg {
+  --hc-bg: #f7f9fb;
+  --hc-nav: #fff;
+  --hc-card: #fff;
+  --hc-line: #e3e8ed;
+  --hc-text: #3d4450;
+  --hc-soft: #8b95a1;
+  --hc-acc: var(--sel-ui, #34bfed);
+  --hc-font: 'M PLUS Rounded 1c', 'Segoe UI', sans-serif;
+  position: absolute;
+  inset: 0;
+  z-index: 40;
+  font-family: var(--hc-font);
+  color: var(--hc-text);
+}
+.hc-veil { position: absolute; inset: 0; background: rgba(30, 40, 55, 0.3); animation: home-fade 0.25s ease both; }
+.hc-panel {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 1080px;
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  background: var(--hc-bg);
+  border-left: 6px solid var(--hc-acc);
+  box-shadow: -30px 0 60px rgba(0, 0, 0, 0.18);
+  animation: home-cfg-in 0.32s var(--ease) both;
+}
+.home-cfg.leave .hc-veil { opacity: 0; transition: opacity 0.2s ease; }
+.home-cfg.leave .hc-panel { transform: translateX(100%); transition: transform 0.2s ease-in; }
+@keyframes home-cfg-in { from { transform: translateX(100%); } }
+@keyframes home-fade { from { opacity: 0; } }
+
+.hc-nav { background: var(--hc-nav); padding: 56px 22px 30px; display: flex; flex-direction: column; gap: 8px; border-right: 3px solid var(--hc-line); }
+.hc-nav h2 { font-size: 44px; font-weight: 800; margin: 0 14px 26px; }
+.hc-secs { display: flex; flex-direction: column; gap: 8px; }
+.hc-sec { height: 70px; border-radius: 22px; padding: 0 22px; display: flex; align-items: center; font: inherit; font-size: 26px; font-weight: 700; color: var(--hc-soft); text-align: left; background: none; border: 0; cursor: pointer; }
+.hc-sec.on { color: var(--hc-text); background: color-mix(in srgb, var(--hc-acc) 14%, transparent); }
+.hc-sec.kf { box-shadow: inset 0 0 0 4px var(--hc-acc); color: var(--hc-text); }
+.hc-keys { margin-top: auto; padding: 0 14px; font-size: 18px; font-weight: 700; color: var(--hc-soft); }
+
+.hc-body { min-height: 0; padding: 56px 46px 30px; display: flex; flex-direction: column; }
+.hc-title { font-size: 36px; font-weight: 800; margin: 0 0 22px; }
+.hc-opts { flex: 1; min-height: 0; overflow-y: auto; scrollbar-width: none; display: flex; flex-direction: column; gap: 12px; padding: 8px; margin: -8px; }
+.hc-opts::-webkit-scrollbar { display: none; }
+.hc-opt {
+  flex: none;
+  min-height: 92px;
+  border-radius: 26px;
+  background: var(--hc-card);
+  border: 3px solid var(--hc-line);
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 0 28px;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: box-shadow 0.15s, border-color 0.15s, transform 0.15s var(--ease);
+}
+.hc-opt.kf { border-color: var(--hc-acc); box-shadow: 0 0 0 6px color-mix(in srgb, var(--hc-acc) 22%, transparent); }
+.hc-opt.ask { border-color: #e5484d; box-shadow: 0 0 0 6px rgba(229, 72, 77, 0.2); }
+.hc-opt.ask .hc-l { color: #d33a3f; }
+.hc-l { flex: 1; min-width: 0; font-size: 27px; font-weight: 800; }
+.hc-tg { flex: none; width: 86px; height: 46px; border-radius: 23px; background: #d6dde3; position: relative; transition: background 0.2s; }
+.hc-tg::after { content: ''; position: absolute; left: 5px; top: 5px; width: 36px; height: 36px; border-radius: 50%; background: #fff; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2); transition: left 0.2s var(--ease); }
+.hc-tg.on { background: var(--hc-acc); }
+.hc-tg.on::after { left: 45px; }
+.hc-val { flex: none; display: flex; align-items: center; gap: 14px; font-size: 24px; color: var(--hc-acc); }
+.hc-val b { font-weight: 800; max-width: 380px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; filter: brightness(0.85); }
+.hc-val i { font-style: normal; font-size: 34px; font-weight: 800; color: var(--hc-soft); padding: 0 6px; opacity: 0; transition: opacity 0.15s; }
+.hc-opt.kf .hc-val i, .hc-opt:hover .hc-val i { opacity: 1; }
+.hc-go { flex: none; font-size: 26px; font-weight: 800; color: var(--hc-soft); }
+.hc-opt.ask .hc-go { color: #d33a3f; font-size: 20px; }
+.hc-desc { flex: none; min-height: 72px; margin: 22px 6px 0; font-size: 22px; font-weight: 600; line-height: 1.4; color: var(--hc-soft); }
+.hc-opt.pending { border-color: var(--hc-acc); border-style: dashed; }

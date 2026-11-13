@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<title>Mockup 5 · Rueda y vista previa</title>
+<style>
+  /* Mockup 5 — Rueda y vista previa: barra de íconos a la izquierda (Consolas, Resumen, Música, Amigos, Ajustes); las
+     consolas en una rueda vertical y, a la derecha, una miniatura de cómo se ve su menú. Fondo de vidrio con el color de
+     la consola. Ajustes: la misma barra, con la sección abierta a la derecha (abre con #ajustes). */
+  * { box-sizing: border-box; margin: 0; }
+  #ajustes { position: absolute; }
+  html, body { width: 1920px; height: 1080px; overflow: hidden; }
+  body { font-family: 'Segoe UI', 'Selawik', sans-serif; color: #fff; position: relative; background: radial-gradient(ellipse 60% 70% at 78% 45%, rgba(230,0,18,0.55), rgba(230,0,18,0) 70%), radial-gradient(ellipse 70% 80% at 20% 80%, rgba(90,20,40,0.6), rgba(0,0,0,0) 70%), #140b10; }
+
+  .rail { position: absolute; left: 34px; top: 34px; bottom: 34px; width: 120px; border-radius: 40px; background: rgba(255,255,255,0.08); backdrop-filter: blur(20px); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.12); display: flex; flex-direction: column; align-items: center; padding: 34px 0; gap: 18px; }
+  .rail .me { width: 70px; height: 70px; border-radius: 22px; background: linear-gradient(135deg, #7fd6f6, #1b90c8); display: grid; place-items: center; font-size: 32px; font-weight: 700; margin-bottom: 20px; }
+  .rail a { width: 84px; height: 84px; border-radius: 26px; display: grid; place-items: center; color: rgba(255,255,255,0.6); position: relative; }
+  .rail a svg { width: 40px; height: 40px; }
+  .rail a.on { background: #fff; color: #140b10; }
+  .rail a.cfg { margin-top: auto; }
+  .rail a em { position: absolute; right: 8px; top: 8px; width: 14px; height: 14px; border-radius: 50%; background: #4cd25e; }
+  #ajustes:target ~ .rail a.on { background: none; color: rgba(255,255,255,0.6); }
+  #ajustes:target ~ .rail a.cfg { background: #fff; color: #140b10; }
+
+  /* La rueda */
+  .wheel { position: absolute; left: 230px; top: 0; bottom: 0; width: 720px; display: flex; flex-direction: column; justify-content: center; gap: 4px; }
+  .w { font-size: 44px; font-weight: 300; color: rgba(255,255,255,0.35); padding-left: 40px; white-space: nowrap; }
+  .w.n1 { font-size: 54px; color: rgba(255,255,255,0.55); padding-left: 20px; }
+  .w.n2 { font-size: 36px; color: rgba(255,255,255,0.2); padding-left: 60px; }
+  .w.sel { font-size: 86px; font-weight: 600; color: #fff; padding-left: 0; margin: 14px 0; line-height: 1.05; }
+  .w.sel small { display: block; font-size: 26px; font-weight: 600; letter-spacing: 4px; color: rgba(255,255,255,0.7); margin-bottom: 4px; }
+  .w.sel .go { display: inline-flex; align-items: center; gap: 14px; margin-top: 22px; height: 74px; padding: 0 40px; border-radius: 37px; background: #fff; color: #c00012; font-size: 28px; font-weight: 700; }
+
+  /* Vista previa del menú de la consola */
+  .prev { position: absolute; right: 80px; top: 170px; width: 820px; height: 560px; border-radius: 40px; overflow: hidden; background: #e9e9e9; box-shadow: 0 0 0 10px rgba(255,255,255,0.12), 0 40px 80px rgba(0,0,0,0.5); transform: perspective(1600px) rotateY(-10deg); }
+  .sw-top { height: 70px; display: flex; align-items: center; padding: 0 34px; gap: 14px; }
+  .sw-top i { width: 40px; height: 40px; border-radius: 50%; background: #c9c9c9; }
+  .sw-top span { margin-left: auto; color: #555; font-size: 22px; font-weight: 600; }
+  .sw-row { display: flex; gap: 14px; padding: 40px 34px 0; }
+  .sw-row div { flex: none; width: 200px; height: 200px; border-radius: 6px; background: var(--g); }
+  .sw-row div.sel { width: 240px; height: 240px; box-shadow: 0 0 0 6px #fff, 0 0 0 10px #00c3e3; margin-top: -20px; }
+  .sw-name { padding: 28px 34px 0; font-size: 30px; color: #00a6c4; font-weight: 600; }
+  .sw-btns { position: absolute; left: 0; right: 0; bottom: 60px; display: flex; justify-content: center; gap: 26px; }
+  .sw-btns i { width: 66px; height: 66px; border-radius: 50%; background: #fff; box-shadow: 0 2px 6px rgba(0,0,0,0.15); }
+  .prev-l { position: absolute; right: 80px; top: 780px; width: 820px; display: flex; justify-content: space-between; font-size: 22px; color: rgba(255,255,255,0.7); }
+  .prev-l b { color: #fff; font-weight: 600; }
+
+  .bottom { position: absolute; left: 230px; right: 90px; bottom: 50px; display: flex; align-items: center; gap: 30px; font-size: 22px; color: rgba(255,255,255,0.6); }
+  .bottom .song { margin-left: auto; display: flex; align-items: center; gap: 16px; height: 76px; padding: 0 28px 0 10px; border-radius: 38px; background: rgba(255,255,255,0.1); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.15); color: #fff; }
+  .bottom .song i { width: 56px; height: 56px; border-radius: 50%; background: linear-gradient(135deg, #f72585, #4361ee); }
+  .bottom .song span { color: rgba(255,255,255,0.6); }
+
+  /* Ajustes */
+  .settings { position: absolute; left: 190px; top: 34px; right: 34px; bottom: 34px; border-radius: 40px; background: rgba(20,11,16,0.82); backdrop-filter: blur(30px); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.12); display: none; grid-template-columns: 380px 1fr; padding: 60px; gap: 60px; }
+  #ajustes:target ~ .settings { display: grid; }
+  .settings h2 { font-size: 64px; font-weight: 600; margin-bottom: 30px; }
+  .secs { display: flex; flex-direction: column; gap: 8px; }
+  .secs a { height: 74px; border-radius: 24px; padding: 0 26px; display: flex; align-items: center; font-size: 27px; color: rgba(255,255,255,0.6); }
+  .secs a.on { background: #fff; color: #140b10; font-weight: 600; }
+  .opts { padding-top: 110px; display: flex; flex-direction: column; gap: 14px; }
+  .opt { min-height: 104px; border-radius: 28px; background: rgba(255,255,255,0.07); display: flex; align-items: center; padding: 0 34px; gap: 20px; }
+  .opt.sel { box-shadow: inset 0 0 0 3px #fff; background: rgba(255,255,255,0.12); }
+  .opt > div:first-child { flex: 1; }
+  .opt b { display: block; font-size: 28px; font-weight: 600; }
+  .opt span { font-size: 20px; color: rgba(255,255,255,0.55); }
+  .val { font-size: 24px; font-weight: 600; display: flex; align-items: center; gap: 16px; }
+  .val i { font-style: normal; opacity: 0.5; }
+  .tg { width: 84px; height: 44px; border-radius: 22px; background: rgba(255,255,255,0.2); position: relative; flex: none; }
+  .tg::after { content: ''; position: absolute; left: 5px; top: 5px; width: 34px; height: 34px; border-radius: 50%; background: #fff; }
+  .tg.on { background: #ff3b4e; }
+  .tg.on::after { left: 45px; }
+</style>
+</head>
+<body>
+  <a id="ajustes"></a>
+  <nav class="rail">
+    <div class="me">C</div>
+    <a class="on"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 16h20a9 9 0 0 1 8.6 11.4l-2 7a4.5 4.5 0 0 1-7.6 1.8L29 32H19l-4 4.2a4.5 4.5 0 0 1-7.6-1.8l-2-7A9 9 0 0 1 14 16Z"/><path d="M15 22v6M12 25h6"/></svg></a>
+    <a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 20V11M12 20V4M19 20v-6"/></svg></a>
+    <a><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 35V11l19-4v24"/><circle cx="14" cy="35" r="5"/><circle cx="33" cy="31" r="5"/></svg><em></em></a>
+    <a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.5a3.5 3.5 0 0 1 0 7M18 14.5a6 6 0 0 1 3.5 5.5"/></svg></a>
+    <a class="cfg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/></svg></a>
+  </nav>
+
+  <section class="wheel">
+    <div class="w n2">PS Vita</div>
+    <div class="w n1">PlayStation 4</div>
+    <div class="w sel"><small>NINTENDO · 2017</small>Nintendo Switch<br /><span class="go">Entrar ›</span></div>
+    <div class="w n1">PlayStation 3</div>
+    <div class="w n2">Nintendo 3DS</div>
+  </section>
+
+  <section class="prev">
+    <div class="sw-top"><i></i><i></i><span>10:42 · 87 %</span></div>
+    <div class="sw-row">
+      <div class="sel" style="--g:linear-gradient(135deg,#5fa84a,#2e6b2a)"></div>
+      <div style="--g:linear-gradient(135deg,#ff4655,#7a1d2a)"></div>
+      <div style="--g:linear-gradient(135deg,#f08a24,#b5321a)"></div>
+      <div style="--g:linear-gradient(135deg,#7b5cff,#2a1d6b)"></div>
+    </div>
+    <div class="sw-name">Minecraft</div>
+    <div class="sw-btns"><i></i><i></i><i></i><i></i><i></i></div>
+  </section>
+  <div class="prev-l"><span>Así se ve su menú</span><span><b>31 juegos</b> · 94 h jugadas aquí</span></div>
+
+  <footer class="bottom">
+    <span>↑ ↓ girar la rueda · Enter entrar · ← barra de la izquierda</span>
+    <div class="song"><i></i><b>Canción para el menú</b><span>Banda de Prueba</span></div>
+  </footer>
+
+  <section class="settings">
+    <div>
+      <h2>Ajustes</h2>
+      <div class="secs"><a class="on">General</a><a>Juegos</a><a>Pantalla</a><a>Sonido</a><a>Emuladores</a><a>Cuentas</a><a>Archivos</a></div>
+    </div>
+    <div class="opts">
+      <div class="opt sel"><div><b>Resumen de horas</b><span>Cuánto has jugado y a qué</span></div><div class="val">Abrir <i>›</i></div></div>
+      <div class="opt"><div><b>Iniciar con Windows</b><span>Se abre al prender el PC</span></div><div class="tg on"></div></div>
+      <div class="opt"><div><b>Recargar</b><span>Vuelve a cargar la pantalla</span></div><div class="val"><i>›</i></div></div>
+      <div class="opt"><div><b>Abrir manual</b><span>Cómo se usa cada consola</span></div><div class="val"><i>›</i></div></div>
+      <div class="opt"><div><b>Salir de NostalHub</b><span>Cierra la app</span></div><div class="val"><i>›</i></div></div>
+    </div>
+  </section>
+</body>
+</html>

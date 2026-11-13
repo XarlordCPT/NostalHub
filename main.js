@@ -759,6 +759,16 @@ function menuSections() {
       title: 'Pantalla',
       items: [
         {
+          id: 'menuStyle',
+          type: 'choice',
+          label: 'Estilo del menú principal',
+          desc: 'Cómo se ve el menú donde eliges la consola.',
+          confirmChange: true, // en el menú principal se elige y se confirma con Enter (cambia todo el menú de una vez)
+          options: MENU_STYLES.map(([value, label]) => ({ value, label })),
+          value: ss.menuStyle,
+          set: sound('menuStyle'),
+        },
+        {
           id: 'windowMode',
           type: 'choice',
           label: 'Modo',
@@ -1016,7 +1026,13 @@ ipcMain.handle('system:free-space', async () => {
   }
 });
 
-// ---------- Sonido (música, efectos, videos de inicio) ----------
+// Estilos del menú principal (renderer/inicio/ y el clásico de shell.js). El primero es el que viene puesto.
+const MENU_STYLES = [
+  ['estanteria', 'Estantería'],
+  ['clasico', 'Clásico'],
+];
+
+// ---------- Sonido (música, efectos, videos de inicio) y estilo del menú principal ----------
 function soundSettings() {
   const d = config.data;
   return {
@@ -1025,6 +1041,7 @@ function soundSettings() {
     intros: d.intros !== false,
     musicVolume: typeof d.musicVolume === 'number' ? d.musicVolume : 0.35,
     sfxVolume: typeof d.sfxVolume === 'number' ? d.sfxVolume : 0.6,
+    menuStyle: MENU_STYLES.some(([id]) => id === d.menuStyle) ? d.menuStyle : MENU_STYLES[0][0],
   };
 }
 ipcMain.handle('settings:get', () => soundSettings());

@@ -12,6 +12,7 @@
   const bgA = $('#sel-bg-a');
   const bgB = $('#sel-bg-b');
   const themeRoot = $('#theme-root');
+  const styleRoot = $('#sel-style'); // aquí se dibuja el estilo del menú principal (si no es el clásico)
 
   let index = 0;
   let mode = 'selector'; // selector | entering | theme | leaving
@@ -178,6 +179,11 @@
 
   function renderItems() {
     track.innerHTML = '';
+    if (style) {
+      style.render();
+      paintBackground(false);
+      return;
+    }
     CONSOLES.forEach((c, i) => {
       const item = document.createElement('div');
       item.className = 'sel-item';
@@ -268,6 +274,7 @@
 
   // Posiciona los elementos: el elegido al centro, los vecinos asomándose arriba y abajo
   function layout(animate = true) {
+    if (style) return style.update(animate);
     track.querySelectorAll('.sel-item').forEach((el) => {
       const d = Number(el.dataset.index) - index;
       el.classList.toggle('active', d === 0);
@@ -346,6 +353,7 @@
     theme = { id: c.id, instance: factory.mount(themeRoot, { api, stage, stageRect, toast, openSelector: leave, sound: (kind) => Sound.play(kind), duckMusic: (on) => Sound.duck(on), soundSettings: () => ({ ...settings }), hasAsset: (kind) => !!(assets[c.id] && assets[c.id][kind]) }) };
     selector.hidden = true;
     selector.classList.remove('entering');
+    if (style) style.visible(false);
     await wait(120);
     Sound.play('start', c.id); // sonido de inicio (inicio.wav), después del video si hubo
     Sound.startMusic(c.id);
@@ -366,6 +374,7 @@
     delete document.body.dataset.console;
     $('#winbar .wb-sub').textContent = '';
     selector.hidden = false;
+    if (style) style.visible(true);
     paintBackground(false);
     layout(false);
     mode = 'selector'; // ya se puede usar mientras termina de aparecer
@@ -479,9 +488,19 @@
     },
 
     // Efecto corto: 'move' (mover/pasar el mouse), 'select' (elegir), 'back' (volver),
-    // 'page' (cambiar de página), 'start' (al entrar a la consola)
+    // 'page' (cambiar de página), 'start' (al entrar a la consola). En el menú principal suenan los suyos
+    // (renderer/inicio/sonidos.js); los de cada consola, recién dentro de ella.
     play(kind, consoleId) {
       if (!settings.sounds) return;
+      // Menú principal (ninguna consola abierta): sus propios sonidos, no los de la consola marcada
+      if (!consoleId && !theme) {
+        if (kind === 'move') {
+          if (performance.now() - this.lastMove < 45) return;
+          this.lastMove = performance.now();
+        }
+        if (window.MenuSounds) window.MenuSounds.play(styleId, kind, settings.sfxVolume);
+        return;
+      }
       const id = consoleId || (theme && theme.id) || (CONSOLES[index] && CONSOLES[index].id);
       const url = assets[id] && assets[id][kind];
       if (!url) {
@@ -600,7 +619,7 @@
   }
 
   if (api.getSettings) api.getSettings().then((s) => Sound.apply(s));
-  if (api.onSettings) api.onSettings((s) => Sound.apply(s));
+  if (api.onSettings) api.onSettings((s) => (Sound.apply(s), s && s.menuStyle && setStyle(s.menuStyle)));
 
   // ---------- Controles del selector ----------
   $('#sel-up').addEventListener('click', () => (moving ? moveBy(-1) : select(index - 1)));
@@ -721,7 +740,7 @@
     moving = { before: CONSOLES.map((c) => c.id) };
     selector.classList.add('moving');
     const hint = $('.sel-move-hint');
-    hint.innerHTML = `Moviendo <b>${CONSOLES[index].name}</b> · <kbd>↑</kbd><kbd>↓</kbd> para cambiarla de lugar · <kbd>Enter</kbd> dejarla · <kbd>Esc</kbd> cancelar`;
+    hint.innerHTML = `Moviendo <b>${CONSOLES[index].name}</b> · ${style ? '<kbd>←</kbd><kbd>→</kbd>' : '<kbd>↑</kbd><kbd>↓</kbd>'} para cambiarla de lugar · <kbd>Enter</kbd> dejarla · <kbd>Esc</kbd> cancelar`;
     hint.hidden = false;
     layout();
   }
@@ -772,8 +791,8 @@
       if (moving) {
         e.stopImmediatePropagation();
         e.preventDefault();
-        if (k === 'ArrowUp') moveBy(-1);
-        else if (k === 'ArrowDown') moveBy(1);
+        if (k === 'ArrowUp' || k === 'ArrowLeft') moveBy(-1);
+        else if (k === 'ArrowDown' || k === 'ArrowRight') moveBy(1);
         else if (k === 'Enter' || k === ' ') endMove(true);
         else if (k === 'Escape' || k === 'Backspace') endMove(false);
         return;
@@ -784,6 +803,9 @@
       } else if ((k === 'r' || k === 'R') && !e.ctrlKey && !e.altKey && window.NostalHubStats) {
         e.preventDefault();
         window.NostalHubStats.open();
+      } else if ((k === 'a' || k === 'A') && !e.ctrlKey && !e.altKey) {
+        e.preventDefault();
+        openSettings();
       }
     },
     true
@@ -795,6 +817,59 @@
     if (moving) moveBy(e.deltaY > 0 ? 1 : -1);
     else select(index + (e.deltaY > 0 ? 1 : -1));
     wheelLock = Date.now() + 380;
+  });
+
+  // ---------- Estilo del menú principal (Ajustes → Pantalla) ----------
+  // 'clasico' es el de siempre (este archivo). Los demás están en renderer/inicio/<estilo>.js y solo dibujan: lo de
+  // todos (qué consola está marcada, entrar, ordenar, mover, Ajustes, Resumen) sigue aquí.
+  let styleId = 'clasico';
+  let style = null; // { render, update, key, visible, unmount }
+  const styleCtx = {
+    api,
+    toast,
+    GAMEPAD_SVG,
+    uiAccent,
+    consoles: () => CONSOLES,
+    index: () => index,
+    assets: () => assets,
+    modelTilt: (id) => modelTilt[id] || (CONSOLES.find((c) => c.id === id) || {}).modelTilt || '0',
+    select: (i) => !moving && select(i),
+    enter: () => (moving ? endMove(true) : enter()),
+    openSettings: () => openSettings(),
+    openStats: () => mode === 'selector' && !moving && window.NostalHubStats && window.NostalHubStats.open(),
+    openSort: () => (sortMenu ? closeSortMenu() : openSortMenu()),
+  };
+  function setStyle(id) {
+    const styles = window.MenuStyles || {};
+    const next = styles[id] ? id : id === 'clasico' ? 'clasico' : styles.estanteria ? 'estanteria' : 'clasico';
+    if (next === styleId && selector.dataset.style === next) return; // (al abrir la app siempre se marca, también el clásico)
+    if (moving) endMove(false);
+    closeSortMenu();
+    if (style) style.unmount();
+    style = null;
+    styleId = next;
+    selector.dataset.style = next;
+    if (next !== 'clasico') {
+      style = styles[next].mount(styleRoot, styleCtx);
+      if (selector.hidden) style.visible(false);
+    }
+    if (window.NostalHubHomeSettings) window.NostalHubHomeSettings.setLook(next);
+    renderItems();
+    if (styleShown && !selector.hidden) selector.animate([{ opacity: 0, transform: 'scale(1.02)' }, { opacity: 1, transform: 'none' }], { duration: 450, easing: 'ease-out' });
+    styleShown = true; // (al abrir la app no se anima: ya entra con su propia animación)
+  }
+  let styleShown = false;
+
+  // ---------- Ajustes desde el menú principal (botón Ajustes o tecla A) ----------
+  function openSettings() {
+    if (mode !== 'selector' || moving || !window.NostalHubHomeSettings) return;
+    closeSortMenu();
+    mode = 'settings';
+    window.NostalHubHomeSettings.open({ api, toast, look: styleId, onClose: () => mode === 'settings' && (mode = 'selector') });
+  }
+  $('#sel-cfg').addEventListener('click', (e) => {
+    e.stopPropagation();
+    openSettings();
   });
 
   // ---------- Confirmación para cerrar ----------
@@ -843,9 +918,10 @@
       return;
     }
     if (mode !== 'selector') return;
+    if (style && style.key(e)) return; // el estilo usa algunas teclas (por ejemplo ← → en la Estantería)
     if (e.key === 'Escape') openQuit();
-    else if (e.key === 'ArrowUp') select(index - 1);
-    else if (e.key === 'ArrowDown') select(index + 1);
+    else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') select(index - 1);
+    else if (e.key === 'ArrowDown' || e.key === 'ArrowRight') select(index + 1);
     else if (e.key === 'Enter' || e.key === ' ') enter();
   });
 
@@ -909,9 +985,13 @@
     }
   });
 
+  // Para las pruebas: qué consola está marcada en el selector (solo leer)
+  window.NostalHubSelector = { current: () => (CONSOLES[index] ? CONSOLES[index].id : null), style: () => styleId };
+
   // ---------- Inicio ----------
   (async () => {
-    const res = await loadAssets();
+    const [res, first] = await Promise.all([loadAssets(), api.getSettings ? api.getSettings().catch(() => null) : null]);
+    setStyle(first && first.menuStyle);
     const last = res && res.last;
     CONSOLES.splice(0, CONSOLES.length, ...orderedList(sortMode)); // tu orden de consolas
     $('#sel-sort .sel-sort-l').textContent = SHORT[sortMode];
