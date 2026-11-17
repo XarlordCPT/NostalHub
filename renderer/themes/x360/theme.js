@@ -244,7 +244,9 @@
   const { wait, pad2 } = U;
   const { ago, hours, escapeHtml } = U;
 
-  // Caja del juego: carátula vertical, o una armada con el fondo y el logo si no hay
+  // Caja del juego: carátula vertical, o una armada con el fondo y el logo si no hay. Si la imagen es animada, en la
+  // biblioteca y en los recientes queda quieta (su primer cuadro) y solo se anima la marcada (como en la Wii): muchas
+  // animaciones a la vez trababan la pantalla. En la ficha y en "Jugando a…" (una sola caja, 'big' y 'mid') sí se anima.
   let doneIds = new Set(); // appId de los juegos al 100 % (lo pone loadSummary): su caja lleva medalla dorada
   function buildCase(g, size = '') {
     const el = document.createElement('div');
@@ -252,11 +254,11 @@
     el.dataset.gameId = g.id; // clic derecho → cambiar imágenes
     const art = document.createElement('div');
     art.className = 'xb-case-art';
-    if (g.cover) {
-      art.style.backgroundImage = `url("${g.cover}")`;
-    } else {
+    const pic = g.cover || (g.hero || g.tile) || '';
+    if (size === 'big' || size === 'mid') art.style.backgroundImage = pic ? `url("${pic}")` : '';
+    else window.NostalHubUtil.stillBackground(art, pic);
+    if (!g.cover) {
       art.classList.add('made');
-      if (g.hero || g.tile) art.style.backgroundImage = `url("${g.hero || g.tile}")`;
       const top = document.createElement('div');
       top.className = 'xb-case-made-title';
       if (g.logo) {
@@ -410,6 +412,7 @@
 
     return {
       unmount() {
+        U.liveBackground(null, 'x360-estante');
         s.jugando.dispose();
         clearInterval(clockTimer);
         s.amigos.dispose();
@@ -497,6 +500,7 @@
 
     // ---------- Vistas (estante, ficha, logros, jugando) ----------
     function showView(name, title = '') {
+      if (name !== 'shelf') U.liveBackground(null, 'x360-estante'); // la biblioteca queda escondida: nada animado ahí
       if (s.view !== name) s.stack.push(s.view);
       s.view = name;
       root.classList.toggle('in-view', name !== 'home');
@@ -790,6 +794,9 @@
         el.style.pointerEvents = '';
         el.classList.toggle('sel', d === 0);
       });
+      // Solo la caja del centro se anima (si su imagen es animada); la que estaba animada vuelve a su primer cuadro
+      const center = $(`.xb-flow-item[data-i="${shelfSel}"] .xb-case-art`);
+      U.liveBackground(s.view === 'shelf' ? center : null, 'x360-estante', 300);
       const g = shelfList[shelfSel];
       if (!g) return;
       $('.xb-flow-name').textContent = g.name;
