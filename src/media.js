@@ -102,10 +102,23 @@ function fileOk(p) {
   return !!p && fs.existsSync(p);
 }
 
-// Arte de un juego de emulador, por el nombre de su archivo (libretro-thumbnails; kind: Named_Boxarts, Named_Snaps…)
-function emulatorArtUrl(rom, repo, kind) {
-  const name = path.basename(rom, path.extname(rom)).replace(/[&*/:`<>?\\|"]/g, '_'); // así nombran los archivos
-  return `https://raw.githubusercontent.com/libretro-thumbnails/${repo}/master/${kind}/${encodeURIComponent(name)}.png`;
+// Arte de un juego de emulador, por el nombre de su archivo (libretro-thumbnails; kind: Named_Boxarts, Named_Snaps…).
+// name: otro nombre para buscar (ver artNames)
+function emulatorArtUrl(rom, repo, kind, name) {
+  const n = (name || path.basename(rom, path.extname(rom))).replace(/[&*/:`<>?\\|"]/g, '_'); // así nombran los archivos
+  return `https://raw.githubusercontent.com/libretro-thumbnails/${repo}/master/${kind}/${encodeURIComponent(n)}.png`;
+}
+// Los nombres con que se busca el arte: el del archivo y, si no está, con su primera región. Algunas páginas nombran
+// distinto que la colección: "Super Mario Galaxy (USA, Canada) (En,Fr,Es)" allá es "Super Mario Galaxy (USA) (En,Fr,Es)"
+function artNames(rom) {
+  const stem = path.basename(rom, path.extname(rom));
+  const out = [stem];
+  const m = stem.match(/^(.*?) \(([^)]*)\)(.*)$/); // título (regiones) resto
+  if (m) {
+    const first = m[2].split(',')[0].trim();
+    out.push(`${m[1]} (${first})${m[3]}`, `${m[1]} (${first})`);
+  }
+  return [...new Set(out)];
 }
 
 // Rellena game.media para un juego de emulador. Devuelve true si cambió algo.
@@ -117,9 +130,15 @@ async function ensureEmulatorMedia(game, repo, mediaRoot, { force = false } = {}
   const dir = path.join(mediaRoot, safeId(game.id));
   fs.mkdirSync(dir, { recursive: true });
   const before = JSON.stringify(m);
+  const names = m.artName ? [m.artName, ...artNames(game.rom).filter((n) => n !== m.artName)] : artNames(game.rom);
   for (const k of missing) {
-    const file = await downloadImage(emulatorArtUrl(game.rom, repo, SLOTS[k]), path.join(dir, k));
-    if (file) m[k] = file;
+    for (const name of names) {
+      const file = await downloadImage(emulatorArtUrl(game.rom, repo, SLOTS[k], name), path.join(dir, k));
+      if (!file) continue;
+      m[k] = file;
+      m.artName = name; // (la presencia en Discord usa el mismo nombre)
+      break;
+    }
   }
   game.mediaCheckedAt = Date.now();
   return JSON.stringify(m) !== before;
@@ -232,4 +251,4 @@ function isVideoFile(p) {
   return !!p && VIDEO_EXT.includes(path.extname(p).toLowerCase());
 }
 
-module.exports = { ensureEmulatorMedia, emulatorArtUrl, ensureSteamMedia, findCustomFiles, safeId, isVideoFile, downloadImage, CUSTOM_FILES };
+module.exports = { ensureEmulatorMedia, emulatorArtUrl, artNames, ensureSteamMedia, findCustomFiles, safeId, isVideoFile, downloadImage, CUSTOM_FILES };

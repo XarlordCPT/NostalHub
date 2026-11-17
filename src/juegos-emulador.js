@@ -25,10 +25,14 @@ function startRetroLog(game) {
   stopRetroLog();
   const emu = game.type === 'emulator' && emulators.EMULATORS[game.emulator];
   if (!emu || !emu.liveLog || !nh.retro.connected) return [];
-  const file = path.join(nh.dataDir, 'cache', `${game.emulator}.log`);
+  // RetroArch escribe donde le digamos (un archivo nuestro, en cache); Dolphin, en su propio registro (keep: no se borra)
+  const live = emu.liveLog;
+  const file = live.file ? live.file(game.target, app.getPath('documents')) : path.join(nh.dataDir, 'cache', `${game.emulator}.log`);
+  let emptyBefore = false;
   try {
     fs.mkdirSync(path.dirname(file), { recursive: true });
-    fs.rmSync(file, { force: true });
+    if (live.keep) emptyBefore = !fs.existsSync(file) || fs.statSync(file).size === 0;
+    else fs.rmSync(file, { force: true });
   } catch (e) {
     anotar('retro', e);
     return [];
@@ -49,15 +53,16 @@ function startRetroLog(game) {
       nh.showAchievement(a);
       nh.sendSummary();
     }
-  });
-  retroLog = { gameId: game.id, file, stop };
-  return emu.liveLog.args(file);
+  }, 500, !!live.keep);
+  retroLog = { gameId: game.id, file, stop, keep: !!live.keep, emptyBefore };
+  return live.args(file);
 }
 function stopRetroLog() {
   if (!retroLog) return;
   retroLog.stop();
   try {
-    fs.rmSync(retroLog.file, { force: true });
+    if (!retroLog.keep) fs.rmSync(retroLog.file, { force: true });
+    else if (retroLog.emptyBefore) fs.truncateSync(retroLog.file, 0); // estaba vacío: queda como estaba
   } catch {}
   retroLog = null;
 }
@@ -152,7 +157,7 @@ function syncEmulatorGames(id) {
   const problem = emu.problem && emu.problem(exe);
   if (problem) return { problem };
   const folders = [...emu.folders(exe, app.getPath('documents')), ...(saved.folders || []).map((dir) => ({ dir, recursive: true }))];
-  const files = emulators.scanFolders(folders, emu.exts);
+  const files = emulators.scanFolders(folders, emu.exts).filter((f) => !emu.only || emu.only(f)); // (Dolphin: sin los de GameCube)
   const ids = new Set();
   let added = 0;
   let changed = false;
@@ -207,7 +212,7 @@ async function addEmulatorGames(id) {
   if (!r) return nh.send('toast', `No se encontró ${emu.name}`);
   if (r.problem) return nh.send('toast', r.problem);
   if (!r.total) return nh.send('toast', `No hay juegos de ${emu.system} en esas carpetas`);
-  nh.send('toast', r.added ? `Se agregaron ${r.added} juego${r.added === 1 ? '' : 's'} de ${emu.system}` : `No hay juegos nuevos de ${emu.system}`);
+  nh.send('toast', r.added ? (r.added === 1 ? `Se agregó 1 juego de ${emu.system}` : `Se agregaron ${r.added} juegos de ${emu.system}`) : `No hay juegos nuevos de ${emu.system}`);
 }
 
 // nh: { config, retro, dataDir, ventana(), showAchievement, sendSummary, pushGamesSoon, ensureCustomFolders, refreshMedia, send }

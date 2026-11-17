@@ -4,7 +4,7 @@ const assert = require('node:assert/strict');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const { EMULATORS, scanFolders, gameName, gameId, tailFile } = require('../../src/emulators');
+const { EMULATORS, scanFolders, gameName, gameId, tailFile, discSystem } = require('../../src/emulators');
 const { carpetaTemporal, escribir } = require('../ayuda/temporal');
 
 test('nombre e id de un juego por su archivo', () => {
@@ -56,4 +56,52 @@ test('leer el registro mientras se escribe: líneas completas, \\r\\n y tildes c
   fs.appendFileSync(file, b.subarray(corte));
   await espera();
   assert.deepEqual(lineas, ['uno', 'dos', 'Médico']);
+});
+
+// ---------- Dolphin (Wii) ----------
+// Cabeceras de mentira: lo justo para saber si es de Wii o de GameCube
+function cabecera(tipo) {
+  const b = Buffer.alloc(0x60);
+  if (tipo === 'rvz-wii' || tipo === 'rvz-gc') (b.write('RVZ\x01', 0, 'latin1'), b.writeUInt32BE(tipo === 'rvz-wii' ? 2 : 1, 0x48));
+  if (tipo === 'iso-wii') b.writeUInt32BE(0x5d1c9ea3, 0x18);
+  if (tipo === 'iso-gc') b.writeUInt32BE(0xc2339f3d, 0x1c);
+  if (tipo === 'wbfs') b.write('WBFS', 0, 'latin1');
+  return b;
+}
+
+test('Dolphin: sus carpetas (Dolphin.ini) y distinguir Wii de GameCube por la cabecera', (t) => {
+  const dir = carpetaTemporal(t);
+  const exe = path.join(dir, 'Dolphin', 'Dolphin.exe');
+  escribir(dir, {
+    'Dolphin/Dolphin.exe': '',
+    'Dolphin/portable.txt': '', // portable: sus datos en Dolphin\User
+    'Dolphin/User/Config/Dolphin.ini': '[General]\nISOPath0 = C:/Juegos/Wii\nISOPaths = 2\nISOPath1 = D:/Otros\nRecursiveISOPaths = True\n[Interface]\nX = 1\n',
+  });
+  assert.deepEqual(EMULATORS.wii.folders(exe, dir), [
+    { dir: path.normalize('C:/Juegos/Wii'), recursive: true },
+    { dir: path.normalize('D:/Otros'), recursive: true },
+  ]);
+  assert.equal(EMULATORS.wii.liveLog.file(exe, dir), path.join(dir, 'Dolphin', 'User', 'Logs', 'dolphin.log'));
+  for (const [tipo, quees] of [['rvz-wii', 'wii'], ['rvz-gc', 'gc'], ['iso-wii', 'wii'], ['iso-gc', 'gc'], ['wbfs', 'wii'], ['nada', null]]) {
+    const f = path.join(dir, `${tipo}.bin`);
+    fs.writeFileSync(f, cabecera(tipo));
+    assert.equal(discSystem(f), quees, tipo);
+    assert.equal(EMULATORS.wii.only(f), quees !== 'gc', `${tipo}: los de GameCube no se agregan`);
+  }
+  assert.deepEqual(EMULATORS.wii.args('C:\\j.rvz'), ['-b', '-e', 'C:\\j.rvz']);
+});
+
+test('Dolphin: el logro y el juego se reconocen en su registro; se enciende solo con -C', () => {
+  const live = EMULATORS.wii.liveLog;
+  assert.deepEqual(live.unlock.exec('32:43:094 Core\\AchievementManager.cpp:85 I[RetroAchievements]: Awarding achievement 7051: Sling Star').slice(1), ['7051', 'Sling Star']);
+  assert.equal(live.game.exec('32:43:094 Core\\AchievementManager.cpp:85 I[RetroAchievements]: Identified game: 189 "Super Mario Galaxy" (4e0d0d2f)')[1], '189');
+  assert.equal(live.game.exec('I[RetroAchievements]: Identified game: 189 (4e0d0d2f)')[1], '189');
+  assert.ok(live.args().every((a, i) => (i % 2 ? /^Logger\./.test(a) : a === '-C')), 'solo opciones de este momento (no cambia tu configuración)');
+});
+
+test('arte de emulador: si no está con el nombre del archivo, se busca con su primera región', () => {
+  const { artNames, emulatorArtUrl } = require('../../src/media');
+  assert.deepEqual(artNames('C:\\x\\Super Mario Galaxy (USA, Canada) (En,Fr,Es).rvz'), ['Super Mario Galaxy (USA, Canada) (En,Fr,Es)', 'Super Mario Galaxy (USA) (En,Fr,Es)', 'Super Mario Galaxy (USA)']);
+  assert.deepEqual(artNames('Pokemon - FireRed Version (USA).gba'), ['Pokemon - FireRed Version (USA)']);
+  assert.match(emulatorArtUrl('C:\\x.rvz', 'Nintendo_-_Wii', 'Named_Boxarts', 'Super Mario Galaxy (USA)'), /Nintendo_-_Wii\/master\/Named_Boxarts\/Super%20Mario%20Galaxy%20\(USA\)\.png$/);
 });

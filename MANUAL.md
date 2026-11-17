@@ -458,7 +458,7 @@ progresos que agregan los mods salen con la copa.
 - **Ocultar un juego:** agrégale `"hidden": true`. No lo borres, porque los de Steam se vuelven a importar.
 - **Cambiar el orden:** cada consola tiene su opción para ordenar (sección 8, *Ordenar los juegos*).
 
-### Juegos de emulador (PS2 y GBA)
+### Juegos de emulador (PS2, GBA y Wii)
 
 NostalHub no trae emuladores, juegos ni BIOS: abre lo que ya tienes. El emulador tiene que estar instalado y funcionando.
 
@@ -466,17 +466,20 @@ NostalHub no trae emuladores, juegos ni BIOS: abre lo que ya tienes. El emulador
 |---|---|---|---|
 | PS2 | **PCSX2** | `.iso`, `.chd`, `.cso`, `.zso`, `.gz`, `.cue`, `.mdf` | Las carpetas que configuraste en PCSX2 (Ajustes → Lista de juegos) |
 | GBA | **RetroArch** con el núcleo **mGBA** | `.gba` | La carpeta inicial de RetroArch (Settings → Directory → File Browser) |
+| Wii | **Dolphin** | `.rvz`, `.iso`, `.wbfs`, `.wia`, `.gcz`, `.ciso` (los de GameCube no se agregan) | Las carpetas de su lista de juegos (Opciones → Configuración → Rutas) |
 
 1. En RetroArch, baja el núcleo mGBA: **Main Menu → Online Updater → Core Downloader**. Si falta, NostalHub te avisa.
-2. **Ajustes → Implementación de Emuladores → Buscar juegos de PS2 (PCSX2)** o **Buscar juegos de GBA (RetroArch)**. Si no
-   encuentra el emulador, te pregunta dónde está. Si no tiene ninguna carpeta configurada, te pregunta dónde están tus juegos.
+2. **Ajustes → Implementación de Emuladores → Buscar juegos de PS2 (PCSX2)**, **Buscar juegos de GBA (RetroArch)** o
+   **Buscar juegos de Wii (Dolphin)**. Si no encuentra el emulador, te pregunta dónde está (Dolphin portable lo busca solo
+   en Documentos, Escritorio y Descargas). Si no tiene ninguna carpeta configurada, te pregunta dónde están tus juegos.
 3. Los juegos aparecen en todas las consolas. Al elegir uno se abre directo en el emulador, a pantalla completa, y al
    cerrarlo vuelves al menú. Sus horas se cuentan en el Resumen.
 4. Si agregas otro juego a esas carpetas, aparece solo al abrir NostalHub, o al tiro apretando de nuevo ese botón. Los que
    borres se esconden.
 
 La carátula y las imágenes se descargan por el **nombre del archivo**, así que funcionan mejor con nombres tipo
-`Guitar Hero (USA).iso`. Si alguna no aparece, ponla con clic derecho → Cambiar imágenes.
+`Guitar Hero (USA).iso` (si el nombre trae varias regiones, como `(USA, Canada)`, también se busca solo con la primera). Si
+alguna no aparece, ponla con clic derecho → Cambiar imágenes.
 
 **En qué pantalla sale (PS2):** en la pantalla donde dejaste la ventana de PCSX2. Para cambiarla, abre PCSX2 por su cuenta,
 déjalo en la otra pantalla y ciérralo.
@@ -490,8 +493,11 @@ déjalo en la otra pantalla y ciérralo.
 **Logros (RetroAchievements):** con tu cuenta, tus juegos de emulador muestran sus logros en todas las consolas, con el
 sello del 100 %, y se suman a tu total junto con los de Steam.
 
-1. En el emulador, activa los logros e inicia sesión (PCSX2: **Ajustes → Logros**; RetroArch: **Settings → Achievements**).
-   Apaga ahí sus notificaciones si no quieres ver el aviso doble.
+1. En el emulador, activa los logros e inicia sesión (PCSX2: **Ajustes → Logros**; RetroArch: **Settings → Achievements**;
+   Dolphin: **Herramientas → Logros**). Apaga ahí sus notificaciones si no quieres ver el aviso doble (en Dolphin, los avisos
+   salen como mensajes en pantalla: **Opciones → Configuración → Interfaz → Mostrar mensajes en pantalla**).
+   - **Wii:** RetroAchievements solo reconoce el juego si es una copia completa en **`.rvz` o `.iso`**: con `.wbfs` (recortado)
+     Dolphin dice que el juego no tiene logros. Dolphin no convierte un WBFS: hay que bajarlo en RVZ.
 2. En NostalHub, **Ajustes → Cuentas → Conectar RetroAchievements**: pega tu usuario y tu **Web API Key**. La ventana trae
    un botón para abrir la página donde está. No la compartas con nadie.
 
@@ -501,6 +507,8 @@ avisa los juegos que abres desde NostalHub. No todos los juegos tienen logros ah
 **Cuánto tarda el aviso encima del juego:**
 - **RetroArch:** al instante. NostalHub lo abre con su registro activado solo para esa partida, lo lee mientras juegas y lo
   borra al terminar (no guarda tu cuenta ni tu token).
+- **Dolphin:** al instante, igual que RetroArch: lo abre con su registro de logros encendido solo para esa partida (tu
+  configuración de Dolphin no cambia) y, si estaba vacío, lo deja vacío al terminar. No guarda tu token.
 - **PCSX2:** hasta un minuto, porque NostalHub tiene que preguntarle a RetroAchievements cada cierto rato.
 
 ---

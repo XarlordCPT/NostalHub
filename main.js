@@ -178,7 +178,7 @@ function presenceActivity(game) {
         game.type === 'steam'
           ? { large_image: `https://cdn.akamai.steamstatic.com/steam/apps/${game.appId}/header.jpg`, large_text: clip(game.name), small_image: 'nostalhub', small_text: 'NostalHub' }
           : emu && game.media && game.media.cover
-            ? { large_image: media.emulatorArtUrl(game.rom, emu.artRepo, 'Named_Boxarts'), large_text: clip(game.name), small_image: 'nostalhub', small_text: 'NostalHub' }
+            ? { large_image: media.emulatorArtUrl(game.rom, emu.artRepo, 'Named_Boxarts', (game.media || {}).artName), large_text: clip(game.name), small_image: 'nostalhub', small_text: 'NostalHub' }
             : { large_image: 'nostalhub', large_text: 'NostalHub' },
     };
   }
@@ -938,6 +938,13 @@ function menuSections() {
           label: 'Buscar juegos de GBA (RetroArch)',
           desc: 'Agrega los juegos de la carpeta de RetroArch, con su núcleo mGBA. Al elegir uno, se abre directo en el emulador.',
           run: () => addEmulatorGames('gba'),
+        },
+        {
+          id: 'add-wii',
+          type: 'action',
+          label: 'Buscar juegos de Wii (Dolphin)',
+          desc: 'Agrega los juegos de Wii de las carpetas de Dolphin (los de GameCube no). Al elegir uno, se abre directo en el emulador.',
+          run: () => addEmulatorGames('wii'),
         },
       ],
     },

@@ -105,3 +105,74 @@ test('sin RetroAchievements conectado no agrega nada al abrir el emulador', (t) 
   juegos.syncEmulatorGames('gba');
   assert.deepEqual(juegos.startRetroLog(config.games[0]), []);
 });
+
+// Un Dolphin de mentira (portable: sus datos en Dolphin\User) con un juego de Wii y uno de GameCube en la misma carpeta
+function dolphinFalso(t) {
+  const dir = carpetaTemporal(t);
+  const roms = path.join(dir, 'roms');
+  const wii = Buffer.alloc(0x60);
+  wii.write('RVZ\x01', 0, 'latin1');
+  wii.writeUInt32BE(2, 0x48);
+  const gc = Buffer.from(wii);
+  gc.writeUInt32BE(1, 0x48);
+  escribir(dir, {
+    'Dolphin/Dolphin.exe': '',
+    'Dolphin/portable.txt': '',
+    'Dolphin/User/Config/Dolphin.ini': `[General]\nISOPath0 = ${roms.replace(/\\/g, '/')}\nISOPaths = 1\n`,
+    'Dolphin/User/Logs/dolphin.log': '',
+  });
+  fs.mkdirSync(roms);
+  fs.writeFileSync(path.join(roms, 'Super Mario Galaxy (USA, Canada) (En,Fr,Es).rvz'), wii);
+  fs.writeFileSync(path.join(roms, 'Un Juego de GameCube (USA).rvz'), gc);
+  return { exe: path.join(dir, 'Dolphin', 'Dolphin.exe'), log: path.join(dir, 'Dolphin', 'User', 'Logs', 'dolphin.log') };
+}
+
+test('Dolphin: agrega solo los de Wii; el logro sale al instante desde su registro, que queda vacío como estaba', async (t) => {
+  const dol = dolphinFalso(t);
+  const config = { data: { emulators: { wii: { exe: dol.exe } } }, games: [] };
+  const retro = {
+    connected: true,
+    key: (id) => `ra-${id}`,
+    achievements: async () => ({ list: [] }),
+    liveUnlock: (key, id, title) => (key === 'ra-189' && id === '7051' ? { name: title } : null),
+    lastPlayed: async () => null,
+    newUnlocks: async () => [],
+    findGame: async () => null,
+    refreshTotals: () => {},
+    seen: null,
+  };
+  const pasó = contexto(t, config, retro);
+  assert.equal(juegos.syncEmulatorGames('wii').added, 1);
+  assert.deepEqual(config.games.map((g) => g.name), ['Super Mario Galaxy'], 'el de GameCube no se agrega');
+  const smg = config.games[0];
+  assert.deepEqual(smg.args.slice(0, 2), ['-b', '-e']);
+  // Ya había algo de otra vez en el registro: eso no se vuelve a avisar
+  fs.writeFileSync(dol.log, 'I[RetroAchievements]: Identified game: 189 (x)\r\nI[RetroAchievements]: Awarding achievement 7051: Viejo\r\n');
+  fs.writeFileSync(dol.log, '');
+  const extra = juegos.startRetroLog(smg);
+  assert.equal(extra[0], '-C');
+  fs.appendFileSync(dol.log, '1:2 Core\\AchievementManager.cpp:85 I[RetroAchievements]: Identified game: 189 (x)\r\n1:3 Core\\AchievementManager.cpp:85 I[RetroAchievements]: Awarding achievement 7051: Sling Star\r\n');
+  for (let i = 0; i < 30 && !pasó.avisos.length; i++) await new Promise((r) => setTimeout(r, 100));
+  assert.deepEqual(pasó.avisos, ['Sling Star']);
+  await juegos.retroTick(smg);
+  await juegos.retroTick(null); // se cerró el juego
+  assert.ok(fs.existsSync(dol.log), 'el registro es de Dolphin: no se borra');
+  assert.equal(fs.statSync(dol.log).size, 0, 'estaba vacío: queda vacío');
+});
+
+test('Dolphin: si su registro ya tenía algo, no se lee lo viejo ni se vacía al cerrar', async (t) => {
+  const dol = dolphinFalso(t);
+  const config = { data: { emulators: { wii: { exe: dol.exe } } }, games: [] };
+  const retro = { connected: true, key: (id) => `ra-${id}`, achievements: async () => ({ list: [] }), liveUnlock: (k, id, title) => ({ name: title }), lastPlayed: async () => null, newUnlocks: async () => [], findGame: async () => null, refreshTotals: () => {}, seen: null };
+  const pasó = contexto(t, config, retro);
+  juegos.syncEmulatorGames('wii');
+  const smg = config.games[0];
+  smg.raId = 189;
+  fs.writeFileSync(dol.log, 'I[RetroAchievements]: Awarding achievement 1: De otra vez\r\n');
+  juegos.startRetroLog(smg);
+  await new Promise((r) => setTimeout(r, 1200));
+  assert.deepEqual(pasó.avisos, [], 'lo que ya estaba no se avisa');
+  await juegos.retroTick(smg);
+  await juegos.retroTick(null);
+  assert.match(fs.readFileSync(dol.log, 'utf8'), /De otra vez/, 'no se toca lo que ya estaba');
+});

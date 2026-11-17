@@ -78,7 +78,9 @@ src/minecraft.js        Minecraft Java (launcher oficial): findLauncher y progre
                         .minecraft\logs\latest.log ("[CHAT] <nombre> has made the advancement [X]", solo inglés)
 src/minecraft-icons.js  Ícono de cada progreso desde el .jar del juego (advancement JSON + en_us.json + textura
                         16×16 agrandada sin suavizar), guardado en cache\minecraft\<versión>\
-src/emulators.js        Emuladores (EMULATORS: PCSX2 y RetroArch con mGBA): dónde está, carpetas, cómo abrir un juego
+src/emulators.js        Emuladores (EMULATORS: PCSX2, RetroArch con mGBA y Dolphin para Wii): dónde está, carpetas, cómo
+                        abrir un juego. Dolphin: discSystem (Wii o GameCube por la cabecera), sus logros al instante con
+                        -C Logger.* (su propio dolphin.log, keep + fromEnd: no se borra y solo se lee lo nuevo)
 src/retroachievements.js Logros de los juegos de emulador: reconoce por nombre, lista con la forma de Steam, avisos
 src/launcher.js         Abre los juegos y avisa cuando terminan (Minecraft: vigila javaw.exe; .url de Epic: los .exe de su
                         carpeta, sacada de IconFile). `dismiss()` (Volver al menú) no corta las horas
@@ -245,6 +247,11 @@ descripción), `cache\` (arte descargado, `spotify.log`, `discord.log`) y las cl
   solo se anima el canal marcado, solo se dibuja la página visible y la transición usa una foto (`setZoomerImage`).
 - RetroArch reescribe `retroarch.cfg` al cerrarse y guarda las rutas con `~` (carpeta personal) o `:` (su carpeta): hay
   que expandirlas (`retroarchOption`). Si no, no encuentra ningún juego.
+- Dolphin (Wii): sus logros salen en su propio `Logs\dolphin.log` (carpeta de usuario: `portable.txt` → `User\` junto al exe; si
+  no, `Documentos\Dolphin Emulator` o `%APPDATA%\Dolphin Emulator`). Se enciende solo para esa partida con `-C Logger.…` (no
+  cambia `Logger.ini`; probado: el registro dice "(with token)" pero no el token). **Nunca leas su `RetroAchievements.ini`**
+  (tiene el token). RetroAchievements: Wii = consola 19 (GameCube = 16). Con `.wbfs` el hash no calza: hace falta RVZ o ISO.
+  El arte de libretro-thumbnails a veces está con una sola región ("(USA)" y no "(USA, Canada)"): `artNames` de `media.js`.
 - Horas de cada juego (`playtimeMin` de `gamesView`): los de Steam, las de Steam (la mayor entre `localStats` y la Web API);
   los demás, las que contó NostalHub (`playLog.totals()`, suma de sus sesiones en `estadisticas.db`).
 - Horas: `trackTick` de `main.js` revisa cada 15 s qué juego está abierto (`RunningAppID` de Steam o
