@@ -96,6 +96,7 @@ src/juegos-emulador.js  Juegos de emulador (sync/addEmulatorGames) y RetroAchiev
                         retroTick, linkRetroGames)
 src/biblioteca.js       Importar Steam, agregar juego a mano, vigilar la biblioteca de Steam y descargar el arte
 src/opciones.js         Convierte las opciones de menuSections(): menú de la bandeja, modelo para las consolas y ejecutar
+src/sonido.js           nivelarWav: sube el volumen de un logro.wav bajito (copia en cache\sonidos; lo usa consoleAssets)
 src/riot.js             Juegos de Riot (PRODUCTS: valorant, league_of_legends, teamfighttactics): Riot Client y juegos
                         instalados (C:\ProgramData\Riot Games). Tipo 'riot' en el launcher: abre `RiotClientServices.exe
                         --launch-product=<id> --launch-patchline=live` y vigila `open` (sigue jugando) y `playing` (cuentan
@@ -214,6 +215,11 @@ descripción), `cache\` (arte descargado, `spotify.log`, `discord.log`) y las cl
   queda pegada al terminar y el navegador puede dejar el texto dibujado a la escala de la animación (más grueso, un poco
   borroso), y solo a veces: hacía fallar al azar las pruebas de la Switch y la Wii en la corrida completa. Las de salida
   (`reverse`, o que terminan escondidas) sí necesitan `forwards`/`both`.
+- Volumen del aviso de logro: los sonidos hechos con código (`SYNTH` de `renderer/overlay/overlay.js`) se dibujan primero con
+  `OfflineAudioContext`, se mide su pico y se tocan nivelados (`PICO`); los `logro.wav` bajitos se suben con `src/sonido.js`.
+  Antes quedaban entre el 6 y el 14 % y no se oían encima del juego. Para probar uno: `nostalhubTestAchievement({ estilo: 'wii' })`.
+- Pantallas que tapan todo (el Resumen): lo de atrás se esconde con `visibility: hidden` mientras están abiertas
+  (`body.st-covering`). Si no, con una pantalla pesada atrás (Biblioteca de la PS4) aparecían cuadros sin pintar que tintineaban.
 - Las `@keyframes` de todos los temas comparten nombre global (todo el CSS se carga junto): usa nombres con prefijo
   (`wii-`, `ps2-`, `x360-`…). `tests/logica/css.test.js` avisa si una se repite o si se usa una que no existe.
 - Errores que no se ven en pantalla: `anotar('dónde', e)` de `src/registro.js` (queda en `cache\nostalhub.log`). Un

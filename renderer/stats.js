@@ -177,11 +177,20 @@
     load();
   }
 
+  // Mientras el Resumen tapa todo, lo de atrás (la consola o el menú principal) no se dibuja: con una pantalla pesada atrás
+  // (la Biblioteca de la PS4, con imágenes animadas) aparecían cuadros sin pintar que tintineaban encima del Resumen
+  let coverTimer = null;
+  function cover(on) {
+    clearTimeout(coverTimer);
+    if (on) coverTimer = setTimeout(() => document.body.classList.add('st-covering'), 220); // después de aparecer
+    else document.body.classList.remove('st-covering');
+  }
   function show() {
     if (open) return;
     open = true;
     box.hidden = false;
     box.classList.remove('leave');
+    cover(true);
     offset = 0;
     load();
     timer = setInterval(() => load(false), REFRESH_MS); // las horas suben mientras juegas
@@ -190,6 +199,7 @@
     if (!open) return;
     open = false;
     clearInterval(timer);
+    cover(false);
     box.classList.add('leave');
     setTimeout(() => {
       if (!open) box.hidden = true;

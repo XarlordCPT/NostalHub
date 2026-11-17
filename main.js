@@ -248,9 +248,9 @@ function achievementDisplay() {
 const overlay = new Overlay({ dir: __dirname, pickDisplay: achievementDisplay });
 const ACH_STYLES = ['x360', 'ps3', 'ps4', 'vita', 'wii', 'ps2', 'switch', '3ds', 'xone']; // las que tienen aviso propio (ver renderer/overlay)
 const PLAYSTATION = ['ps3', 'ps4', 'vita'];
-function showAchievement(a, { test = false } = {}) {
+function showAchievement(a, { test = false, estilo = null } = {}) {
   if (config.data.achOverlay === false) return test && send('toast', 'Los logros sobre el juego están apagados (Ajustes → Pantalla)');
-  const last = config.data.lastConsole || '';
+  const last = estilo || config.data.lastConsole || ''; // (estilo: solo para pruebas)
   const style = ACH_STYLES.includes(last) ? last : 'x360';
   const ss = soundSettings();
   const sound = (consoleAssets([style])[style] || {}).achievement || null;
@@ -302,7 +302,8 @@ const FAKE = ['Primeros pasos', 'Coleccionista incansable', 'Sin un rasguño', '
 global.nostalhubTestAchievement = (o) => testAchievement(o); // (para pruebas automáticas)
 function testAchievement(o = {}) {
   const pct = [60, 30, 12, 6, 2, 0.5][Math.floor(Math.random() * 6)];
-  showAchievement({ name: FAKE[Math.floor(Math.random() * FAKE.length)], gamerscore: gamerscore(pct), tier: trophyTier(pct), icon: null, completed: Math.random() < 0.15, ...o }, { test: true });
+  const { estilo, ...extra } = o && typeof o === 'object' ? o : {}; // estilo: el de otra consola (pruebas automáticas)
+  showAchievement({ name: FAKE[Math.floor(Math.random() * FAKE.length)], gamerscore: gamerscore(pct), tier: trophyTier(pct), icon: null, completed: Math.random() < 0.15, ...extra }, { test: true, estilo });
 }
 
 // ---------- Utilidades ----------

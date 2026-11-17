@@ -182,7 +182,7 @@ Para abrirlas: Ajustes → Archivos → **Carpeta de consolas** (en la Xbox tamb
 | `opciones.wav` | **PS3**: al abrir el **menú de opciones** (tecla O) |
 | `error.wav` | **PS3, Switch y 3DS**: cuando algo **no se pudo hacer** (por ejemplo, un juego que no abrió) |
 | `borde.wav` | **Switch y 3DS**: al chocar con el final de una fila |
-| `logro.wav` | El sonido del **aviso de logro** que aparece encima del juego (sección 8) |
+| `logro.wav` | El sonido del **aviso de logro** que aparece encima del juego (sección 8). Si es muy bajito, NostalHub lo sube solo (usa una copia en `cache\sonidos\`; tu archivo no se toca) |
 | `boton-grupo.wav`, `boton-musica.wav`, `boton-tienda.wav`, `boton-logros.wav`, `boton-software.wav`, `boton-amigos.wav`, `boton-ajustes.wav`, `boton-energia.wav` | **Switch**: el sonido de cada botón redondo al abrirlo (si falta uno, suena `elegir.wav`) |
 | `intro.mp4` | Video que se reproduce **cada vez que entras** a esa consola, por ejemplo el arranque de la Xbox 360 en `consolas\x360\intro.mp4`. Se salta con Enter, Esc, espacio o un clic. También sirven `.webm` y `.mov` |
 
@@ -609,7 +609,8 @@ En **Ajustes → Pantalla**:
   "exclusiva" no se ve encima (muchos juegos con DirectX 12 sí funcionan).
 - **Ajustes → Pantalla**: activar o desactivar **Logros sobre el juego** y elegir la **Pantalla de los logros**.
 - **Prueba**: **Ctrl + Alt + Shift + L** muestra un logro falso con el estilo de la consola en la que estás.
-- Sonido: el tuyo en `consolas\<consola>\logro.wav`; si no, uno hecho con código.
+- Sonido: el tuyo en `consolas\<consola>\logro.wav` (si es muy bajito, se sube solo para que se oiga encima del juego); si
+  no, uno hecho con código (suena igual de fuerte en todas las consolas).
 
 ### Lista de logros de cada juego
 

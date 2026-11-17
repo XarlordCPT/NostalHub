@@ -7,6 +7,7 @@ const fs = require('fs');
 const path = require('path');
 const { ipcMain, nativeImage } = require('electron');
 const media = require('./media');
+const { nivelarWav } = require('./sonido');
 const { anotar } = require('./registro');
 
 let nh = null;
@@ -90,6 +91,27 @@ function trimImage(src, key) {
   }
 }
 
+// El logro.wav con el volumen nivelado (si era bajito): una copia en cache\sonidos, hecha una sola vez por versión del
+// archivo. Si no hace falta o no se puede, null (se usa el original)
+function levelSound(src, key) {
+  try {
+    if (path.extname(src).toLowerCase() !== '.wav') return null;
+    const st = fs.statSync(src);
+    const dir = path.join(nh.dataDir, 'cache', 'sonidos');
+    const out = path.join(dir, `${key}-${Math.round(st.mtimeMs)}-${st.size}.wav`);
+    if (fs.existsSync(out)) return out;
+    const r = nivelarWav(fs.readFileSync(src));
+    if (!r) return null;
+    fs.mkdirSync(dir, { recursive: true });
+    for (const old of fs.readdirSync(dir)) if (old.startsWith(`${key}-`)) fs.rmSync(path.join(dir, old), { force: true });
+    fs.writeFileSync(out, r.buffer);
+    return out;
+  } catch (e) {
+    anotar('sonidos', e);
+    return null;
+  }
+}
+
 function consoleAssets(ids) {
   fs.mkdirSync(nh.consolesDir, { recursive: true });
   const out = {};
@@ -110,7 +132,9 @@ function consoleAssets(ids) {
       if (!f) continue;
       const file = path.join(dir, f);
       // El ícono y el logo se recortan solos (sin bordes vacíos) para que todos se vean del mismo tamaño
-      found[kind] = nh.fileUrl((kind === 'icon' || kind === 'logo') && trimImage(file, `${safe}-${kind}`)) || nh.fileUrl(file);
+      // y el sonido del logro (encima del juego) se nivela si es muy bajito
+      const ajustado = kind === 'icon' || kind === 'logo' ? trimImage(file, `${safe}-${kind}`) : kind === 'achievement' ? levelSound(file, `${safe}-logro`) : null;
+      found[kind] = nh.fileUrl(ajustado) || nh.fileUrl(file);
     }
     out[id] = found;
   }

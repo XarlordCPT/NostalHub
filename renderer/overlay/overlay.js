@@ -30,32 +30,50 @@
     switch: [[1200, 0, 0, 0.05, 0.12, 'square'], [1600, 0, 0.04, 0.35, 0.22]],
     '3ds': [[1568, 0, 0, 0.25, 0.22, 'triangle'], [2093, 0, 0.1, 0.5, 0.2, 'triangle']],
   };
-  function synth(style, vol) {
+  // Se dibuja primero en silencio (OfflineAudioContext), se mide su punto más fuerte y se toca nivelado: así todas las
+  // consolas suenan parejo y tan fuerte como un logro.wav normal (antes quedaban entre el 6 y el 14 % y casi no se oían
+  // encima del juego). PICO: a cuánto del máximo llega con el volumen de los sonidos al máximo.
+  const PICO = 0.85;
+  async function synth(style, vol) {
+    const notes = SYNTH[style] || SYNTH.x360;
+    const rate = 48000;
+    const len = Math.max(...notes.map((n) => n[2] + n[3])) + 0.1;
+    let buf;
+    try {
+      const off = new OfflineAudioContext(1, Math.ceil(rate * len), rate);
+      const tone = (f, f2, t0, d, g, type = 'sine') => {
+        const o = off.createOscillator();
+        const v = off.createGain();
+        o.type = type;
+        o.frequency.setValueAtTime(f, t0);
+        if (f2) o.frequency.exponentialRampToValueAtTime(f2, t0 + d * 0.6);
+        v.gain.setValueAtTime(0.0001, t0);
+        v.gain.exponentialRampToValueAtTime(g, t0 + 0.01);
+        v.gain.exponentialRampToValueAtTime(0.0001, t0 + d);
+        o.connect(v).connect(off.destination);
+        o.start(t0);
+        o.stop(t0 + d + 0.05);
+      };
+      for (const n of notes) tone(...n);
+      buf = await off.startRendering();
+    } catch {
+      return;
+    }
+    let peak = 0;
+    for (const x of buf.getChannelData(0)) peak = Math.max(peak, Math.abs(x));
     let ac;
     try {
       ac = new AudioContext();
     } catch {
       return;
     }
+    const src = ac.createBufferSource();
+    src.buffer = buf;
     const out = ac.createGain();
-    out.gain.value = vol * 0.6;
-    out.connect(ac.destination);
-    const tone = (f, f2, t, d, g, type = 'sine') => {
-      const o = ac.createOscillator();
-      const v = ac.createGain();
-      const t0 = ac.currentTime + t;
-      o.type = type;
-      o.frequency.setValueAtTime(f, t0);
-      if (f2) o.frequency.exponentialRampToValueAtTime(f2, t0 + d * 0.6);
-      v.gain.setValueAtTime(0.0001, t0);
-      v.gain.exponentialRampToValueAtTime(g, t0 + 0.01);
-      v.gain.exponentialRampToValueAtTime(0.0001, t0 + d);
-      o.connect(v).connect(out);
-      o.start(t0);
-      o.stop(t0 + d + 0.05);
-    };
-    for (const n of SYNTH[style] || SYNTH.x360) tone(...n);
-    setTimeout(() => ac.close(), 2000);
+    out.gain.value = (vol * PICO) / Math.max(peak, 0.01);
+    src.connect(out).connect(ac.destination);
+    src.start();
+    setTimeout(() => ac.close(), (len + 0.5) * 1000);
   }
 
   // Copa de trofeo de PlayStation, del color que toca
