@@ -43,6 +43,8 @@ class Spotify {
     this.helperBuf = '';
     this.keyProc = null;
     this.coverCache = new Map();
+    // Con Windows mostrando la canción, la API se consulta cada 5 s en vez de 2 (ver commit: al cambiar de canción, al tiro)
+    if (this.web) this.web.calm = () => this.mode === 'smtc' && this.appId === 'spotify' && this.state.running && !!this.state.title;
   }
 
   // ---------- Encendido / apagado según si la pantalla lo está mostrando ----------
@@ -346,18 +348,27 @@ class Spotify {
   }
 
   commit(next) {
+    // Windows avisó otra canción: se le pregunta a la API al tiro (si no, la de la API seguía hasta 5 s)
+    const otra = next.title && next.title !== this.state.title;
+    if (otra && this.webOn() && this.web.poll) this.web.poll();
     this.state = next;
     this.emit();
   }
 
-  // ¿Se usa la API de Spotify? (conectada, sin error y activada en Ajustes)
+  // ¿Se usa la API de Spotify? (conectada, sin error, activada en Ajustes y sin que Spotify haya pedido esperar)
   webOn() {
     const w = this.web;
-    return !!(w && this.appId === 'spotify' && this.useWeb() && w.connected && w.state.status === 'ok');
+    return !!(w && this.appId === 'spotify' && this.useWeb() && w.connected && w.state.status === 'ok' && !(w.waiting && w.waiting()));
+  }
+  // ¿Lo que dio la API es de ahora? Si no llega nada nuevo hace rato (sin internet, Spotify pidió esperar), lo que
+  // suena y el avance se toman de Windows: si no, la canción y el minuto quedaban congelados.
+  webFresh() {
+    const at = this.web && this.web.state.at;
+    return !!at && Date.now() - at < 15000;
   }
   // ¿La API de Spotify está dando la canción actual?
   webPlaying() {
-    return this.webOn() && !!(this.web.state.playback && this.web.state.playback.item);
+    return this.webOn() && this.webFresh() && !!(this.web.state.playback && this.web.state.playback.item);
   }
 
   // Lo que ve la interfaz: lo de Windows + lo de la API de Spotify (si está conectada)
@@ -371,7 +382,7 @@ class Spotify {
     if (!this.webOn()) return v;
     Object.assign(v, { hasApi: true, liked: w.state.liked, queue: w.state.queue || [] });
     const pb = w.state.playback;
-    if (!pb) return v;
+    if (!pb || !this.webFresh()) return v;
     Object.assign(v, { device: pb.device, shuffle: pb.shuffle, smartShuffle: pb.smartShuffle, repeat: pb.repeat });
     if (pb.item) {
       Object.assign(v, {

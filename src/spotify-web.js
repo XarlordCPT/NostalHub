@@ -32,6 +32,8 @@ class SpotifyWeb {
     this.timer = null;
     this.ticks = 0;
     this.backoffUntil = 0;
+    this.calm = () => false; // true si Windows ya muestra la canción (lo pone spotify.js): entonces se pregunta cada 5 s
+    this.lastTick = 0;
     // status: no-config | need-auth | authorizing | ok | error
     this.state = { status: this.cfg.clientId ? (this.cfg.refreshToken ? 'ok' : 'need-auth') : 'no-config', message: '', user: this.cfg.user || null, playback: null, queue: [], liked: null };
   }
@@ -172,6 +174,11 @@ class SpotifyWeb {
     }
   }
 
+  // ¿Spotify pidió esperar (demasiadas consultas)? Puede durar horas: mientras tanto no hay datos nuevos de la API
+  waiting() {
+    return Date.now() < this.backoffUntil;
+  }
+
   // Petición a la API. Devuelve el JSON, null si no hay contenido, o lanza un error.
   async api(method, p, { query, body } = {}, retry = true) {
     if (Date.now() < this.backoffUntil) throw new Error('esperando (demasiadas consultas)');
@@ -214,16 +221,23 @@ class SpotifyWeb {
     this.syncTimer();
   }
 
-  // Consulta cada 2 s mientras alguna pantalla lo muestra y está conectado
+  // Consulta cada 2 s mientras alguna pantalla lo muestra y está conectado; cada 5 s si Windows ya muestra la canción
+  // (preguntar cada 2 s durante horas de juego hizo que Spotify bloqueara las consultas por 3 horas)
   syncTimer() {
     const on = this.watchers && this.connected && this.enabled();
     if (on && !this.timer) {
-      this.poll();
-      this.timer = setInterval(() => this.poll(), 2000);
+      this.tick();
+      this.timer = setInterval(() => this.tick(), 2000);
     } else if (!on && this.timer) {
       clearInterval(this.timer);
       this.timer = null;
     }
+  }
+
+  tick(now = Date.now()) {
+    if (this.calm() && now - this.lastTick < 4900) return;
+    this.lastTick = now;
+    this.poll();
   }
 
   async poll() {

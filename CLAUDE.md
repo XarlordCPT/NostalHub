@@ -213,6 +213,10 @@ descripción), `cache\` (arte descargado, `spotify.log`, `discord.log`) y las cl
   (`playtimes`) y se usa la mayor. Al terminar un juego se refrescan logros y horas a los 4 s y a los 30 s.
 - Spotify: `hasApi` depende de que la API esté **conectada** (`spotify.webOn()`), no de que haya algo sonando: con
   Spotify en pausa la API no da `playback` y antes salían los botones básicos. Se apaga con `config.spotifyApi`.
+  Si Spotify pide esperar (429, `Retry-After` de hasta 3 horas: `web.waiting()`) o la API no responde hace más de 15 s
+  (`webFresh()`), la canción y el avance salen de Windows (SMTC). Antes quedaban congelados en la última respuesta de la API.
+  Para no llegar a eso: con Windows mostrando la canción la API se consulta cada 5 s (`calm` + `tick` de `spotify-web.js`), y
+  cuando Windows avisa otra canción se pregunta al tiro (`commit` de `spotify.js`).
 - Animaciones de entrada con `transform: scale(…)`: usa `animation-fill-mode: backwards`, no `both`. Con `both` la animación
   queda pegada al terminar y el navegador puede dejar el texto dibujado a la escala de la animación (más grueso, un poco
   borroso), y solo a veces: hacía fallar al azar las pruebas de la Switch y la Wii en la corrida completa. Las de salida
