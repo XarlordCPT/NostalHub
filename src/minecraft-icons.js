@@ -82,7 +82,8 @@ class MinecraftIcons {
     this.indexes = new Map(); // versión → Promise<{ título: objeto }>
   }
 
-  // El .jar del juego: el de la versión que dice el log, o el más nuevo que haya
+  // El .jar del juego: el de la versión que dice el log, o el más nuevo que haya. Modrinth los guarda como
+  // "<versión>-<cargador>" (1.21.1-21.1.267): si no está el exacto, sirve uno de esa versión.
   jarFor(version) {
     const dir = path.join(this.gameDir, 'versions');
     if (version) {
@@ -94,12 +95,13 @@ class MinecraftIcons {
       for (const v of fs.readdirSync(dir)) {
         const jar = path.join(dir, v, `${v}.jar`);
         try {
+          const same = !!version && v.startsWith(`${version}-`); // de la misma versión: le gana a cualquier otro
           const t = fs.statSync(jar).mtimeMs;
-          if (!best || t > best.t) best = { version: v, jar, t };
+          if (!best || same > best.same || (same === best.same && t > best.t)) best = { version: v, jar, t, same };
         } catch {}
       }
     } catch {}
-    return best;
+    return best && { version: best.version, jar: best.jar };
   }
 
   // { "Stone Age": "stone_pickaxe", … } de esa versión (se guarda para no leer el .jar cada vez)

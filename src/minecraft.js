@@ -2,12 +2,14 @@
 // Cuando consigues un progreso, Minecraft lo escribe en .minecraft\logs\latest.log como mensaje del chat:
 //   [Render thread/INFO]: [System] [CHAT] Xarlord has made the advancement [Stone Age]
 // Sirve en mundos propios y en servidores (si el servidor anuncia los progresos). Solo en inglés.
+// Modpacks de la app de Modrinth: cada uno es una carpeta en %APPDATA%\ModrinthApp\profiles con su propio logs\latest.log
+// (cada modpack es un juego aparte en NostalHub, con sus horas y sus progresos).
 
 const fs = require('fs');
 const path = require('path');
 
 const GAME_DIR = path.join(process.env.APPDATA || '', '.minecraft');
-const LOG = path.join(GAME_DIR, 'logs', 'latest.log');
+const MODRINTH_DIR = path.join(process.env.APPDATA || '', 'ModrinthApp'); // profiles\<modpack> y meta\versions (los .jar)
 const STORE_ID = 'Microsoft.4297127D64EC6_8wekyb3d8bbwe'; // launcher de la Microsoft Store / app de Xbox
 
 // Tipo de progreso → trofeo y puntos (como en la pantalla de progresos del juego)
@@ -33,10 +35,37 @@ function findLauncher() {
   return exes.find((p) => fs.existsSync(p)) || null;
 }
 
-// El comienzo del log, con la hora en que se abrió Minecraft (para saber si es otro archivo). null si aún está vacío
-function head() {
+// La app de Modrinth (Jugar abre la app: ahí se aprieta Jugar en el modpack)
+function findModrinth() {
+  const exes = [
+    path.join(process.env.LOCALAPPDATA || '', 'Modrinth App', 'Modrinth App.exe'),
+    path.join(process.env.ProgramFiles || 'C:\\Program Files', 'Modrinth App', 'Modrinth App.exe'),
+  ];
+  return exes.find((p) => fs.existsSync(p)) || null;
+}
+
+// "Xars-Create-Survival-1.2.0" → "Xars Create Survival" (sin la versión del modpack)
+function modpackName(folder) {
+  return String(folder).replace(/[-_ ]v?\d+(\.\d+)+$/i, '').replace(/[-_]+/g, ' ').trim() || String(folder);
+}
+
+// Los modpacks instalados en la app de Modrinth: [{ folder, name, dir }]
+function modrinthProfiles(base = MODRINTH_DIR) {
+  const root = path.join(base, 'profiles');
   try {
-    const fd = fs.openSync(LOG, 'r');
+    return fs
+      .readdirSync(root, { withFileTypes: true })
+      .filter((d) => d.isDirectory())
+      .map((d) => ({ folder: d.name, name: modpackName(d.name), dir: path.join(root, d.name) }));
+  } catch {
+    return [];
+  }
+}
+
+// El comienzo del log, con la hora en que se abrió Minecraft (para saber si es otro archivo). null si aún está vacío
+function head(file) {
+  try {
+    const fd = fs.openSync(file, 'r');
     const buf = Buffer.alloc(40);
     const n = fs.readSync(fd, buf, 0, 40, 0);
     fs.closeSync(fd);
@@ -50,7 +79,10 @@ const strip = (s) => String(s).replace(/§./g, ''); // quita los colores de Mine
 
 // Vigila latest.log y avisa cada progreso tuyo (no los de otros jugadores del servidor)
 class MinecraftWatcher {
-  constructor({ onUnlock, log = () => {} }) {
+  // gameDir: la carpeta del juego (.minecraft, o la del modpack de Modrinth)
+  constructor({ onUnlock, log = () => {}, gameDir = GAME_DIR }) {
+    this.gameDir = gameDir;
+    this.logFile = path.join(gameDir, 'logs', 'latest.log');
     this.onUnlock = onUnlock;
     this.log = log;
     this.timer = null;
@@ -62,15 +94,15 @@ class MinecraftWatcher {
   }
 
   start() {
-    if (this.timer || !fs.existsSync(GAME_DIR)) return;
+    if (this.timer || !fs.existsSync(this.gameDir)) return;
     // Lo que ya estaba escrito no se avisa: solo se busca con qué cuenta se está jugando
     try {
-      const st = fs.statSync(LOG);
+      const st = fs.statSync(this.logFile);
       this.offset = st.size;
-      this.head = head() || '';
-      const m = fs.readFileSync(LOG, 'utf8').match(new RegExp(USER.source, 'g'));
+      this.head = head(this.logFile) || '';
+      const m = fs.readFileSync(this.logFile, 'utf8').match(new RegExp(USER.source, 'g'));
       if (m) this.user = m[m.length - 1].match(USER)[1];
-      const v = fs.readFileSync(LOG, 'utf8').slice(0, 20000).match(VERSION);
+      const v = fs.readFileSync(this.logFile, 'utf8').slice(0, 20000).match(VERSION);
       this.version = v ? v[1] || v[2] : null;
     } catch {
       this.offset = 0;
@@ -86,11 +118,11 @@ class MinecraftWatcher {
   poll() {
     let size;
     try {
-      const st = fs.statSync(LOG);
+      const st = fs.statSync(this.logFile);
       size = st.size;
       // Archivo nuevo (Minecraft se abrió de nuevo): cambia la primera línea. La fecha de creación no sirve,
       // porque Windows la copia del archivo anterior si se crea otro con el mismo nombre al tiro.
-      const h = head();
+      const h = head(this.logFile);
       if (h === null) return;
       if (h !== this.head) {
         this.head = h;
@@ -109,7 +141,7 @@ class MinecraftWatcher {
     if (size === this.offset) return;
     let text = '';
     try {
-      const fd = fs.openSync(LOG, 'r');
+      const fd = fs.openSync(this.logFile, 'r');
       const buf = Buffer.alloc(Math.min(size - this.offset, 4 * 1024 * 1024));
       fs.readSync(fd, buf, 0, buf.length, this.offset);
       fs.closeSync(fd);
@@ -134,4 +166,4 @@ class MinecraftWatcher {
   }
 }
 
-module.exports = { MinecraftWatcher, findLauncher, GAME_DIR };
+module.exports = { MinecraftWatcher, findLauncher, findModrinth, modrinthProfiles, modpackName, GAME_DIR, MODRINTH_DIR };

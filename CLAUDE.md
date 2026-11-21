@@ -75,7 +75,10 @@ src/steamweb.js         Web API de Steam (con clave): logros, totales, perfil, a
 src/achievements.js     Detecta logros nuevos al instante leyendo los archivos de Steam (trophyTier, platino)
 src/overlay.js          Ventana transparente encima del juego para el aviso de logro (POS por consola)
 src/minecraft.js        Minecraft Java (launcher oficial): findLauncher y progresos al instante leyendo
-                        .minecraft\logs\latest.log ("[CHAT] <nombre> has made the advancement [X]", solo inglés)
+                        .minecraft\logs\latest.log ("[CHAT] <nombre> has made the advancement [X]", solo inglés).
+                        Modpacks de Modrinth (findModrinth, modrinthProfiles): un juego por modpack con game.gameDir
+                        (%APPDATA%\ModrinthApp\profiles\<modpack>); main.js tiene un MinecraftWatcher por carpeta y los
+                        íconos salen de ModrinthApp\meta\versions ("1.21.1-21.1.267"). Nunca leas su app.db (tiene sesiones)
 src/minecraft-icons.js  Ícono de cada progreso desde el .jar del juego (advancement JSON + en_us.json + textura
                         16×16 agrandada sin suavizar), guardado en cache\minecraft\<versión>\
 src/emulators.js        Emuladores (EMULATORS: PCSX2, RetroArch con mGBA y Dolphin para Wii): dónde está, carpetas, cómo

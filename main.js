@@ -270,24 +270,65 @@ const achWatcher = new AchievementWatcher({
   },
   log: (...m) => anotar('logros', m.join(' ')),
 });
-// Minecraft Java: los progresos salen en su log (src/minecraft.js). Solo se vigila si lo agregaste.
+// Minecraft Java: los progresos salen en su log (src/minecraft.js). Solo se vigila si lo agregaste: el normal (.minecraft) y
+// cada modpack de Modrinth (su carpeta va en game.gameDir), cada uno con su vigilante.
 // El ícono de cada progreso sale del .jar del juego (src/minecraft-icons.js); si no se encuentra, va la copa.
-const mcIcons = new MinecraftIcons({ gameDir: minecraft.GAME_DIR, cacheDir: path.join(DATA_DIR, 'cache', 'minecraft'), log: (...m) => anotar('minecraft', m.join(' ')) });
-const mcWatcher = new minecraft.MinecraftWatcher({
-  onUnlock: async (a) => {
-    const icon = await mcIcons.iconFor(a.name, a.version).catch(() => null);
-    showAchievement({ ...a, icon: icon ? fileUrl(icon) : null });
-  },
-  log: (...m) => anotar('minecraft', m.join(' ')),
-});
+const mcIconsByDir = new Map(); // carpeta con versions\ → MinecraftIcons
+function mcIconsFor(gameDir) {
+  const inModrinth = path.relative(path.join(minecraft.MODRINTH_DIR, 'profiles'), gameDir).split(path.sep)[0] !== '..';
+  const dir = inModrinth ? path.join(minecraft.MODRINTH_DIR, 'meta') : gameDir; // Modrinth guarda los .jar en meta\versions
+  if (!mcIconsByDir.has(dir)) mcIconsByDir.set(dir, new MinecraftIcons({ gameDir: dir, cacheDir: path.join(DATA_DIR, 'cache', 'minecraft'), log: (...m) => anotar('minecraft', m.join(' ')) }));
+  return mcIconsByDir.get(dir);
+}
+const mcWatchers = new Map(); // carpeta del juego → MinecraftWatcher
 function syncMinecraftWatcher() {
-  if (config.games.some((g) => g.type === 'minecraft' && !g.hidden)) {
-    if (!mcWatcher.timer) setTimeout(() => mcIcons.index(mcWatcher.version), 20000); // deja listos los nombres antes del primer progreso
-    mcWatcher.start();
-  } else mcWatcher.stop();
+  const dirs = new Set(config.games.filter((g) => g.type === 'minecraft' && !g.hidden).map((g) => g.gameDir || minecraft.GAME_DIR));
+  for (const [dir, w] of mcWatchers) {
+    if (dirs.has(dir)) continue;
+    w.stop();
+    mcWatchers.delete(dir);
+  }
+  for (const dir of dirs) {
+    if (mcWatchers.has(dir)) continue;
+    const icons = mcIconsFor(dir);
+    const w = new minecraft.MinecraftWatcher({
+      gameDir: dir,
+      onUnlock: async (a) => {
+        const icon = await icons.iconFor(a.name, a.version).catch(() => null);
+        showAchievement({ ...a, icon: icon ? fileUrl(icon) : null });
+      },
+      log: (...m) => anotar('minecraft', m.join(' ')),
+    });
+    mcWatchers.set(dir, w);
+    w.start();
+    setTimeout(() => icons.index(w.version), 20000); // deja listos los nombres antes del primer progreso
+  }
+}
+// Los modpacks de la app de Modrinth: uno por juego ("Minecraft: Xars Create Survival"), con sus horas y sus progresos
+async function addModrinthPacks() {
+  const target = minecraft.findModrinth();
+  if (!target) return send('toast', 'No se encontró la app de Modrinth');
+  const packs = minecraft.modrinthProfiles();
+  if (!packs.length) return send('toast', 'La app de Modrinth no tiene modpacks');
+  let added = 0;
+  for (const p of packs) {
+    const id = `minecraft-modrinth-${media.safeId(p.folder)}`;
+    const old = config.games.find((g) => g.id === id);
+    if (old) {
+      Object.assign(old, { target, gameDir: p.dir }); // por si se movió la app
+      continue;
+    }
+    config.games.push({ id, name: `Minecraft: ${p.name}`, type: 'minecraft', target, gameDir: p.dir, args: [], hidden: false, media: {}, custom: {}, mediaCheckedAt: 0 });
+    added++;
+  }
+  config.save();
+  ensureCustomFolders();
+  syncMinecraftWatcher();
+  pushGamesSoon();
+  send('toast', added ? (added === 1 ? 'Se agregó 1 modpack de Minecraft' : `Se agregaron ${added} modpacks de Minecraft`) : 'No hay modpacks nuevos en Modrinth');
 }
 async function addMinecraft() {
-  if (config.games.some((g) => g.type === 'minecraft')) return send('toast', 'Minecraft ya está en la lista');
+  if (config.games.some((g) => g.type === 'minecraft' && !g.gameDir)) return send('toast', 'Minecraft ya está en la lista');
   const target = minecraft.findLauncher();
   if (!target) return send('toast', 'No se encontró el launcher oficial de Minecraft');
   config.games.push({ id: 'minecraft', name: 'Minecraft', type: 'minecraft', target, args: [], hidden: false, media: {}, custom: {}, mediaCheckedAt: 0 });
@@ -621,7 +662,7 @@ let isQuitting = false;
 app.on('before-quit', () => {
   globalShortcut.unregisterAll();
   achWatcher.stop();
-  mcWatcher.stop();
+  for (const w of mcWatchers.values()) w.stop();
   clearInterval(trackTimer);
   playLog.dispose();
   presence.dispose();
@@ -731,6 +772,13 @@ function menuSections() {
           label: 'Agregar Minecraft (Java)',
           desc: 'Con el launcher oficial. Sus progresos salen como logros encima del juego (Minecraft en inglés).',
           run: () => addMinecraft(),
+        },
+        {
+          id: 'add-modrinth',
+          type: 'action',
+          label: 'Agregar modpacks de Minecraft (Modrinth)',
+          desc: 'Cada modpack de la app de Modrinth como un juego aparte, con sus horas y sus progresos encima del juego.',
+          run: () => addModrinthPacks(),
         },
         {
           id: 'art',
