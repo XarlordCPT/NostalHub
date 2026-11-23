@@ -3,6 +3,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { achievementIcon } = require('./achievements');
 
 const API = 'https://api.steampowered.com';
 const KEY_TEMPLATE = [
@@ -177,8 +178,8 @@ class SteamWeb {
           name: m.name || d.displayName || d.name,
           description: m.description || d.description || '',
           hidden: Number(d.hidden) === 1,
-          icon: d.icon,
-          iconGray: d.icongray,
+          icon: achievementIcon(appId, d.icon), // (la Web API da la dirección vieja: en juegos nuevos no existe)
+          iconGray: achievementIcon(appId, d.icongray),
           done,
           unlockTime: done && m.unlocktime ? Number(m.unlocktime) * 1000 : null,
           percent: pct.has(d.name) ? pct.get(d.name) : null,

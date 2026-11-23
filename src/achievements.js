@@ -62,6 +62,14 @@ function unlockedOf(file) {
   return out;
 }
 
+// Ícono de un logro de Steam. Va en la dirección nueva de Steam (community_assets): los juegos nuevos (2026) solo están ahí y
+// en la vieja (steamcommunity/public/images, que también da la Web API) salían rotos; los antiguos están en las dos.
+// icon: el nombre del archivo ("d2813d….jpg") o una dirección completa (se usa solo su nombre).
+function achievementIcon(appId, icon) {
+  const file = String(icon || '').split('/').pop();
+  return file ? `https://shared.akamai.steamstatic.com/community_assets/images/apps/${appId}/${file}` : null;
+}
+
 // Nombres, descripciones e íconos: Map("statId/bit" → { api, name, desc, icon })
 const LANGS = ['latam', 'spanish', 'english'];
 function pickLang(o) {
@@ -86,7 +94,7 @@ function schemaOf(file, appId) {
         name: pickLang(d.name) || b.name,
         desc: pickLang(d.desc),
         hidden: Number(d.hidden) === 1,
-        icon: d.icon ? `https://cdn.akamai.steamstatic.com/steamcommunity/public/images/apps/${appId}/${d.icon}` : null,
+        icon: achievementIcon(appId, d.icon),
       });
     }
   }
@@ -228,4 +236,4 @@ class AchievementWatcher {
   }
 }
 
-module.exports = { AchievementWatcher, gamerscore, trophyTier, parseKV };
+module.exports = { AchievementWatcher, gamerscore, trophyTier, parseKV, achievementIcon };

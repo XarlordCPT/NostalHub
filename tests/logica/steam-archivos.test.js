@@ -4,7 +4,7 @@ const assert = require('node:assert/strict');
 const path = require('path');
 const { parseVdf } = require('../../src/vdf');
 const { parseBinaryVdf } = require('../../src/steam');
-const { parseKV, AchievementWatcher, gamerscore, trophyTier } = require('../../src/achievements');
+const { parseKV, AchievementWatcher, gamerscore, trophyTier, achievementIcon } = require('../../src/achievements');
 const { kvBinario } = require('../ayuda/kv-binario');
 const { carpetaTemporal, escribir } = require('../ayuda/temporal');
 
@@ -75,4 +75,11 @@ test('puntos G y copa según qué tan raro es el logro', () => {
   assert.equal(trophyTier(10), 'silver');
   assert.equal(trophyTier(50), 'bronze');
   assert.equal(trophyTier(undefined), 'bronze');
+});
+
+test('ícono de un logro: siempre en la dirección nueva de Steam (en la vieja, los juegos nuevos salían rotos)', () => {
+  const nueva = 'https://shared.akamai.steamstatic.com/community_assets/images/apps/5258340/d2813d.jpg';
+  assert.equal(achievementIcon(5258340, 'd2813d.jpg'), nueva, 'el nombre que viene en los archivos de Steam');
+  assert.equal(achievementIcon(5258340, 'https://steamcdn-a.akamaihd.net/steamcommunity/public/images/apps/5258340/d2813d.jpg'), nueva, 'la dirección que da la Web API');
+  assert.equal(achievementIcon(5258340, ''), null);
 });
