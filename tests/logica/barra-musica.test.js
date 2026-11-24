@@ -20,15 +20,15 @@ test('atajos guardados: se completan con los de por defecto y se ignoran los que
 test('dónde va: los 6 lugares fijos, el que dejaste al moverla y nunca fuera de la pantalla', () => {
   const pantalla = { x: 1920, y: 0, width: 1920, height: 1080 }; // la segunda pantalla, a la derecha
   const arriba = barra.lugar('tc', null, pantalla, 1);
-  assert.deepEqual(arriba, { x: 1920 + (1920 - 900) / 2, y: 16, width: 900, height: 330 });
+  assert.deepEqual(arriba, { x: 1920 + (1920 - 900) / 2, y: 16, width: 900, height: 370 });
   assert.equal(barra.lugar('tl', null, pantalla, 1).x, 1920 + 16);
   assert.equal(barra.lugar('br', null, pantalla, 1).x, 1920 + 1920 - 900 - 16);
-  assert.equal(barra.lugar('bc', null, pantalla, 1).y, 1080 - 330 - 16);
+  assert.equal(barra.lugar('bc', null, pantalla, 1).y, 1080 - 370 - 16);
   assert.deepEqual(barra.lugar('cualquiera', null, pantalla, 1), arriba, 'si no se entiende: arriba al centro');
   // Movida a mano: se guarda como fracción de la pantalla y vuelve al mismo lugar (también con otra resolución)
   const f = barra.fraccion({ x: 1920 + 480, y: 540 }, pantalla);
   assert.deepEqual(f, { x: 0.25, y: 0.5 });
-  assert.deepEqual(barra.lugar('free', f, pantalla, 1), { x: 2400, y: 540, width: 900, height: 330 });
+  assert.deepEqual(barra.lugar('free', f, pantalla, 1), { x: 2400, y: 540, width: 900, height: 370 });
   const k4 = barra.lugar('free', f, { x: 0, y: 0, width: 3840, height: 2160 }, 2);
   assert.deepEqual([k4.x, k4.y, k4.width], [960, 1080, 1800]);
   assert.equal(barra.lugar('free', { x: 0.99, y: 0.99 }, pantalla, 1).x, 1920 + 1920 - 900, 'no se sale');

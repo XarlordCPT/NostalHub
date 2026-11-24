@@ -38,7 +38,9 @@
     const i = U.lyricsLine(lyr.lines, pos(v) + 300);
     const now = i >= 0 ? lyr.lines[i].text || '♪' : '♪';
     const next = lyr.lines[i + 1] ? lyr.lines[i + 1].text || '♪' : '';
-    return `<div class="now">${esc(now)}</div><div class="sig">${esc(next)}</div>`;
+    // Las líneas largas usan hasta 2 renglones y una letra más chica (antes se cortaban con "…")
+    const size = (t) => (t.length > 70 ? ' xlong' : t.length > 42 ? ' long' : '');
+    return `<div class="now${size(now)}">${esc(now)}</div><div class="sig${size(next)}">${esc(next)}</div>`;
   }
   function paintLyrics() {
     const el = wrap.querySelector('.ly');

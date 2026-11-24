@@ -12,7 +12,7 @@ const path = require('path');
 const { BrowserWindow, screen, globalShortcut, ipcMain } = require('electron');
 
 const W = 900; // tamaño de la ventanita a 1080p (se escala con la pantalla): la barra + la letra + la sombra
-const H = 330;
+const H = 370;
 const MARGEN = 16;
 const VISIBLE_MS = 6000; // cuánto se ve al cambiar de canción o al apretar un atajo
 const ESTILOS = ['x360', 'ps3', 'ps4', 'vita', 'wii', 'ps2', 'switch', '3ds', 'xone']; // los mismos del aviso de logros
@@ -109,6 +109,17 @@ let moving = null; // { before } mientras la mueves
 let shown = false;
 let hideTimer = null;
 let chip = null; // aviso chico de un atajo: { icon, text, at }
+let chipTimer = null;
+const CHIP_MS = 1800;
+// El aviso chico se borra solo: con la barra fija no llega nada nuevo que la redibuje, y antes quedaba para siempre
+function avisar(icon, text) {
+  chip = { icon, text, at: Date.now() };
+  clearTimeout(chipTimer);
+  chipTimer = setTimeout(() => {
+    chip = null;
+    push();
+  }, CHIP_MS + 50);
+}
 let songKey = '';
 let registered = [];
 
@@ -174,7 +185,7 @@ function payload() {
     lyrics: !!c.lyrics,
     shape: forma(c.pos || 'tc', c.free),
     moving: !!moving,
-    chip: chip && Date.now() - chip.at < 1800 ? chip : null,
+    chip: chip && Date.now() - chip.at < CHIP_MS ? chip : null,
   };
 }
 function push() {
@@ -236,21 +247,17 @@ async function accion(id) {
   if (id === 'lyrics') {
     c.lyrics = !c.lyrics;
     nh.config.save();
-    chip = { icon: 'lyrics', text: c.lyrics ? 'Con letra' : 'Sin letra', at: Date.now() };
+    avisar('lyrics', c.lyrics ? 'Con letra' : 'Sin letra');
     return reveal();
   }
   const cmd = { play: 'toggle', next: 'next', prev: 'prev', like: 'like' }[id];
   if (!cmd) return;
   const v = nh.spotify.view();
-  chip = {
-    icon: id === 'play' ? (v.playing ? 'pause' : 'play') : ICONOS[id],
-    text: { play: v.playing ? 'En pausa' : 'Reproduciendo', next: 'Siguiente', prev: 'Anterior', like: v.liked ? 'Quitado de Me gusta' : 'Agregado a Me gusta' }[id],
-    at: Date.now(),
-  };
+  avisar(id === 'play' ? (v.playing ? 'pause' : 'play') : ICONOS[id], { play: v.playing ? 'En pausa' : 'Reproduciendo', next: 'Siguiente', prev: 'Anterior', like: v.liked ? 'Quitado de Me gusta' : 'Agregado a Me gusta' }[id]);
   reveal();
   try {
     const r = await nh.spotify.control(cmd);
-    if (r && r.ok === false && id === 'like') chip = { icon: 'heart', text: 'Me gusta necesita Spotify conectado', at: Date.now() };
+    if (r && r.ok === false && id === 'like') avisar('heart', 'Me gusta necesita Spotify conectado');
   } catch (e) {
     nh.anotar('barra de música', e);
   }
