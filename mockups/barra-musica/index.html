@@ -1,0 +1,354 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<title>Boceto: barra de música encima del juego</title>
+<!-- Boceto (solo HTML y CSS). La barra de música que sale encima del juego en "Jugando a…", con el estilo de cada consola.
+     Abrir en el navegador. Las fuentes son las del proyecto (node_modules y la de la PS3). -->
+<style>
+@font-face { font-family: 'M PLUS Rounded 1c'; font-weight: 400; src: url(../../node_modules/@fontsource/m-plus-rounded-1c/files/m-plus-rounded-1c-latin-400-normal.woff2) format('woff2'); }
+@font-face { font-family: 'M PLUS Rounded 1c'; font-weight: 700; src: url(../../node_modules/@fontsource/m-plus-rounded-1c/files/m-plus-rounded-1c-latin-700-normal.woff2) format('woff2'); }
+@font-face { font-family: 'P3 Rodin'; font-weight: 400; src: url(../../renderer/themes/ps3/fonts/m-plus-1p-latin-400-normal.woff2) format('woff2'); }
+@font-face { font-family: 'P3 Rodin'; font-weight: 700; src: url(../../renderer/themes/ps3/fonts/m-plus-1p-latin-700-normal.woff2) format('woff2'); }
+
+* { box-sizing: border-box; }
+body { margin: 0; width: 1920px; background: #101216; color: #e9ecf2; font-family: 'Segoe UI', sans-serif; }
+h1 { margin: 0; padding: 50px 60px 6px; font-size: 52px; font-weight: 600; }
+.lead { margin: 0; padding: 0 60px 30px; font-size: 24px; color: #9aa3b2; max-width: 1700px; line-height: 1.45; }
+h2 { margin: 50px 60px 18px; font-size: 34px; font-weight: 600; }
+h2 small { display: block; font-size: 21px; font-weight: 400; color: #9aa3b2; margin-top: 4px; }
+
+/* "Juego" de fondo: un paisaje inventado, para ver la barra encima de algo */
+.game { position: relative; margin: 0 60px 16px; height: 300px; overflow: hidden; border-radius: 10px;
+  background: radial-gradient(ellipse 60% 90% at 70% 120%, rgba(255, 170, 70, 0.55), transparent 60%),
+              linear-gradient(180deg, #2a3d63 0%, #4d6a92 45%, #7f8f73 46%, #4e6b3c 70%, #2f4426 100%); }
+.game::before { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 120px; background: repeating-linear-gradient(100deg, rgba(0,0,0,0.12) 0 40px, transparent 40px 90px); }
+.game .tag { position: absolute; left: 22px; bottom: 16px; font-size: 22px; font-weight: 700; color: #fff; text-shadow: 0 2px 6px #000; }
+.game .half { position: absolute; top: 26px; }
+.game .half.a { left: 60px; }
+.game .half.b { left: 1000px; }
+.game .cap { position: absolute; top: -2px; font-size: 16px; color: rgba(255,255,255,0.8); text-shadow: 0 1px 3px #000; letter-spacing: 1px; text-transform: uppercase; }
+.game .bar, .game .chip { margin-top: 24px; }
+
+/* ---------- Partes comunes de la barra ---------- */
+.bar { position: relative; display: flex; flex-direction: column; width: 640px; }
+.bar .row { position: relative; display: flex; align-items: center; gap: 16px; height: 84px; }
+.cov { flex: none; width: 64px; height: 64px; display: grid; place-items: center; font-size: 30px; color: #fff;
+  background: radial-gradient(circle at 70% 30%, rgba(255,255,255,0.35), transparent 50%), linear-gradient(135deg, #f72585, #4361ee); }
+.tx { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.tx b { font-size: 25px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tx em { font-style: normal; font-size: 19px; opacity: 0.75; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.st { flex: none; width: 34px; height: 34px; display: grid; place-items: center; }
+.st svg { width: 26px; height: 26px; }
+.pg { position: absolute; left: 0; right: 0; height: 4px; }
+.pg i { display: block; height: 100%; width: 38%; }
+.bar:not(.xone):not(.ps4) .tx { padding-bottom: 14px; } /* deja lugar a la línea de avance, abajo */
+.ly { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 12px 24px 14px; text-align: center; }
+.ly .now { font-size: 28px; font-weight: 700; }
+.ly .nx { font-size: 19px; opacity: 0.55; }
+
+/* Xbox 360: píldora gris con el aro de luz (la portada va dentro del aro) */
+.x360 { font-family: 'Segoe UI', sans-serif; color: #fff; text-shadow: 0 1px 1px rgba(0,0,0,0.6); }
+.x360 .row { height: 92px; padding: 0 34px 0 0; border-radius: 46px; background: linear-gradient(180deg, #6e6e6e 0%, #4a4a4a 40%, #2f2f2f 100%); box-shadow: inset 0 1px 0 rgba(255,255,255,0.28), 0 6px 18px rgba(0,0,0,0.45); }
+.x360 .orb { flex: none; width: 92px; height: 92px; border-radius: 50%; display: grid; place-items: center; background: radial-gradient(circle, #1a1a1a 60%, #0b0b0b 72%);
+  box-shadow: inset 0 0 0 7px transparent; position: relative; }
+.x360 .orb::before { content: ''; position: absolute; inset: 5px; border-radius: 50%; background: conic-gradient(transparent 0 6deg, #5d5d5d 6deg 84deg, transparent 84deg 96deg, #5d5d5d 96deg 174deg, transparent 174deg 186deg, #5d5d5d 186deg 264deg, transparent 264deg 276deg, #63d12b 276deg 354deg, transparent 354deg);
+  -webkit-mask: radial-gradient(circle, transparent 30px, #000 31px, #000 40px, transparent 41px); }
+.x360 .orb .cov { width: 58px; height: 58px; border-radius: 50%; font-size: 24px; }
+.x360 .tx b { font-weight: 400; font-size: 26px; }
+.x360 .pg { left: 104px; right: 40px; bottom: 14px; height: 3px; background: rgba(255,255,255,0.2); border-radius: 2px; }
+.x360 .pg i { background: #63d12b; border-radius: 2px; }
+.x360 .ly { margin: 8px 46px 0; border-radius: 0 0 22px 22px; background: linear-gradient(180deg, rgba(47,47,47,0.95), rgba(30,30,30,0.95)); box-shadow: 0 6px 18px rgba(0,0,0,0.45); }
+.x360 .ly .now { color: #fff; font-weight: 400; }
+
+/* Xbox One: banda plana oscura con la franja de color a la izquierda */
+.xone { font-family: 'Segoe UI', sans-serif; color: #fff; }
+.xone .row { height: 84px; gap: 18px; padding-right: 26px; background: #1f1f1f; border-left: 8px solid #107c10; box-shadow: 0 8px 26px rgba(0,0,0,0.55); }
+.xone .cov { width: 84px; height: 84px; }
+.xone .tx b { font-weight: 300; font-size: 27px; }
+.xone .tx em { color: #9bd49b; opacity: 1; font-size: 17px; letter-spacing: 1.5px; text-transform: uppercase; font-weight: 600; }
+.xone .pg { left: 8px; right: 0; top: 80px; background: #333; }
+.xone .pg i { background: #107c10; }
+.xone .ly { align-items: flex-start; text-align: left; padding: 12px 26px 14px 26px; background: #2b2b2b; border-left: 8px solid #107c10; }
+.xone .ly .now { font-weight: 300; font-size: 29px; }
+
+/* PS3: negro translúcido con borde fino, fuente Rodin */
+.ps3 { font-family: 'P3 Rodin', sans-serif; color: #fff; }
+.ps3 .row { height: 80px; padding: 0 22px 0 8px; gap: 14px; border-radius: 6px; background: linear-gradient(180deg, rgba(40,40,40,0.85), rgba(8,8,8,0.85)); border: 1px solid rgba(255,255,255,0.28); box-shadow: 0 4px 16px rgba(0,0,0,0.5); }
+.ps3 .cov { border: 1px solid rgba(255,255,255,0.35); }
+.ps3 .tx b { font-size: 23px; font-weight: 400; }
+.ps3 .pg { left: 88px; right: 22px; bottom: 9px; height: 3px; background: rgba(255,255,255,0.18); }
+.ps3 .pg i { background: linear-gradient(90deg, #8fd0ff, #fff); }
+.ps3 .ly { margin-top: 6px; border-radius: 6px; background: rgba(8,8,8,0.8); border: 1px solid rgba(255,255,255,0.2); }
+.ps3 .ly .now { font-weight: 400; text-shadow: 0 0 12px rgba(160,210,255,0.6); }
+
+/* PS4: barra gris oscura con la portada pegada al borde; azul de la PS4 en el avance */
+.ps4 { font-family: 'Segoe UI', sans-serif; color: #fff; }
+.ps4 .row { height: 84px; gap: 18px; padding-right: 24px; border-radius: 3px; background: linear-gradient(180deg, rgba(58,58,62,0.95), rgba(30,30,34,0.95)); box-shadow: 0 6px 20px rgba(0,0,0,0.45); overflow: hidden; }
+.ps4 .cov { width: 84px; height: 84px; }
+.ps4 .tx b { font-weight: 300; font-size: 27px; }
+.ps4 .tx em { color: #c9c9cf; opacity: 1; }
+.ps4 .pg { left: 84px; right: 0; top: 80px; background: rgba(255,255,255,0.12); }
+.ps4 .pg i { background: #2f7bff; }
+.ps4 .ly { margin-top: 4px; border-radius: 3px; background: linear-gradient(170deg, rgba(26,75,181,0.92), rgba(11,44,128,0.92)); }
+.ps4 .ly .now { font-weight: 300; font-size: 29px; }
+
+/* PS Vita: burbuja brillante y redondeada */
+.vita { font-family: 'M PLUS Rounded 1c', sans-serif; color: #fff; }
+.vita .row { height: 84px; padding: 0 24px 0 10px; gap: 14px; border-radius: 22px; background: linear-gradient(180deg, rgba(78,82,90,0.96) 0%, rgba(34,36,42,0.96) 52%, rgba(16,17,20,0.96) 100%); box-shadow: inset 0 1px 0 rgba(255,255,255,0.35), 0 6px 18px rgba(0,0,0,0.5); }
+.vita .cov { border-radius: 14px; box-shadow: 0 0 0 2px rgba(255,255,255,0.18); }
+.vita .tx b { font-weight: 700; font-size: 24px; }
+.vita .pg { left: 88px; right: 26px; bottom: 9px; height: 4px; border-radius: 2px; background: rgba(255,255,255,0.15); }
+.vita .pg i { border-radius: 2px; background: linear-gradient(90deg, #4fc3ff, #1a8fe0); }
+.vita .ly { margin-top: 8px; border-radius: 22px; background: linear-gradient(180deg, rgba(255,255,255,0.97), rgba(230,237,247,0.97)); color: #1d3b6e; box-shadow: 0 6px 18px rgba(0,0,0,0.35); }
+.vita .ly .now { color: #1a8fe0; }
+
+/* Switch: gris oscuro, esquinas redondas, celeste de la Switch */
+.switch { font-family: 'Segoe UI', sans-serif; color: #fff; }
+.switch .row { height: 84px; padding: 0 24px 0 10px; gap: 16px; border-radius: 12px; background: rgba(45,45,45,0.96); box-shadow: 0 6px 20px rgba(0,0,0,0.45); }
+.switch .cov { border-radius: 6px; }
+.switch .tx b { font-weight: 600; font-size: 24px; }
+.switch .tx em { color: #b5b5b5; opacity: 1; }
+.switch .st { color: #00c3e3; }
+.switch .pg { left: 90px; right: 24px; bottom: 10px; height: 3px; border-radius: 2px; background: #555; }
+.switch .pg i { background: #00c3e3; border-radius: 2px; }
+.switch .ly { margin-top: 6px; border-radius: 12px; background: rgba(45,45,45,0.96); }
+.switch .ly .now { color: #00c3e3; font-weight: 600; }
+
+/* Wii: cartel blanco con el borde celeste */
+.wii { font-family: 'M PLUS Rounded 1c', sans-serif; color: #5a5a5a; }
+.wii .row { height: 92px; padding: 0 30px 0 12px; gap: 16px; border-radius: 30px; background: linear-gradient(180deg, #fff 0%, #f4f4f4 60%, #e6e6e6 100%); border: 5px solid #34beed; box-shadow: inset 0 2px 0 #fff, 0 8px 22px rgba(0,0,0,0.35); }
+.wii .cov { border-radius: 14px; border: 3px solid #cfd3d6; }
+.wii .tx b { font-weight: 700; font-size: 25px; color: #5a5a5a; }
+.wii .tx em { color: #34beed; opacity: 1; font-weight: 700; }
+.wii .st { color: #34beed; }
+.wii .pg { left: 96px; right: 34px; bottom: 11px; height: 5px; border-radius: 3px; background: #dfe3e6; }
+.wii .pg i { background: #34beed; border-radius: 3px; }
+.wii .ly { margin: 8px 20px 0; border-radius: 26px; background: linear-gradient(180deg, #ffffff, #f2f4f5); border: 4px solid rgba(92,198,236,0.6); box-shadow: 0 6px 16px rgba(0,0,0,0.3); }
+.wii .ly .now { color: #34beed; }
+
+/* PS2: panel azul oscuro que brilla, rótulo con letras separadas */
+.ps2 { font-family: 'M PLUS Rounded 1c', sans-serif; color: #e8f0ff; }
+.ps2 .row { height: 84px; padding: 0 28px 0 12px; gap: 18px; border-radius: 4px; background: linear-gradient(135deg, rgba(14,30,78,0.93), rgba(2,6,20,0.93)); border: 1px solid rgba(120,170,255,0.55); box-shadow: 0 0 22px rgba(60,120,255,0.45), inset 0 0 18px rgba(80,140,255,0.18); }
+.ps2 .cov { box-shadow: 0 0 14px rgba(110,170,255,0.7); transform: perspective(300px) rotateY(-18deg); }
+.ps2 .tx em { font-size: 14px; letter-spacing: 4px; text-transform: uppercase; color: #8fb4ff; opacity: 1; order: -1; }
+.ps2 .tx b { font-weight: 400; font-size: 25px; text-shadow: 0 0 10px rgba(120,170,255,0.6); }
+.ps2 .st { color: #9cc2ff; }
+.ps2 .pg { left: 94px; right: 28px; bottom: 9px; height: 2px; background: rgba(120,170,255,0.25); }
+.ps2 .pg i { background: #9cc2ff; box-shadow: 0 0 8px #9cc2ff; }
+.ps2 .ly { margin-top: 6px; border-radius: 4px; background: linear-gradient(135deg, rgba(14,30,78,0.9), rgba(2,6,20,0.9)); border: 1px solid rgba(120,170,255,0.4); }
+.ps2 .ly .now { font-weight: 400; text-shadow: 0 0 12px rgba(120,170,255,0.8); }
+
+/* 3DS: aviso blanco con borde gris y la luz azul */
+.n3ds { font-family: 'M PLUS Rounded 1c', sans-serif; color: #4a4a4a; }
+.n3ds .row { height: 86px; padding: 0 26px 0 38px; gap: 16px; border-radius: 16px; background: linear-gradient(180deg, #fff, #eee); border: 2px solid #c8c8c8; box-shadow: 0 6px 18px rgba(0,0,0,0.3); }
+.n3ds .led { position: absolute; left: 14px; top: 36px; width: 13px; height: 13px; border-radius: 50%; background: #29a8e0; box-shadow: 0 0 10px 3px rgba(41,168,224,0.6); }
+.n3ds .cov { border-radius: 10px; border: 2px solid #d4d4d4; }
+.n3ds .tx b { font-weight: 700; font-size: 24px; }
+.n3ds .tx em { color: #29a8e0; opacity: 1; font-weight: 700; }
+.n3ds .st { color: #29a8e0; }
+.n3ds .pg { left: 118px; right: 26px; bottom: 10px; height: 4px; border-radius: 2px; background: #dcdcdc; }
+.n3ds .pg i { background: #29a8e0; border-radius: 2px; }
+.n3ds .ly { margin-top: 6px; border-radius: 16px; background: linear-gradient(180deg, #fff, #f2f2f2); border: 2px solid #c8c8c8; }
+.n3ds .ly .now { color: #29a8e0; }
+
+/* Aviso chico al apretar un atajo (sale bajo la barra un momento) */
+.chip { display: inline-flex; align-items: center; gap: 10px; padding: 8px 18px; font-size: 21px; }
+.x360 .chip { border-radius: 20px; background: #2f2f2f; }
+.chip svg { width: 22px; height: 22px; }
+
+/* ---------- Posiciones ---------- */
+.pos { display: flex; gap: 60px; margin: 0 60px; align-items: flex-start; }
+.screen { position: relative; width: 760px; height: 428px; border-radius: 12px; border: 3px solid #39404d; background: linear-gradient(180deg, #2a3d63 0%, #4d6a92 45%, #4e6b3c 46%, #2f4426 100%); }
+.slot { position: absolute; width: 200px; height: 34px; border-radius: 8px; border: 2px dashed rgba(255,255,255,0.55); display: grid; place-items: center; font-size: 15px; color: #fff; background: rgba(0,0,0,0.25); }
+.slot.on { border: 3px solid #fff; background: #107c10; font-weight: 700; }
+.slot.tl { left: 16px; top: 16px; } .slot.tc { left: 280px; top: 16px; } .slot.tr { right: 16px; top: 16px; }
+.slot.bl { left: 16px; bottom: 16px; } .slot.bc { left: 280px; bottom: 16px; } .slot.br { right: 16px; bottom: 16px; }
+.free { position: relative; }
+.free .screen { background: linear-gradient(180deg, #23314f 0%, #3d5678 45%, #3c5530 46%, #253820 100%); }
+.free .grab { position: absolute; left: 380px; top: 150px; width: 250px; height: 40px; border-radius: 8px; background: #1f1f1f; border: 3px solid #fff; box-shadow: 0 0 0 6px rgba(255,255,255,0.18); display: grid; place-items: center; font-size: 15px; color: #fff; }
+.free .arrows { position: absolute; left: 470px; top: 98px; font-size: 36px; color: #fff; opacity: 0.85; letter-spacing: 6px; }
+.free .help { position: absolute; left: 0; right: 0; bottom: -2px; padding: 12px 18px; background: rgba(0,0,0,0.75); font-size: 18px; border-radius: 0 0 10px 10px; }
+.note { font-size: 20px; color: #9aa3b2; line-height: 1.5; margin-top: 14px; max-width: 760px; }
+
+/* ---------- Atajos (Ajustes) ---------- */
+.keys { margin: 0 60px 60px; width: 1100px; border-radius: 14px; background: #1b1f27; border: 2px solid #2b3240; overflow: hidden; }
+.keys .hd { padding: 20px 28px; font-size: 28px; font-weight: 600; border-bottom: 2px solid #2b3240; }
+.keys .r { display: flex; align-items: center; gap: 20px; padding: 14px 28px; font-size: 23px; border-bottom: 1px solid #262c38; }
+.keys .r.sel { background: #23324a; box-shadow: inset 5px 0 0 #4f8cff; }
+.keys .r span { flex: 1; }
+.keys kbd { font-family: 'Segoe UI', sans-serif; font-size: 20px; padding: 4px 12px; border-radius: 6px; background: #2b3240; border: 1px solid #3c4557; color: #fff; }
+.keys .r.wait kbd { background: #4f8cff; border-color: #4f8cff; }
+.keys .r.wait small { color: #9cc0ff; }
+.keys small { font-size: 18px; color: #8a93a3; }
+.keys .ft { padding: 14px 28px; font-size: 19px; color: #8a93a3; }
+
+/* ================= Versión 2: más completa (minuto, canción siguiente, ecualizador y un detalle de cada consola) ================= */
+.game { height: 340px; }
+.game .half.b { left: 960px; }
+.bar { width: 840px; }
+.bar .row { height: auto !important; min-height: 124px; padding-top: 14px !important; padding-bottom: 14px !important; align-items: center; overflow: visible; }
+.bar .cov { width: 92px; height: 92px; font-size: 40px; }
+.x360 .orb { width: 112px; height: 112px; } .x360 .orb .cov { width: 70px; height: 70px; font-size: 30px; }
+.x360 .orb::before { -webkit-mask: radial-gradient(circle, transparent 37px, #000 38px, #000 49px, transparent 50px); }
+.bar .tx { padding-bottom: 0 !important; gap: 0; }
+.bar .tx b { font-size: 27px; }
+.bar .tx em { font-size: 19px; order: 0; letter-spacing: normal; text-transform: none; }
+.top { display: flex; align-items: center; gap: 10px; margin-bottom: 2px; }
+.top small { font-size: 15px; letter-spacing: 1.5px; text-transform: uppercase; opacity: 0.75; }
+/* Ecualizador: 4 barritas que suben y bajan mientras suena */
+.eq { display: inline-flex; align-items: flex-end; gap: 3px; height: 16px; }
+.eq i { width: 4px; border-radius: 1px; background: var(--acc); animation: eq 0.9s ease-in-out infinite alternate; }
+.eq i:nth-child(1) { height: 60%; } .eq i:nth-child(2) { height: 100%; animation-delay: -0.3s; } .eq i:nth-child(3) { height: 40%; animation-delay: -0.6s; } .eq i:nth-child(4) { height: 80%; animation-delay: -0.15s; }
+@keyframes eq { from { transform: scaleY(0.35); } to { transform: scaleY(1); } }
+.eq i { transform-origin: bottom; }
+/* Minuto: 1:11 ──── 3:34 */
+.time { display: flex; align-items: center; gap: 12px; margin-top: 8px; font-size: 16px; font-variant-numeric: tabular-nums; opacity: 0.9; }
+.bar .time .pg { position: relative !important; left: auto !important; right: auto !important; top: auto !important; bottom: auto !important; flex: 1; height: 5px; border-radius: 3px; }
+.bar .time .pg i { position: relative; width: 33%; height: 100%; border-radius: 3px; }
+.bar .time .pg i::after { content: ''; position: absolute; right: -6px; top: 50%; width: 12px; height: 12px; margin-top: -6px; border-radius: 50%; background: inherit; box-shadow: 0 0 8px var(--acc); }
+/* Canción siguiente, a la derecha */
+.next { flex: none; width: 250px; align-self: stretch; display: grid; grid-template-columns: 48px 1fr; grid-template-rows: auto auto auto; column-gap: 10px; align-content: center; padding-left: 18px; border-left: 1px solid var(--line); }
+.next small { grid-column: 1 / -1; font-size: 13px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--acc); margin-bottom: 6px; font-weight: 700; }
+.next .ncov { grid-row: 2 / 4; width: 48px; height: 48px; display: grid; place-items: center; font-size: 22px; color: #fff; background: linear-gradient(135deg, #ffb703, #fb5607); }
+.next b { font-size: 17px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.next em { font-style: normal; font-size: 15px; opacity: 0.7; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ly .sig { font-size: 19px; opacity: 0.55; }
+.ly .now { font-size: 30px; }
+
+/* Color de cada consola (acento y línea divisoria) + su detalle */
+.x360 { --acc: #63d12b; --line: rgba(255, 255, 255, 0.18); }
+.x360 .row { border-radius: 62px; padding-left: 6px !important; }
+.x360 .row::after { content: ''; position: absolute; left: 120px; right: 40px; top: 4px; height: 40%; border-radius: 40px; background: linear-gradient(180deg, rgba(255, 255, 255, 0.16), transparent); pointer-events: none; } /* brillo del "vidrio" */
+.x360 .orb::after { content: ''; position: absolute; inset: 0; border-radius: 50%; box-shadow: 0 0 18px rgba(99, 209, 43, 0.55); } /* el aro se ilumina */
+.x360 .next { padding-right: 30px; } .x360 .next .ncov { border-radius: 50%; }
+
+.xone { --acc: #107c10; --line: #333; }
+.xone .row { padding-left: 0 !important; padding-top: 0 !important; padding-bottom: 0 !important; min-height: 124px; }
+.xone .cov { width: 124px; height: 124px; }
+.xone .top small { color: #9bd49b; opacity: 1; font-weight: 600; }
+.xone .next { background: #262626; margin: 0 -26px 0 0; padding: 0 22px; border-left: 0; }
+.xone .next .ncov { background: #107c10; }
+
+.ps3 { --acc: #9fd6ff; --line: rgba(255, 255, 255, 0.2); }
+.ps3 .row { background: radial-gradient(ellipse 120% 70% at 30% 130%, rgba(140, 200, 255, 0.25), transparent 60%), radial-gradient(ellipse 90% 40% at 80% 115%, rgba(255, 255, 255, 0.12), transparent 70%), linear-gradient(180deg, rgba(40, 40, 40, 0.88), rgba(8, 8, 8, 0.88)); padding-left: 14px !important; } /* las ondas del menú */
+.ps3 .next .ncov { border: 1px solid rgba(255, 255, 255, 0.35); }
+
+.ps4 { --acc: #2f7bff; --line: rgba(255, 255, 255, 0.14); }
+.ps4 .row { padding-top: 0 !important; padding-bottom: 0 !important; background: radial-gradient(circle at 18% 30%, rgba(120, 170, 255, 0.35) 0 2px, transparent 3px), radial-gradient(circle at 30% 75%, rgba(120, 170, 255, 0.3) 0 2px, transparent 3px), radial-gradient(circle at 62% 20%, rgba(120, 170, 255, 0.25) 0 1.5px, transparent 2.5px), linear-gradient(100deg, rgba(26, 75, 181, 0.6), rgba(30, 30, 34, 0.95) 45%); } /* partículas azules */
+.ps4 .cov { width: 124px; height: 124px; }
+.ps4 .next .ncov { border-radius: 2px; }
+
+.vita { --acc: #1a8fe0; --line: rgba(255, 255, 255, 0.18); }
+.vita .row { border-radius: 30px; padding-left: 14px !important; background: radial-gradient(circle at 97% 14%, rgba(120, 190, 255, 0.16) 0 7px, transparent 8px), radial-gradient(circle at 93% 30%, rgba(120, 190, 255, 0.1) 0 4px, transparent 5px), linear-gradient(180deg, rgba(78, 82, 90, 0.96) 0%, rgba(34, 36, 42, 0.96) 52%, rgba(16, 17, 20, 0.96) 100%); } /* burbujas */
+.vita .cov, .vita .next .ncov { border-radius: 18px; }
+.vita .next .ncov { border-radius: 12px; }
+
+.switch { --acc: #00c3e3; --line: #555; }
+.switch .row { padding-left: 14px !important; }
+.switch .cov { box-shadow: 0 0 0 3px #2d2d2d, 0 0 0 6px #00c3e3; } /* el borde celeste de lo elegido */
+.switch .next .ncov { border-radius: 6px; }
+
+.wii { --acc: #34beed; --line: #cfe9f5; }
+.wii .row { padding-left: 16px !important; background: repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.03) 0 2px, transparent 2px 6px), linear-gradient(180deg, #fff 0%, #f4f4f4 60%, #e6e6e6 100%); } /* las rayitas del menú */
+.wii .cov { border-radius: 18px; }
+.wii .top small, .wii .time { color: #8a8a8a; opacity: 1; }
+.wii .next .ncov { border-radius: 12px; }
+.wii .next b { color: #5a5a5a; }
+
+.ps2 { --acc: #9cc2ff; --line: rgba(120, 170, 255, 0.35); }
+.ps2 .row { padding-left: 16px !important; background: radial-gradient(circle at 55% 25%, rgba(160, 200, 255, 0.5) 0 1.5px, transparent 2.5px), radial-gradient(circle at 70% 70%, rgba(160, 200, 255, 0.4) 0 1px, transparent 2px), radial-gradient(circle at 40% 85%, rgba(160, 200, 255, 0.35) 0 1px, transparent 2px), linear-gradient(135deg, rgba(14, 30, 78, 0.94), rgba(2, 6, 20, 0.94)); } /* las lucecitas del fondo */
+.ps2 .tx em { font-size: 19px; letter-spacing: normal; text-transform: none; color: #c3d6ff; }
+.ps2 .top small { color: #8fb4ff; opacity: 1; letter-spacing: 4px; }
+.ps2 .next .ncov { box-shadow: 0 0 12px rgba(110, 170, 255, 0.7); transform: perspective(200px) rotateY(18deg); }
+
+.n3ds { --acc: #29a8e0; --line: #dcdcdc; }
+.n3ds .row { padding-left: 40px !important; overflow: hidden; background: linear-gradient(180deg, #fff, #eee); }
+.n3ds .row::before { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 8px; background: repeating-linear-gradient(135deg, #e6e6e6 0 6px, #f6f6f6 6px 12px); } /* la franja de arriba de la 3DS */
+.n3ds .led { top: 56px; }
+.n3ds .top small, .n3ds .time { color: #8a8a8a; opacity: 1; }
+.n3ds .next .ncov { border-radius: 10px; }
+</style>
+</head>
+<body>
+<h1>Barra de música encima del juego · boceto</h1>
+<p class="lead">Sale encima del juego mientras estás en "Jugando a…", con el estilo de la última consola elegida (como el aviso de logros).
+Aparece unos segundos cuando cambia la canción o aprietas un atajo y después se esconde sola; con un atajo la dejas fija.
+Otro atajo agrega abajo la línea de la letra que se está cantando. A la izquierda, la barra normal; a la derecha, con la letra.
+La portada y la canción son de prueba.</p>
+
+<!-- Íconos chicos -->
+<svg width="0" height="0" style="position:absolute">
+  <symbol id="play" viewBox="0 0 48 48"><path d="M15 9l25 15-25 15Z" fill="currentColor"/></symbol>
+  <symbol id="pause" viewBox="0 0 48 48"><path d="M14 10h7v28h-7zM27 10h7v28h-7z" fill="currentColor"/></symbol>
+  <symbol id="next" viewBox="0 0 48 48"><path d="M34 10v28M10 10l20 14-20 14Z" fill="currentColor" stroke="currentColor" stroke-width="3"/></symbol>
+  <symbol id="heart" viewBox="0 0 48 48"><path d="M24 40S7 30 7 18a9 9 0 0 1 17-4 9 9 0 0 1 17 4c0 12-17 22-17 22Z" fill="currentColor"/></symbol>
+</svg>
+
+<div id="consolas"></div>
+
+<h2>Dónde va la barra<small>Ajustes → Sonido → Barra de música → Posición. Se elige una de las 6, o "Mover libremente".</small></h2>
+<div class="pos">
+  <div>
+    <div class="screen">
+      <div class="slot tl">Arriba a la izquierda</div><div class="slot tc on">Arriba al centro</div><div class="slot tr">Arriba a la derecha</div>
+      <div class="slot bl">Abajo a la izquierda</div><div class="slot bc">Abajo al centro</div><div class="slot br">Abajo a la derecha</div>
+    </div>
+    <div class="note">Seis lugares fijos. Por defecto: arriba al centro. La letra se abre hacia abajo (o hacia arriba si la barra está abajo).</div>
+  </div>
+  <div class="free">
+    <div class="screen">
+      <div class="arrows">← ↑ ↓ →</div>
+      <div class="grab">Arrastra la barra</div>
+      <div class="help">Mover la barra: arrástrala con el mouse o muévela con las flechas · Enter guardar · Esc cancelar</div>
+    </div>
+    <div class="note">"Mover libremente": la barra aparece en la pantalla del juego y la pones donde quieras (con el mouse o las flechas). Queda guardado; los lugares fijos siguen disponibles.</div>
+  </div>
+</div>
+
+<h2>Atajos<small>Ajustes → Sonido → Barra de música → Atajos. Vienen estos por defecto; cada uno se cambia apretando la combinación nueva.</small></h2>
+<div class="keys">
+  <div class="hd">Atajos de la barra de música</div>
+  <div class="r"><span>Mostrar u ocultar la barra (fija)</span><kbd>Ctrl + Alt + M</kbd></div>
+  <div class="r"><span>Con letra / sin letra</span><kbd>Ctrl + Alt + L</kbd></div>
+  <div class="r sel"><span>Reproducir / pausar</span><kbd>Ctrl + Alt + Espacio</kbd></div>
+  <div class="r"><span>Canción siguiente</span><kbd>Ctrl + Alt + →</kbd></div>
+  <div class="r wait"><span>Canción anterior</span><small>Aprieta la combinación nueva…</small><kbd>Ctrl + Alt + ←</kbd></div>
+  <div class="r"><span>Me gusta</span><kbd>Ctrl + Alt + ↑</kbd></div>
+  <div class="ft">Enter cambiar · Supr volver al de por defecto · Si la combinación ya la usa otro atajo, avisa.</div>
+</div>
+
+<script>
+// Arma una fila por consola con la barra normal y con letra (mismo HTML; cambia la clase de la consola)
+const CONSOLAS = [
+  ['x360', 'Xbox 360'], ['xone', 'Xbox One'], ['ps3', 'PS3'], ['ps4', 'PS4'], ['vita', 'PS Vita'],
+  ['switch', 'Switch'], ['wii', 'Wii'], ['ps2', 'PS2'], ['n3ds', '3DS'],
+];
+const ic = (id) => `<svg><use href="#${id}"/></svg>`;
+// Barra: portada, "Sonando en Spotify" con el ecualizador, canción, artista, minuto con la barrita y, a la derecha, la
+// canción que viene. Con letra: la línea que se canta y la que sigue.
+function bar(id, letra) {
+  const cov = id === 'x360' ? `<div class="orb"><div class="cov">♪</div></div>` : `<div class="cov">♪</div>`;
+  const led = id === 'n3ds' ? '<span class="led"></span>' : '';
+  return `<div class="bar ${id}">
+    <div class="row">${led}${cov}
+      <div class="tx">
+        <div class="top"><span class="eq"><i></i><i></i><i></i><i></i></span><small>Sonando en Spotify</small></div>
+        <b>Luces de Neón</b><em>Los Pixeles</em>
+        <div class="time"><span>1:11</span><span class="pg"><i></i></span><span>3:34</span></div>
+      </div>
+      <div class="next"><small>Siguiente</small><span class="ncov">♪</span><b>Canción del jefe final</b><em>Banda de Prueba</em></div>
+    </div>
+    ${letra ? `<div class="ly"><div class="now">brillan las luces de la ciudad</div><div class="sig">y la partida no va a terminar</div></div>` : ''}
+  </div>`;
+}
+document.getElementById('consolas').innerHTML = CONSOLAS.map(([id, name]) => `
+  <h2>${name}</h2>
+  <div class="game">
+    <div class="half a"><div class="cap">Normal</div>${bar(id, false)}</div>
+    <div class="half b"><div class="cap">Con letra</div>${bar(id, true)}</div>
+    <div class="tag">(un juego cualquiera)</div>
+  </div>`).join('');
+</script>
+</body>
+</html>

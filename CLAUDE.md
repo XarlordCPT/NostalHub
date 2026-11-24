@@ -95,6 +95,14 @@ src/letras.js           Letra de la canción desde LRCLIB (sin clave): get exact
                         prefiere la sincronizada), parseLrc. Canal music:lyrics → api.getLyrics. En el renderer:
                         U.lyricsSheet (la misma ventanita .ms-overlay de la cola, con los colores --ms-… de cada consola),
                         botón 'lyrics' (micrófono) del panel de "Jugando a…" (nowPlaying)
+src/barra-musica.js     Barra de música encima del juego, solo en "Jugando a…" (activar al lanzar, desactivar al terminar
+                        o al "Volver al menú"): ventanita transparente que deja pasar los clics (como overlay.js), estilo de
+                        la última consola (ESTILOS), se muestra 6 s al cambiar de canción o con un atajo; atajos globales
+                        (globalShortcut) solo mientras juegas; lugar (6 fijos o 'free' en fracciones de la pantalla, "Mover
+                        la barra"), config.musicBar. Página: renderer/barra/ (barra.css: .b-<consola>), puente barra-preload.js.
+                        En Ajustes son solo 2 opciones (el interruptor y "Opciones de la barra de música" → U.musicBarSheet:
+                        lugar y tamaño con vista previa, moverla, y U.hotkeysSheet para los atajos). Los atajos se prueban
+                        antes de aceptarlos (libre()): Ctrl+Alt+M y Ctrl+Alt+Espacio ya los usaban otros programas (Claude)
 src/discord.js          Canal de voz de Discord por RPC local (Grupo)
 src/discord-presence.js Presencia en Discord (SET_ACTIVITY) con la app pública DISCORD_PRESENCE_ID de main.js
 src/playlog.js          Contador de horas: sesiones en estadisticas.db (node:sqlite) y resumen por período
@@ -290,6 +298,12 @@ descripción), `cache\` (arte descargado, `spotify.log`, `discord.log`) y las cl
   también pone `U.friendClass` (`game`, `on`, `off`, `busy`): una fila `.xo-row.game` de logros chocó con un amigo jugando.
 - Elegir con `mouseenter` + mover la lista con el teclado = la selección salta al elemento que pasa bajo el mouse
   quieto. `common.js` ya ignora esos avisos después de una tecla (hasta que el mouse se mueva de verdad).
+- Ajustes de la Wii: cada página muestra 5 opciones como máximo (`paginar`); una sección más larga sigue en la página
+  siguiente con el mismo título. Antes las de abajo quedaban fuera de la pantalla. Las otras consolas tienen lista con scroll,
+  pero igual conviene no alargar las secciones: mejor una opción que abra una ventanita (ver la barra de música).
+- Las pruebas de pantallas mandan las teclas directo a `window`: así una ventanita que bloquea las teclas (U.musicSheet,
+  lyricsSheet, hotkeysSheet…) no alcanza a frenarlas y le llegan también a la consola de atrás. Con el teclado o el control
+  de verdad sí se frenan. En esas pruebas, elegir con clic.
 - Toda pantalla tiene que poder usarse solo con flechas + Enter + Esc (el control llega así). Filas de botones
   horizontales se mueven con ← → (ver `moveQmSub` en la PS4), no con ↑ ↓.
 - Con Steam abierto, el DualSense queda en modo 0x31 y la Gamepad API no lo ve: por eso `gamepad.js` lo lee por HID.

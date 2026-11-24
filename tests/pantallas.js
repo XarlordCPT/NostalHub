@@ -52,7 +52,7 @@ const PANTALLAS = {
     mover: { pasos: [k('ArrowRight'), k('o'), espera(200), k('ArrowDown'), k('Enter'), espera(200), k('ArrowRight'), k('ArrowDown')], ve: '.tile.wmv' },
     'mover-cancelar': { pasos: [k('ArrowRight'), k('o'), espera(200), k('ArrowDown'), k('Enter'), espera(200), k('ArrowRight'), k('Escape'), espera(300)], ve: '.tile.wkf' },
     'buscar-abrir': { pasos: [clic('#btn-search'), espera(400), k('ArrowDown', 2), k('Enter'), espera(1500)], ve: '#btn-start' },
-    'ajustes-opcion': { pasos: [clic('#btn-settings'), espera(600), k('ArrowRight', 2), espera(400), k('Enter'), espera(300), k('ArrowRight')], ve: '.ws-opt.kfocus' },
+    'ajustes-opcion': { pasos: [clic('#btn-settings'), espera(600), k('ArrowRight', 3), espera(400), k('Enter'), espera(300), k('ArrowRight')], ve: '.ws-opt.kfocus' },
     'amigos-carta': { pasos: [k('a'), espera(500), k('ArrowDown', 2), k('ArrowRight')], ve: '.wf-btn.kfocus' },
     'musica-botones': { pasos: [clic('#btn-music'), espera(500), k('ArrowDown'), k('ArrowRight')], ve: '.wm-btn.kfocus' },
   },
@@ -203,14 +203,21 @@ const PANTALLAS = {
     'vuelta-al-menu': { pasos: [k('Enter'), espera(700), k('Enter'), espera(1000), k('Enter'), espera(900), k('Escape'), espera(600)], ve: '.xo-page.on .xo-tile.focus' },
   },
 };
+const ATAJOS = ['js', 'window.NostalHubUtil.hotkeysSheet(window.mockNostalHub), 1'];
+const BARRA = ['js', 'window.NostalHubUtil.musicBarSheet(window.mockNostalHub), 1'];
 // La letra de la canción (la misma ventana en las 9 consolas, con los colores de cada una), desde el botón del panel de
 // música de "Jugando a…"
 for (const pantallas of Object.values(PANTALLAS)) {
   if (pantallas.jugando) pantallas.letra = { pasos: [...pantallas.jugando.pasos, espera(700), clic('.np-music [data-mx="lyrics"]'), espera(1200)], ve: '.ms-lyrics .ly-l.on' };
+  // Los atajos de la barra de música (Ajustes → Sonido), con los colores de cada consola; el tercero queda esperando la tecla
+  // (con clic: las teclas de la prueba van directo a window y le llegarían también a la consola de atrás)
+  pantallas['barra-opciones'] = { pasos: [espera(400), BARRA, espera(600)], ve: '.ms-bar .ms-row.sel .ms-tag' }; // Ajustes → Sonido → Opciones de la barra de música
+  pantallas.atajos = { pasos: [espera(400), ATAJOS, espera(500), clic('.ms-keys .ms-row[data-i="2"]'), espera(300)], ve: '.ms-keys .ms-row.on' };
 }
 // Pantallas que no son de una consola
 const GENERALES = {
   selector: { pasos: [], ve: '#selector' },
+  'atajos-musica': { pasos: [espera(400), ATAJOS, espera(500)], ve: '#selector .ms-keys .ms-row.sel' }, // Ajustes → Sonido → Atajos, desde el menú principal
   resumen: { pasos: [k('r')], ve: '#stats:not([hidden])' },
   'selector-derecha': { pasos: [k('ArrowRight', 3), espera(500)], ve: '.he-card.sel[data-id="ps4"]' },
   'selector-botones': { pasos: [k('ArrowUp'), k('ArrowRight', 2)], ve: '.he-pill.kf[data-a="cfg"]' },

@@ -1641,11 +1641,23 @@
     let wsItem = null; // opción abierta en la sub-pantalla
     let wsPick = null; // valor elegido (aún sin confirmar)
     let wsOptFocus = 0;
+    // Como en la Wii de verdad, cada página de Ajustes muestra pocas opciones: una sección larga (Sonido) se reparte en
+    // varias páginas seguidas con el mismo título. Si no, las de abajo quedaban fuera de la pantalla.
+    const POR_PAGINA = 5;
+    function paginar(model) {
+      if (!Array.isArray(model)) return null;
+      return model.flatMap((sec) => {
+        if (sec.items.length <= POR_PAGINA) return [sec];
+        const pages = [];
+        for (let i = 0; i < sec.items.length; i += POR_PAGINA) pages.push({ ...sec, items: sec.items.slice(i, i + POR_PAGINA) });
+        return pages;
+      });
+    }
 
     async function openSettings() {
       if (wii.view !== 'menu') return;
       wii.view = 'settings';
-      wsModel = api.getMenu ? await api.getMenu() : [];
+      wsModel = paginar(api.getMenu ? await api.getMenu() : []) || [];
       wsPage = 0;
       wsFocus = 0;
       wsItem = null;
@@ -1726,7 +1738,7 @@
           return ctx.openSelector();
         }
         if (/^open-|^devtools$/.test(it.id)) ctx.toast('Se abrió en Windows');
-        wsModel = (await api.runMenu(it.id)) || wsModel;
+        wsModel = paginar(await api.runMenu(it.id)) || wsModel;
         if (wii.view === 'settings' && !wsItem) renderSettings();
         return;
       }
@@ -1790,7 +1802,7 @@
       if (!it) return;
       if (it.confirm) return api.runMenu(it.id);
       wsItem = null;
-      if (wsPick !== undefined && String(wsPick) !== String(it.value)) wsModel = (await api.runMenu(it.id, wsPick)) || wsModel;
+      if (wsPick !== undefined && String(wsPick) !== String(it.value)) wsModel = paginar(await api.runMenu(it.id, wsPick)) || wsModel;
       if (wii.view === 'settings') renderSettings();
     }
 

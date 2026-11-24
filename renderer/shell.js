@@ -938,6 +938,8 @@
 
   // El menú de la bandeja / engranaje puede pedir volver al selector
   api.onShowSelector && api.onShowSelector(() => leave());
+  // Ajustes → Sonido → Opciones de la barra de música (en cualquier consola o en el menú principal)
+  api.onMusicBar && api.onMusicBar(() => window.NostalHubUtil.musicBarSheet(api));
 
   async function loadAssets() {
     if (!api.getConsoleAssets) return;

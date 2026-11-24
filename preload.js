@@ -43,6 +43,14 @@ contextBridge.exposeInMainWorld('nostalhub', {
   spotifyControl: (cmd, arg) => ipcRenderer.invoke('spotify:control', cmd, arg),
   spotifyDevices: () => ipcRenderer.invoke('spotify:devices'),
   getLyrics: (song) => ipcRenderer.invoke('music:lyrics', song),
+  // Atajos de la barra de música encima del juego (src/barra-musica.js)
+  getMusicBarKeys: () => ipcRenderer.invoke('musicbar:keys'),
+  setMusicBarKey: (id, acc) => ipcRenderer.invoke('musicbar:key-set', id, acc),
+  musicBarCapture: (on) => ipcRenderer.invoke('musicbar:capture', !!on),
+  getMusicBar: () => ipcRenderer.invoke('musicbar:get'),
+  setMusicBar: (key, value) => ipcRenderer.invoke('musicbar:set', key, value),
+  musicBarMove: () => ipcRenderer.invoke('musicbar:move'),
+  onMusicBar: on('shell:musicbar'), // Ajustes → Sonido → Opciones de la barra de música
   onSpotifyWeb: on('spotify:web'),
   onSpotify: on('spotify:update'),
   // Discord (grupo de la PS4)

@@ -351,6 +351,28 @@ manda solo el nombre de la canción, el artista y la duración. Si no la tiene, 
 instrumentales lo dicen; sin internet, "No se pudo cargar la letra". Sin Spotify conectado la letra sale completa, sin
 marcar la línea (para eso hace falta saber en qué segundo va la canción).
 
+**Barra de música encima del juego**: mientras estás en "Jugando a…", arriba de la pantalla del juego (la misma de los
+avisos de logros) sale una barra con la canción, el artista, el minuto, la canción que viene y un ecualizador, con el
+estilo de la última consola que elegiste. Aparece unos segundos cuando empieza el juego, cuando cambia la canción y cuando
+aprietas un atajo; después se esconde sola. Funciona en juegos en **ventana sin bordes** (en pantalla completa exclusiva
+Windows no deja dibujar nada encima). Los clics pasan al juego: se maneja con atajos, que funcionan con el juego abierto:
+
+| Atajo (por defecto) | Qué hace |
+| --- | --- |
+| Ctrl + Alt + B | Deja la barra fija (otra vez: la esconde) |
+| Ctrl + Alt + L | Con letra / sin letra: abajo sale la línea que se está cantando y la que viene |
+| Ctrl + Alt + P | Reproducir / pausar |
+| Ctrl + Alt + → / ← | Canción siguiente / anterior |
+| Ctrl + Alt + ↑ | Me gusta (con Spotify conectado) |
+
+En **Ajustes → Sonido**: *Barra de música al jugar* (apagarla) y *Opciones de la barra de música*, una ventanita con:
+**Lugar** (arriba o abajo, a la izquierda, al centro o a la derecha) y **Tamaño** (chica, normal o grande), que se cambian
+con ← → y la barra aparece un momento donde va a quedar; **Moverla a mano** (aparece en la pantalla del juego: arrástrala
+con el mouse o muévela con las flechas; Enter la deja ahí y Esc deshace) y **Atajos** (eliges uno, Enter, y aprietas la
+combinación nueva, con Ctrl o Alt; Supr vuelve al de por defecto). Los atajos solo se usan mientras juegas. Si otro programa
+ya usa uno (por ejemplo, Claude usa Ctrl + Alt + Espacio), en Atajos sale en rojo con "Lo usa otro programa" y NostalHub no
+te deja elegir uno ocupado.
+
 Para usar solo los botones básicos sin desconectar Spotify: Ajustes → Sonido → **Spotify conectado directamente** →
 *Desactivado* (la opción aparece cuando la App de música es Spotify). Si todavía no está conectado, activarla abre
 la ventana para conectarlo.

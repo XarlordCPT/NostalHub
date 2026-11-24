@@ -20,6 +20,7 @@ const { SteamWeb } = require('./src/steamweb');
 const { AchievementWatcher, gamerscore, trophyTier } = require('./src/achievements');
 const minecraft = require('./src/minecraft');
 const { Letras } = require('./src/letras');
+const barraMusica = require('./src/barra-musica');
 const { MinecraftIcons } = require('./src/minecraft-icons');
 const { Overlay } = require('./src/overlay');
 const { Spotify, MUSIC_APPS } = require('./src/spotify');
@@ -94,6 +95,7 @@ let win = null;
 let tray = null;
 const launcher = new Launcher((gameId, reason) => {
   send('game:ended', { gameId, reason });
+  barraMusica.desactivar(); // se fue "Jugando a…"
   refreshSteamUser(); // actualiza "jugado por última vez" y horas
   // Al cerrar un juego de Steam: sus logros y horas de nuevo (Steam tarda unos segundos en subirlos)
   const g = config.games.find((x) => x.id === gameId);
@@ -127,7 +129,7 @@ const spotifyWeb = new SpotifyWeb({
   enabled: () => config.data.spotifyApi !== false, // Ajustes → Música → "Spotify conectado directamente"
   log: (line) => spotify && spotify.log(`spotify (api): ${line}`),
 });
-const spotify = new Spotify((state) => send('spotify:update', state), path.join(DATA_DIR, 'cache', 'spotify.log'), {
+const spotify = new Spotify((state) => (send('spotify:update', state), barraMusica.musica(state)), path.join(DATA_DIR, 'cache', 'spotify.log'), {
   getApp: () => config.data.musicApp || 'spotify', // Spotify, Apple Music, YouTube Music o automático
   web: spotifyWeb,
   useWeb: () => config.data.spotifyApi !== false,
@@ -247,6 +249,8 @@ function achievementDisplay() {
   return screen.getPrimaryDisplay();
 }
 const overlay = new Overlay({ dir: __dirname, pickDisplay: achievementDisplay });
+// Barra de música encima del juego (src/barra-musica.js): en la misma pantalla que los logros, solo en "Jugando a…"
+barraMusica.registrar({ dir: __dirname, config, spotify, pickDisplay: achievementDisplay, send: (...a) => send(...a), anotar, mostrarVentana: () => showWindow() });
 const ACH_STYLES = ['x360', 'ps3', 'ps4', 'vita', 'wii', 'ps2', 'switch', '3ds', 'xone']; // las que tienen aviso propio (ver renderer/overlay)
 const PLAYSTATION = ['ps3', 'ps4', 'vita'];
 function showAchievement(a, { test = false, estilo = null } = {}) {
@@ -668,6 +672,7 @@ app.on('before-quit', () => {
   playLog.dispose();
   presence.dispose();
   overlay.destroy();
+  barraMusica.destroy();
   isQuitting = true;
   spotify.dispose();
   spotifyWeb.dispose();
@@ -967,6 +972,7 @@ function menuSections() {
               },
             ]
           : []),
+        ...barraMusica.opciones(), // la barra de música encima del juego: encendida, lugar, moverla y sus atajos
       ],
     },
     {
@@ -1151,13 +1157,15 @@ ipcMain.handle('game:launch', async (_e, id) => {
     config.data.launchLog = { ...(config.data.launchLog || {}), [game.id]: Date.now() };
     config.save();
     pushGamesSoon();
-    return await launcher.launch(game, startRetroLog(game));
+    const r = await launcher.launch(game, startRetroLog(game));
+    if (r && r.ok) barraMusica.activar(); // "Jugando a…": la barra de música encima del juego
+    return r;
   } catch (e) {
     return { ok: false, error: e.message };
   }
 });
 
-ipcMain.handle('game:dismiss', () => launcher.dismiss());
+ipcMain.handle('game:dismiss', () => (barraMusica.desactivar(), launcher.dismiss()));
 
 // Resumen de horas: el período pedido, con el arte de cada juego
 ipcMain.handle('stats:get', (_e, range, offset) => {

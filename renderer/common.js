@@ -676,6 +676,206 @@
     return sheet;
   }
 
+  // ---------- Ventanita de los atajos de la barra de música (Ajustes → Sonido; la barra es src/barra-musica.js) ----------
+  // La misma ventanita de la cola (colores --ms-… de cada consola). ↑ ↓ elegir, Enter cambiar (se aprieta la combinación
+  // nueva), Supr el de por defecto, Esc cerrar. También se abre desde el menú principal (sin consola).
+  const KEY_NAMES = { Control: 'Ctrl', Space: 'Espacio', Up: '↑', Down: '↓', Left: '←', Right: '→', PageUp: 'RePág', PageDown: 'AvPág', Home: 'Inicio', End: 'Fin', Insert: 'Insert', Delete: 'Supr' };
+  const accelText = (acc) =>
+    String(acc || '')
+      .split('+')
+      .map((p) => KEY_NAMES[p] || p)
+      .join(' + ');
+  // La tecla apretada como atajo de Electron ("Control+Alt+M"); null si falta Ctrl/Alt/Shift o la tecla no sirve
+  const KEY_CODES = { ArrowUp: 'Up', ArrowDown: 'Down', ArrowLeft: 'Left', ArrowRight: 'Right', Space: 'Space', PageUp: 'PageUp', PageDown: 'PageDown', Home: 'Home', End: 'End', Insert: 'Insert', Delete: 'Delete' };
+  function keyAccel(e) {
+    const c = String(e.code || '');
+    const key = /^Key[A-Z]$/.test(c) ? c.slice(3) : /^Digit\d$/.test(c) ? c.slice(5) : /^F([1-9]|1\d|2[0-4])$/.test(c) ? c : KEY_CODES[c];
+    const mods = [e.ctrlKey && 'Control', e.altKey && 'Alt', e.shiftKey && 'Shift'].filter(Boolean);
+    return key && mods.length ? [...mods, key].join('+') : null;
+  }
+  // Dónde va una ventanita que también se abre desde el menú principal: la consola abierta o, si no hay, el menú
+  function sheetHost() {
+    const themeRoot = document.getElementById('theme-root');
+    const selector = document.getElementById('selector');
+    return themeRoot && themeRoot.hidden && selector && !selector.hidden ? selector : themeRoot || document.body;
+  }
+  function hotkeysSheet(api) {
+    if (sheet) sheet.close();
+    const host = sheetHost();
+    const el = document.createElement('div');
+    el.className = 'ms-overlay ms-keys';
+    el.innerHTML = `<div class="ms-box"><div class="ms-head">${npIcon('music')}<span>Atajos de la barra de música</span><button class="ms-x">${npIcon('close')}</button></div><div class="ms-list"></div><div class="ms-foot"></div></div>`;
+    host.appendChild(el);
+    const list = el.querySelector('.ms-list');
+    const foot = el.querySelector('.ms-foot');
+    let data = { keys: {}, defaults: {}, actions: [] };
+    let sel = 0;
+    let capturing = null; // la acción a la que le estás poniendo atajo
+    let msg = '';
+    let closed = false;
+    const HELP = 'Funcionan con el juego abierto · ↑ ↓ elegir · Enter cambiar · Supr el de por defecto · Esc cerrar';
+
+    function paint() {
+      list.innerHTML = data.actions
+        .map((a, i) => {
+          const acc = data.keys[a.id];
+          const busy = (data.busy || []).includes(a.id);
+          const sub = capturing === a.id ? 'Aprieta la combinación nueva (con Ctrl o Alt)… Esc cancela' : busy ? 'Lo usa otro programa: no va a funcionar, cámbialo' : acc === data.defaults[a.id] ? 'Por defecto' : 'Cambiado';
+          return `<button class="ms-row${i === sel ? ' sel' : ''}${capturing === a.id ? ' on' : ''}${busy ? ' busy' : ''}" data-i="${i}"><span class="ms-tx"><b>${escapeHtml(a.label)}</b><em>${escapeHtml(sub)}</em></span><span class="ms-tag">${escapeHtml(accelText(acc))}</span></button>`;
+        })
+        .join('');
+      foot.textContent = msg || HELP;
+      list.querySelectorAll('.ms-row').forEach((b) => {
+        b.addEventListener('mouseenter', () => !capturing && setSel(Number(b.dataset.i), false));
+        b.addEventListener('click', () => (setSel(Number(b.dataset.i), false), startCapture()));
+      });
+    }
+    function setSel(i, scroll = true) {
+      sel = Math.max(0, Math.min(data.actions.length - 1, i));
+      list.querySelectorAll('.ms-row').forEach((b) => b.classList.toggle('sel', Number(b.dataset.i) === sel));
+      const b = list.querySelector(`.ms-row[data-i="${sel}"]`);
+      if (b && scroll) b.scrollIntoView({ block: 'nearest' });
+    }
+    function startCapture() {
+      const a = data.actions[sel];
+      if (!a) return;
+      capturing = a.id;
+      msg = '';
+      if (typeof api.musicBarCapture === 'function') api.musicBarCapture(true); // que Windows no se coma la combinación
+      paint();
+    }
+    function stopCapture() {
+      if (!capturing) return;
+      capturing = null;
+      if (typeof api.musicBarCapture === 'function') api.musicBarCapture(false);
+    }
+    async function save(id, acc) {
+      const r = typeof api.setMusicBarKey === 'function' ? await api.setMusicBarKey(id, acc) : null;
+      stopCapture();
+      if (r && r.ok) {
+        data.keys = r.keys;
+        data.busy = (data.busy || []).filter((x) => x !== id);
+        msg = '';
+      } else msg = (r && r.message) || 'No se pudo guardar el atajo';
+      if (!closed) paint();
+    }
+    function key(e) {
+      e.stopImmediatePropagation();
+      const k = e.key;
+      if (capturing) {
+        e.preventDefault();
+        if (k === 'Escape') return (stopCapture(), paint());
+        if (['Control', 'Alt', 'Shift', 'Meta', 'AltGraph'].includes(k)) return; // todavía falta la tecla
+        const acc = keyAccel(e);
+        if (acc) return save(capturing, acc);
+        msg = 'Usa Ctrl o Alt junto con una letra, un número, una flecha o una tecla F';
+        foot.textContent = msg;
+        return;
+      }
+      if (k === 'ArrowDown') setSel(sel + 1);
+      else if (k === 'ArrowUp') setSel(sel - 1);
+      else if (k === 'Enter' || k === ' ') {
+        e.preventDefault();
+        startCapture();
+      } else if (k === 'Delete') {
+        const a = data.actions[sel];
+        if (a) save(a.id, null);
+      } else if (k === 'Escape' || k === 'Backspace') {
+        e.preventDefault();
+        close();
+      }
+    }
+    function close() {
+      if (closed) return;
+      closed = true;
+      stopCapture();
+      window.removeEventListener('keydown', key, true);
+      el.classList.add('leave');
+      setTimeout(() => el.remove(), 180);
+      if (sheet && sheet.el === el) sheet = null;
+    }
+    window.addEventListener('keydown', key, true);
+    el.addEventListener('pointerdown', (e) => e.target === el && close());
+    el.querySelector('.ms-x').addEventListener('click', close);
+    sheet = { el, close };
+    foot.textContent = HELP;
+    if (typeof api.getMusicBarKeys === 'function')
+      api.getMusicBarKeys().then((d) => {
+        if (closed || !d) return;
+        data = d;
+        paint();
+      });
+    return sheet;
+  }
+
+  // ---------- Ventanita "Opciones de la barra de música" (Ajustes → Sonido) ----------
+  // Lugar y tamaño (← → para cambiar; la barra aparece un momento donde va a quedar), moverla a mano y los atajos.
+  function musicBarSheet(api) {
+    if (sheet) sheet.close();
+    const el = document.createElement('div');
+    el.className = 'ms-overlay ms-bar';
+    el.innerHTML = `<div class="ms-box"><div class="ms-head">${npIcon('music')}<span>Barra de música</span><button class="ms-x">${npIcon('close')}</button></div><div class="ms-list"></div><div class="ms-foot">← → cambiar · Enter elegir · Esc cerrar · La barra aparece un momento donde va a quedar</div></div>`;
+    sheetHost().appendChild(el);
+    const list = el.querySelector('.ms-list');
+    let st = null;
+    let sel = 0;
+    let closed = false;
+    const label = (arr, id) => (arr.find((x) => x.id === id) || {}).label || '';
+    const rows = () => [
+      { id: 'pos', title: 'Lugar', sub: 'Arriba o abajo, a la izquierda, al centro o a la derecha', value: label(st.positions, st.pos), list: st.positions, cur: st.pos },
+      { id: 'size', title: 'Tamaño', sub: 'Chica, normal o grande', value: label(st.sizes, st.size), list: st.sizes, cur: st.size },
+      { id: 'move', title: 'Moverla a mano', sub: 'Aparece en la pantalla del juego: arrástrala o muévela con las flechas', run: () => (close(), typeof api.musicBarMove === 'function' && api.musicBarMove()) },
+      { id: 'keys', title: 'Atajos', sub: 'Mostrar, letra, pausa, siguiente, anterior y me gusta', run: () => hotkeysSheet(api) },
+    ];
+    function paint() {
+      if (!st) return;
+      list.innerHTML = rows()
+        .map((r, i) => `<button class="ms-row${i === sel ? ' sel' : ''}" data-i="${i}"><span class="ms-tx"><b>${escapeHtml(r.title)}</b><em>${escapeHtml(r.sub)}</em></span>${r.value ? `<span class="ms-tag">‹ ${escapeHtml(r.value)} ›</span>` : ''}</button>`)
+        .join('');
+      list.querySelectorAll('.ms-row').forEach((b) => {
+        b.addEventListener('mouseenter', () => setSel(Number(b.dataset.i)));
+        b.addEventListener('click', () => (setSel(Number(b.dataset.i)), act(1)));
+      });
+    }
+    function setSel(i) {
+      sel = Math.max(0, Math.min(rows().length - 1, i));
+      list.querySelectorAll('.ms-row').forEach((b) => b.classList.toggle('sel', Number(b.dataset.i) === sel));
+    }
+    async function act(dir) {
+      const r = rows()[sel];
+      if (!r) return;
+      if (r.run) return dir === 1 ? r.run() : undefined;
+      const i = r.list.findIndex((x) => x.id === r.cur);
+      const next = r.list[(i + dir + r.list.length) % r.list.length];
+      if (typeof api.setMusicBar === 'function') st = (await api.setMusicBar(r.id, next.id)) || st;
+      if (!closed) paint();
+    }
+    function key(e) {
+      e.stopImmediatePropagation();
+      const k = e.key;
+      if (k === 'ArrowDown') setSel(sel + 1);
+      else if (k === 'ArrowUp') setSel(sel - 1);
+      else if (k === 'ArrowRight') act(1);
+      else if (k === 'ArrowLeft') act(-1);
+      else if (k === 'Enter' || k === ' ') (e.preventDefault(), act(1));
+      else if (k === 'Escape' || k === 'Backspace') (e.preventDefault(), close());
+    }
+    function close() {
+      if (closed) return;
+      closed = true;
+      window.removeEventListener('keydown', key, true);
+      el.classList.add('leave');
+      setTimeout(() => el.remove(), 180);
+      if (sheet && sheet.el === el) sheet = null;
+    }
+    window.addEventListener('keydown', key, true);
+    el.addEventListener('pointerdown', (e) => e.target === el && close());
+    el.querySelector('.ms-x').addEventListener('click', close);
+    sheet = { el, close };
+    if (typeof api.getMusicBar === 'function') api.getMusicBar().then((d) => d && !closed && ((st = d), paint()));
+    return sheet;
+  }
+
   // { message } cuando no hay nada que mostrar, o { channel, guild, members }
   function partyView(d) {
     d = d || {};
@@ -1083,6 +1283,10 @@
     musicSheet,
     lyricsSheet,
     lyricsLine,
+    hotkeysSheet,
+    musicBarSheet,
+    accelText,
+    keyAccel,
     SHUFFLE_LABEL,
     REPEAT_LABEL,
     FRIEND_GROUPS,

@@ -38,6 +38,7 @@
       "main.js",
       "preload.js",
       "overlay-preload.js",
+    "barra-preload.js",
       "package.json",
       "MANUAL.md",
       "src/**/*",

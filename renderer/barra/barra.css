@@ -1,0 +1,173 @@
+/* Barra de música encima del juego (barra.js). Ventanita de 900×330 a 1080p (src/barra-musica.js la escala).
+   Cada consola: .b-<consola> (el 3DS es .b-n3ds), con el aspecto del boceto de mockups/barra-musica/.
+   Cada una pone su color en --acc (ecualizador, minuto, "Siguiente") y --line (la raya antes de "Siguiente"). */
+html, body { margin: 0; height: 100%; overflow: hidden; background: transparent; user-select: none; }
+* { box-sizing: border-box; }
+@font-face { font-family: 'P3 Rodin'; font-weight: 400; src: url(../themes/ps3/fonts/m-plus-1p-latin-400-normal.woff2) format('woff2'); }
+@font-face { font-family: 'P3 Rodin'; font-weight: 700; src: url(../themes/ps3/fonts/m-plus-1p-latin-700-normal.woff2) format('woff2'); }
+
+/* Dónde va dentro de la ventanita: arriba (la letra abajo) o abajo (la letra arriba), y a qué lado */
+#wrap { position: absolute; inset: 0; padding: 4px 30px 26px; display: flex; flex-direction: column; gap: 10px; opacity: 0; transform: translateY(-16px); transition: opacity 0.35s ease, transform 0.4s cubic-bezier(0.2, 0.8, 0.3, 1); }
+#wrap.v-bottom { flex-direction: column-reverse; padding: 26px 30px 4px; transform: translateY(16px); }
+#wrap.in { opacity: 1; transform: none; }
+#wrap.h-left { align-items: flex-start; }
+#wrap.h-center { align-items: center; }
+#wrap.h-right { align-items: flex-end; }
+
+/* ---------- Partes comunes ---------- */
+.bar { position: relative; display: flex; flex-direction: column; gap: 8px; width: 840px; }
+.v-bottom .bar { flex-direction: column-reverse; }
+.row { position: relative; display: flex; align-items: center; gap: 16px; min-height: 124px; padding: 14px 24px 14px 14px; }
+.cov { flex: none; width: 92px; height: 92px; background: #333 center / cover no-repeat; display: grid; place-items: center; color: rgba(255, 255, 255, 0.85); }
+.cov.none { background: linear-gradient(135deg, #f72585, #4361ee); }
+.np-ic { width: 44%; height: 44%; }
+.tx { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.tx b { font-size: 27px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tx em { font-style: normal; font-size: 19px; opacity: 0.75; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.top { display: flex; align-items: center; gap: 10px; margin-bottom: 2px; }
+.top small { font-size: 15px; letter-spacing: 1.5px; text-transform: uppercase; opacity: 0.75; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* Ecualizador: se mueve mientras suena */
+.eq { flex: none; display: inline-flex; align-items: flex-end; gap: 3px; height: 16px; }
+.eq i { width: 4px; height: 100%; border-radius: 1px; background: var(--acc); transform-origin: bottom; transform: scaleY(0.3); }
+.playing .eq i { animation: barra-eq 0.9s ease-in-out infinite alternate; }
+.playing .eq i:nth-child(2) { animation-delay: -0.3s; }
+.playing .eq i:nth-child(3) { animation-delay: -0.6s; }
+.playing .eq i:nth-child(4) { animation-delay: -0.15s; }
+@keyframes barra-eq { from { transform: scaleY(0.3); } to { transform: scaleY(1); } }
+/* Minuto: 1:11 ──●── 3:34 */
+.time { display: flex; align-items: center; gap: 12px; margin-top: 8px; font-size: 16px; font-variant-numeric: tabular-nums; opacity: 0.9; }
+.pg { position: relative; flex: 1; height: 5px; border-radius: 3px; background: rgba(255, 255, 255, 0.18); }
+.pg i { position: relative; display: block; height: 100%; width: 0; border-radius: 3px; background: var(--acc); }
+.pg i::after { content: ''; position: absolute; right: -6px; top: 50%; width: 12px; height: 12px; margin-top: -6px; border-radius: 50%; background: var(--acc); box-shadow: 0 0 8px var(--acc); }
+/* Canción siguiente, a la derecha */
+.next { flex: none; width: 250px; align-self: stretch; display: grid; grid-template-columns: 48px 1fr; column-gap: 10px; align-content: center; padding-left: 18px; border-left: 1px solid var(--line); }
+.next small { grid-column: 1 / -1; font-size: 13px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--acc); margin-bottom: 6px; }
+.ncov { grid-row: 2 / 4; width: 48px; height: 48px; background: #333 center / cover no-repeat; display: grid; place-items: center; color: #fff; }
+.ncov.none { background: linear-gradient(135deg, #ffb703, #fb5607); }
+.next b { font-size: 17px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.next em { font-style: normal; font-size: 15px; opacity: 0.7; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* Letra: la línea que se canta y la que sigue */
+.ly { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 12px 24px 14px; text-align: center; min-height: 86px; justify-content: center; }
+.ly .now { font-size: 30px; font-weight: 700; line-height: 1.2; }
+.ly .now.msg { font-size: 22px; font-weight: 400; opacity: 0.75; }
+.ly .sig { font-size: 19px; opacity: 0.55; min-height: 24px; }
+.ly .now, .ly .sig { max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* Aviso chico de un atajo (Siguiente, En pausa, Con letra…) */
+.chip { display: inline-flex; align-items: center; gap: 10px; padding: 8px 20px; border-radius: 22px; font: 600 21px 'Segoe UI', sans-serif; color: #fff; background: rgba(20, 20, 20, 0.9); box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45); animation: barra-chip 0.25s ease both; }
+.chip .np-ic { width: 22px; height: 22px; }
+@keyframes barra-chip { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: none; } }
+/* Mientras la mueves */
+.moving { -webkit-app-region: drag; cursor: move; }
+.moving .bar { outline: 3px dashed rgba(255, 255, 255, 0.9); outline-offset: 6px; }
+.hint { padding: 8px 18px; border-radius: 10px; font: 600 18px 'Segoe UI', sans-serif; color: #fff; background: rgba(0, 0, 0, 0.8); }
+
+/* ================= Cada consola ================= */
+/* Xbox 360: píldora gris con el aro de luz; la portada va dentro del aro, que brilla verde */
+.b-x360 { --acc: #63d12b; --line: rgba(255, 255, 255, 0.18); font-family: 'Segoe UI', sans-serif; color: #fff; text-shadow: 0 1px 1px rgba(0, 0, 0, 0.6); }
+.b-x360 .row { padding-left: 6px; padding-right: 30px; border-radius: 62px; background: linear-gradient(180deg, #6e6e6e 0%, #4a4a4a 40%, #2f2f2f 100%); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28), 0 6px 18px rgba(0, 0, 0, 0.45); }
+.b-x360 .row::after { content: ''; position: absolute; left: 120px; right: 40px; top: 4px; height: 40%; border-radius: 40px; background: linear-gradient(180deg, rgba(255, 255, 255, 0.16), transparent); pointer-events: none; }
+.b-x360 .orb { position: relative; flex: none; width: 112px; height: 112px; border-radius: 50%; display: grid; place-items: center; background: radial-gradient(circle, #1a1a1a 60%, #0b0b0b 72%); box-shadow: 0 0 18px rgba(99, 209, 43, 0.55); }
+.b-x360 .orb::before { content: ''; position: absolute; inset: 5px; border-radius: 50%; background: conic-gradient(transparent 0 6deg, #5d5d5d 6deg 84deg, transparent 84deg 96deg, #5d5d5d 96deg 174deg, transparent 174deg 186deg, #5d5d5d 186deg 264deg, transparent 264deg 276deg, #63d12b 276deg 354deg, transparent 354deg); -webkit-mask: radial-gradient(circle, transparent 37px, #000 38px, #000 49px, transparent 50px); }
+.b-x360 .cov { width: 70px; height: 70px; border-radius: 50%; }
+.b-x360 .tx b { font-weight: 400; }
+.b-x360 .pg { background: rgba(255, 255, 255, 0.2); }
+.b-x360 .ncov { border-radius: 50%; }
+.b-x360 .ly { margin: 0 46px; border-radius: 0 0 22px 22px; background: linear-gradient(180deg, rgba(47, 47, 47, 0.95), rgba(30, 30, 30, 0.95)); box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45); }
+.v-bottom .b-x360 .ly { border-radius: 22px 22px 0 0; }
+.b-x360 .ly .now { font-weight: 400; }
+
+/* Xbox One: banda plana con la franja de color; la portada ocupa todo el alto */
+.b-xone { --acc: #107c10; --line: #333; font-family: 'Segoe UI', sans-serif; color: #fff; }
+.b-xone .row { padding: 0 0 0 0; gap: 18px; background: #1f1f1f; border-left: 8px solid #107c10; box-shadow: 0 8px 26px rgba(0, 0, 0, 0.55); }
+.b-xone .cov { width: 124px; height: 124px; align-self: stretch; height: auto; min-height: 124px; }
+.b-xone .tx b { font-weight: 300; }
+.b-xone .tx em { color: #9bd49b; opacity: 1; }
+.b-xone .top small { color: #9bd49b; opacity: 1; font-weight: 600; }
+.b-xone .pg { background: #333; }
+.b-xone .next { background: #262626; padding: 0 22px; border-left: 0; }
+.b-xone .ncov.none { background: #107c10; }
+.b-xone .ly { align-items: flex-start; text-align: left; padding: 12px 26px 14px; background: #2b2b2b; border-left: 8px solid #107c10; }
+.b-xone .ly .now { font-weight: 300; }
+
+/* PS3: negro translúcido con borde fino, fuente Rodin y las ondas del menú */
+.b-ps3 { --acc: #9fd6ff; --line: rgba(255, 255, 255, 0.2); font-family: 'P3 Rodin', sans-serif; color: #fff; }
+.b-ps3 .row { border-radius: 6px; border: 1px solid rgba(255, 255, 255, 0.28); box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+  background: radial-gradient(ellipse 120% 70% at 30% 130%, rgba(140, 200, 255, 0.25), transparent 60%), radial-gradient(ellipse 90% 40% at 80% 115%, rgba(255, 255, 255, 0.12), transparent 70%), linear-gradient(180deg, rgba(40, 40, 40, 0.88), rgba(8, 8, 8, 0.88)); }
+.b-ps3 .cov, .b-ps3 .ncov { border: 1px solid rgba(255, 255, 255, 0.35); }
+.b-ps3 .tx b { font-weight: 400; }
+.b-ps3 .ly { border-radius: 6px; background: rgba(8, 8, 8, 0.82); border: 1px solid rgba(255, 255, 255, 0.2); }
+.b-ps3 .ly .now { font-weight: 400; text-shadow: 0 0 12px rgba(160, 210, 255, 0.6); }
+
+/* PS4: gris oscuro con la portada pegada al borde, el azul y las partículas de luz */
+.b-ps4 { --acc: #2f7bff; --line: rgba(255, 255, 255, 0.14); font-family: 'Segoe UI', sans-serif; color: #fff; }
+.b-ps4 .row { padding: 0 24px 0 0; gap: 18px; border-radius: 3px; overflow: hidden; box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
+  background: radial-gradient(circle at 18% 30%, rgba(120, 170, 255, 0.35) 0 2px, transparent 3px), radial-gradient(circle at 30% 75%, rgba(120, 170, 255, 0.3) 0 2px, transparent 3px), radial-gradient(circle at 62% 20%, rgba(120, 170, 255, 0.25) 0 1.5px, transparent 2.5px), linear-gradient(100deg, rgba(26, 75, 181, 0.6), rgba(30, 30, 34, 0.95) 45%); }
+.b-ps4 .cov { width: 124px; height: auto; min-height: 124px; align-self: stretch; }
+.b-ps4 .tx b { font-weight: 300; }
+.b-ps4 .tx em { color: #c9c9cf; opacity: 1; }
+.b-ps4 .ncov { border-radius: 2px; }
+.b-ps4 .ly { border-radius: 3px; background: linear-gradient(170deg, rgba(26, 75, 181, 0.92), rgba(11, 44, 128, 0.92)); }
+.b-ps4 .ly .now { font-weight: 300; }
+
+/* PS Vita: burbuja brillante con burbujitas en la esquina */
+.b-vita { --acc: #1a8fe0; --line: rgba(255, 255, 255, 0.18); font-family: 'M PLUS Rounded 1c', sans-serif; color: #fff; }
+.b-vita .row { border-radius: 30px; box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 6px 18px rgba(0, 0, 0, 0.5);
+  background: radial-gradient(circle at 97% 14%, rgba(120, 190, 255, 0.16) 0 7px, transparent 8px), radial-gradient(circle at 93% 30%, rgba(120, 190, 255, 0.1) 0 4px, transparent 5px), linear-gradient(180deg, rgba(78, 82, 90, 0.96) 0%, rgba(34, 36, 42, 0.96) 52%, rgba(16, 17, 20, 0.96) 100%); }
+.b-vita .cov { border-radius: 18px; box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.18); }
+.b-vita .ncov { border-radius: 12px; }
+.b-vita .tx b { font-weight: 700; }
+.b-vita .pg { background: rgba(255, 255, 255, 0.15); }
+.b-vita .ly { border-radius: 22px; background: linear-gradient(180deg, rgba(255, 255, 255, 0.97), rgba(230, 237, 247, 0.97)); color: #1d3b6e; box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35); }
+.b-vita .ly .now { color: #1a8fe0; }
+
+/* Switch: gris oscuro, esquinas redondas y el borde celeste de lo elegido en la portada */
+.b-switch { --acc: #00c3e3; --line: #555; font-family: 'Segoe UI', sans-serif; color: #fff; }
+.b-switch .row { border-radius: 12px; background: rgba(45, 45, 45, 0.96); box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45); }
+.b-switch .cov { border-radius: 6px; box-shadow: 0 0 0 3px #2d2d2d, 0 0 0 6px #00c3e3; }
+.b-switch .ncov { border-radius: 6px; }
+.b-switch .tx em { color: #b5b5b5; opacity: 1; }
+.b-switch .pg { background: #555; }
+.b-switch .ly { border-radius: 12px; background: rgba(45, 45, 45, 0.96); }
+.b-switch .ly .now { color: #00c3e3; font-weight: 600; }
+
+/* Wii: cartel blanco con el borde celeste y las rayitas del menú */
+.b-wii { --acc: #34beed; --line: #cfe9f5; font-family: 'M PLUS Rounded 1c', sans-serif; color: #5a5a5a; }
+.b-wii .row { padding-left: 16px; padding-right: 30px; border-radius: 30px; border: 5px solid #34beed; box-shadow: inset 0 2px 0 #fff, 0 8px 22px rgba(0, 0, 0, 0.35);
+  background: repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.03) 0 2px, transparent 2px 6px), linear-gradient(180deg, #fff 0%, #f4f4f4 60%, #e6e6e6 100%); }
+.b-wii .cov { border-radius: 18px; border: 3px solid #cfd3d6; }
+.b-wii .ncov { border-radius: 12px; }
+.b-wii .tx b { font-weight: 700; }
+.b-wii .tx em { color: #34beed; opacity: 1; font-weight: 700; }
+.b-wii .top small, .b-wii .time { color: #8a8a8a; opacity: 1; }
+.b-wii .pg { background: #dfe3e6; }
+.b-wii .next b { color: #5a5a5a; }
+.b-wii .ly { margin: 0 20px; border-radius: 26px; background: linear-gradient(180deg, #ffffff, #f2f4f5); border: 4px solid rgba(92, 198, 236, 0.6); box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3); }
+.b-wii .ly .now { color: #34beed; }
+
+/* PS2: panel azul oscuro que brilla, con las lucecitas del fondo y la portada inclinada */
+.b-ps2 { --acc: #9cc2ff; --line: rgba(120, 170, 255, 0.35); font-family: 'M PLUS Rounded 1c', sans-serif; color: #e8f0ff; }
+.b-ps2 .row { padding-left: 16px; padding-right: 28px; border-radius: 4px; border: 1px solid rgba(120, 170, 255, 0.55); box-shadow: 0 0 22px rgba(60, 120, 255, 0.45), inset 0 0 18px rgba(80, 140, 255, 0.18);
+  background: radial-gradient(circle at 55% 25%, rgba(160, 200, 255, 0.5) 0 1.5px, transparent 2.5px), radial-gradient(circle at 70% 70%, rgba(160, 200, 255, 0.4) 0 1px, transparent 2px), radial-gradient(circle at 40% 85%, rgba(160, 200, 255, 0.35) 0 1px, transparent 2px), linear-gradient(135deg, rgba(14, 30, 78, 0.94), rgba(2, 6, 20, 0.94)); }
+.b-ps2 .cov { box-shadow: 0 0 14px rgba(110, 170, 255, 0.7); transform: perspective(300px) rotateY(-18deg); }
+.b-ps2 .ncov { box-shadow: 0 0 12px rgba(110, 170, 255, 0.7); transform: perspective(200px) rotateY(18deg); }
+.b-ps2 .tx b { font-weight: 400; text-shadow: 0 0 10px rgba(120, 170, 255, 0.6); }
+.b-ps2 .tx em { color: #c3d6ff; opacity: 1; }
+.b-ps2 .top small { color: #8fb4ff; opacity: 1; letter-spacing: 4px; }
+.b-ps2 .pg { height: 3px; background: rgba(120, 170, 255, 0.25); }
+.b-ps2 .ly { border-radius: 4px; background: linear-gradient(135deg, rgba(14, 30, 78, 0.9), rgba(2, 6, 20, 0.9)); border: 1px solid rgba(120, 170, 255, 0.4); }
+.b-ps2 .ly .now { font-weight: 400; text-shadow: 0 0 12px rgba(120, 170, 255, 0.8); }
+
+/* 3DS: aviso blanco con borde gris, la franja rayada de arriba y la luz azul */
+.b-n3ds { --acc: #29a8e0; --line: #dcdcdc; font-family: 'M PLUS Rounded 1c', sans-serif; color: #4a4a4a; }
+.b-n3ds .row { padding-left: 40px; border-radius: 16px; overflow: hidden; background: linear-gradient(180deg, #fff, #eee); border: 2px solid #c8c8c8; box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3); }
+.b-n3ds .row::before { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 8px; background: repeating-linear-gradient(135deg, #e6e6e6 0 6px, #f6f6f6 6px 12px); }
+.b-n3ds .led { position: absolute; left: 14px; top: 50%; width: 13px; height: 13px; margin-top: -6px; border-radius: 50%; background: #29a8e0; box-shadow: 0 0 10px 3px rgba(41, 168, 224, 0.6); animation: barra-led 0.9s ease-in-out infinite; }
+@keyframes barra-led { 0%, 100% { opacity: 1; } 50% { opacity: 0.25; } }
+.b-n3ds .cov { border-radius: 10px; border: 2px solid #d4d4d4; }
+.b-n3ds .ncov { border-radius: 10px; }
+.b-n3ds .tx b { font-weight: 700; }
+.b-n3ds .tx em { color: #29a8e0; opacity: 1; font-weight: 700; }
+.b-n3ds .top small, .b-n3ds .time { color: #8a8a8a; opacity: 1; }
+.b-n3ds .pg { background: #dcdcdc; }
+.b-n3ds .ly { border-radius: 16px; background: linear-gradient(180deg, #fff, #f2f2f2); border: 2px solid #c8c8c8; }
+.b-n3ds .ly .now { color: #29a8e0; }

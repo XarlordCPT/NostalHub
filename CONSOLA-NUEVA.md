@@ -113,6 +113,9 @@ hace algo: la **Xbox One** es la más nueva y la más corta de leer (todo se mue
 - [ ] `src/overlay.js` → `POS`: `left`, `right` o (sin poner nada) arriba al centro.
 - [ ] `main.js` → `ACH_STYLES` y `CONSOLE_NAMES` (y `PLAYSTATION` si es de Sony, para el trofeo de platino).
 - [ ] Sonido propio opcional: `consolas\<id>\logro.wav`.
+- [ ] **Barra de música encima del juego**: agregar la consola a `ESTILOS` de `src/barra-musica.js` y su aspecto en
+      `renderer/barra/barra.css` (`.b-<id>`: `--acc`, `--line`, `.row`, `.cov`, `.ly`… y un detalle propio de la consola;
+      ver los bocetos de `mockups/barra-musica/`). Mirarla normal y con letra.
 - [ ] Probar con **Ctrl + Alt + Shift + L** estando en esa consola.
 
 ## 6. Ventana y menú principal (todos sus estilos)

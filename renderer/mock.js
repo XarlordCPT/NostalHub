@@ -2,7 +2,7 @@
 // (fuera de Electron), para trabajar en el diseño sin abrir la app.
 (() => {
   // Opciones de prueba (las de verdad vienen de main.js → menuSections)
-  const mockOpts = { tileTitle: true, trailers: true, display: 'auto', fullscreen: true, autoStart: true, music: true, sounds: true, intros: true, musicVolume: 0.35, sfxVolume: 0.6, musicApp: 'spotify', spotifyApi: true, menuStyle: new URLSearchParams(location.search).get('estilo') || 'estanteria' }; // (index.html?estilo=clasico: abrir con otro estilo guardado)
+  const mockOpts = { tileTitle: true, trailers: true, display: 'auto', fullscreen: true, autoStart: true, music: true, sounds: true, intros: true, musicVolume: 0.35, sfxVolume: 0.6, musicApp: 'spotify', spotifyApi: true, musicBar: true, menuStyle: new URLSearchParams(location.search).get('estilo') || 'estanteria' }; // (index.html?estilo=clasico: abrir con otro estilo guardado)
   function mockMenu() {
     const o = mockOpts;
     const t = (id, label, desc) => ({ id, type: 'toggle', label, desc, value: !!o[id] });
@@ -11,7 +11,7 @@
       { id: 'general', title: 'General', items: [a('consoles', 'Cambiar de consola', 'Vuelve al selector de consolas.', { closes: true }), a('open-stats', 'Resumen de horas', 'Cuánto has jugado y a qué, por semana, mes y año.', { closes: true }), a('reload', 'Recargar', 'Vuelve a cargar la pantalla, por si algo se ve raro.', { closes: true }), a('open-manual', 'Abrir manual', 'Dónde va cada archivo que pones a mano.'), a('quit', 'Salir de NostalHub', 'Cierra la app.', { confirm: true })] },
       { id: 'games', title: 'Juegos', items: [a('import', 'Buscar juegos nuevos de Steam', 'Agrega los juegos de Steam que instalaste desde la última vez.'), a('add-game', 'Agregar juego o programa', 'Elige el .exe o el acceso directo de un juego que no es de Steam.'), a('add-riot', 'Agregar juegos de Riot', 'VALORANT, League of Legends y Teamfight Tactics. Se abren por el Riot Client y vuelven solos al menú.'), a('add-minecraft', 'Agregar Minecraft (Java)', 'Con el launcher oficial. Sus progresos salen como logros encima del juego (Minecraft en inglés).'), a('add-modrinth', 'Agregar modpacks de Minecraft (Modrinth)', 'Cada modpack de la app de Modrinth como un juego aparte, con sus horas y sus progresos encima del juego.'), a('art', 'Volver a descargar el arte', 'Descarga otra vez las imágenes de Steam de todos los juegos.'), t('tileTitle', 'Título encima de cada canal', 'En la Wii, pone el logo del juego encima de su imagen de fondo.'), t('trailers', 'Mostrar tráileres de Steam', 'Usa el tráiler de Steam como animación del juego.')] },
       { id: 'screen', title: 'Pantalla', items: [{ id: 'menuStyle', type: 'choice', label: 'Estilo del menú principal', desc: 'Cómo se ve el menú donde eliges la consola.', confirmChange: true, options: [{ value: 'estanteria', label: 'Estantería' }, { value: 'panel', label: 'Panel' }, { value: 'linea', label: 'Línea de tiempo' }, { value: 'rueda', label: 'Rueda y vista previa' }, { value: 'clasico', label: 'Clásico' }], value: o.menuStyle }, { id: 'windowMode', type: 'choice', label: 'Modo', desc: 'Pantalla completa, o una ventana que puedes mover, achicar y minimizar.', options: [{ value: 'fullscreen', label: 'Pantalla completa' }, { value: 'window', label: 'Ventana' }], value: 'fullscreen' }, { id: 'display', type: 'choice', label: 'Pantalla', desc: 'En qué pantalla se muestra NostalHub.', options: [{ value: 'auto', label: 'Automática (la secundaria)', short: 'Automática' }, { value: '1', label: 'Pantalla 1 — 1920×1080 (principal)', short: 'Pantalla 1' }, { value: '2', label: 'Pantalla 2 — 1920×1080', short: 'Pantalla 2' }], value: String(o.display) }, t('fullscreen', 'Cubrir la barra de tareas', 'Desactívalo si la barra de Windows aparece encima del menú.'), t('autoStart', 'Iniciar con Windows', 'Abre NostalHub sola al prender el PC.')] },
-      { id: 'sound', title: 'Sonido', items: [t('music', 'Música de fondo', 'La música de cada consola (musica.mp3).'), t('sounds', 'Sonidos del menú', 'Los sonidos al moverte, elegir y volver.'), t('intros', 'Videos de inicio de las consolas', 'El video (intro.mp4) al entrar a una consola.'), { id: 'musicVolume', type: 'choice', label: 'Volumen de la música', options: [['Bajo', 0.15], ['Medio', 0.35], ['Alto', 0.6], ['Máximo', 1]].map(([label, value]) => ({ label, value })), value: Number(o.musicVolume) }, { id: 'sfxVolume', type: 'choice', label: 'Volumen de los sonidos', options: [['Bajo', 0.3], ['Medio', 0.6], ['Alto', 1]].map(([label, value]) => ({ label, value })), value: Number(o.sfxVolume) }, { id: 'musicApp', type: 'choice', label: 'App de música', desc: 'De qué app se muestra la canción en la sección Música y al jugar.', options: [{ value: 'spotify', label: 'Spotify' }, { value: 'apple', label: 'Apple Music' }, { value: 'ytmusic', label: 'YouTube Music (en el navegador)', short: 'YouTube Music' }, { value: 'auto', label: 'Automático (la que esté sonando)', short: 'Automático' }], value: o.musicApp }, ...(o.musicApp === 'spotify' ? [t('spotifyApi', 'Spotify conectado directamente', 'Muestra la cola, el avance, aleatorio, repetir, me gusta, volumen y dispositivos. Apagado: solo los botones básicos.')] : [])] },
+      { id: 'sound', title: 'Sonido', items: [t('music', 'Música de fondo', 'La música de cada consola (musica.mp3).'), t('sounds', 'Sonidos del menú', 'Los sonidos al moverte, elegir y volver.'), t('intros', 'Videos de inicio de las consolas', 'El video (intro.mp4) al entrar a una consola.'), { id: 'musicVolume', type: 'choice', label: 'Volumen de la música', options: [['Bajo', 0.15], ['Medio', 0.35], ['Alto', 0.6], ['Máximo', 1]].map(([label, value]) => ({ label, value })), value: Number(o.musicVolume) }, { id: 'sfxVolume', type: 'choice', label: 'Volumen de los sonidos', options: [['Bajo', 0.3], ['Medio', 0.6], ['Alto', 1]].map(([label, value]) => ({ label, value })), value: Number(o.sfxVolume) }, { id: 'musicApp', type: 'choice', label: 'App de música', desc: 'De qué app se muestra la canción en la sección Música y al jugar.', options: [{ value: 'spotify', label: 'Spotify' }, { value: 'apple', label: 'Apple Music' }, { value: 'ytmusic', label: 'YouTube Music (en el navegador)', short: 'YouTube Music' }, { value: 'auto', label: 'Automático (la que esté sonando)', short: 'Automático' }], value: o.musicApp }, ...(o.musicApp === 'spotify' ? [t('spotifyApi', 'Spotify conectado directamente', 'Muestra la cola, el avance, aleatorio, repetir, me gusta, volumen y dispositivos. Apagado: solo los botones básicos.')] : []), t('musicBar', 'Barra de música al jugar', 'Sale encima del juego al cambiar de canción o al apretar un atajo (en juegos en ventana sin bordes).'), a('musicbar', 'Opciones de la barra de música', 'Lugar, tamaño, moverla a mano y sus atajos.', { closes: true })] },
       { id: 'emulators', title: 'Implementación de Emuladores', short: 'Emuladores', items: [a('add-pcsx2', 'Buscar juegos de PS2 (PCSX2)', 'Agrega los juegos nuevos de tus carpetas de PCSX2. Al elegir uno, se abre directo en el emulador.'), a('add-gba', 'Buscar juegos de GBA (RetroArch)', 'Agrega los juegos de la carpeta de RetroArch, con su núcleo mGBA. Al elegir uno, se abre directo en el emulador.'), a('add-wii', 'Buscar juegos de Wii (Dolphin)', 'Agrega los juegos de Wii de las carpetas de Dolphin (los de GameCube no). Al elegir uno, se abre directo en el emulador.')] },
       { id: 'accounts', title: 'Cuentas', items: [a('setup-steam', 'Conectar Steam (logros)', 'Pega tu clave de Steam aquí mismo para ver tus logros, tu nombre y tu foto.', { closes: true }), a('setup-retro', 'Conectar RetroAchievements', 'Para ver y recibir los logros de tus juegos de emulador. Tu cuenta también tiene que estar iniciada en el emulador.', { closes: true }), a('setup-discord', 'Conectar Discord (grupo)', 'Conecta tu Discord para ver tu canal de voz y quiénes están contigo.', { closes: true }), t('discordPresence', 'Mostrar en Discord lo que juegas', 'Tu estado dice que usas NostalHub, con el juego y tus logros. Lo ve cualquiera que abra tu perfil. Necesita Discord abierto.')] },
       { id: 'files', title: 'Archivos', items: [a('open-custom', 'Carpeta de personalización', 'Logos, fondos, videos y modelos de cada juego.'), a('open-consoles', 'Carpeta de consolas', 'Íconos, música, sonidos y videos de inicio de cada consola.'), a('open-config', 'Abrir config.json', 'Lista de juegos y opciones.'), a('devtools', 'Herramientas de desarrollo', 'Para ver errores.')] },
@@ -131,6 +131,11 @@
     device: { id: 'pc', name: 'MI-PC', type: 'Computer', volume: 70, canVolume: true }, queue: mockQueue,
   };
   const spCbs = new Set();
+  const MB_DEFAULT = { toggle: 'Control+Alt+B', lyrics: 'Control+Alt+L', play: 'Control+Alt+P', next: 'Control+Alt+Right', prev: 'Control+Alt+Left', like: 'Control+Alt+Up' };
+  const mbKeys = { ...MB_DEFAULT };
+  const barCbs = new Set();
+  const mbOpts = { pos: 'tc', size: 'm' };
+  const mbState = () => ({ on: true, ...mbOpts, positions: [['tl', 'Arriba a la izquierda'], ['tc', 'Arriba al centro'], ['tr', 'Arriba a la derecha'], ['bl', 'Abajo a la izquierda'], ['bc', 'Abajo al centro'], ['br', 'Abajo a la derecha']].map(([id, label]) => ({ id, label })), sizes: [['s', 'Chica'], ['m', 'Normal'], ['l', 'Grande']].map(([id, label]) => ({ id, label })) });
   const winState = { mode: 'fullscreen', maximized: false };
   const winCbs = new Set();
   const dcState = {
@@ -164,6 +169,7 @@
       if (it && it.type !== 'action') settingsCbs.forEach((cb) => cb(mockSettings()));
       if (id === 'open-stats' && window.NostalHubStats) window.NostalHubStats.open();
       if (/^setup-/.test(id)) window.NostalHubSetup && window.NostalHubSetup.open(id.slice(6));
+      if (id === 'musicbar') setTimeout(() => barCbs.forEach((cb) => cb()), 50);
       return mockMenu();
     },
     onGamesUpdated: noop,
@@ -318,6 +324,20 @@
       return { status: 'ok', synced: lines.map((text, i) => ({ t: 47000 + i * 4000, text })), plain: lines.join('\n') };
     },
     onSpotify: (cb) => (spCbs.add(cb), () => spCbs.delete(cb)),
+    // Atajos de la barra de música (los de verdad: src/barra-musica.js)
+    getMusicBarKeys: async () => ({ keys: { ...mbKeys }, defaults: MB_DEFAULT, busy: [], actions: [['toggle', 'Mostrar u ocultar la barra (fija)'], ['lyrics', 'Con letra / sin letra'], ['play', 'Reproducir / pausar'], ['next', 'Canción siguiente'], ['prev', 'Canción anterior'], ['like', 'Me gusta']].map(([id, label]) => ({ id, label })) }),
+    setMusicBarKey: async (id, acc) => {
+      const v = acc == null ? MB_DEFAULT[id] : acc;
+      const otro = Object.keys(mbKeys).find((k) => k !== id && mbKeys[k] === v);
+      if (otro) return { ok: false, message: 'Ese atajo ya lo usa otra acción' };
+      mbKeys[id] = v;
+      return { ok: true, keys: { ...mbKeys } };
+    },
+    musicBarCapture: async () => true,
+    getMusicBar: async () => mbState(),
+    setMusicBar: async (key, value) => ((mbOpts[key] = value), mbState()),
+    musicBarMove: async () => true,
+    onMusicBar: (cb) => (barCbs.add(cb), () => barCbs.delete(cb)),
     onSpotifyWeb: () => () => {}, // la conexión directa con Spotify no cambia en el mock
     discordWatch: async () => dcState,
     discordAuthorize: async () => dcState,
