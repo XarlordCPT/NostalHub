@@ -453,6 +453,7 @@
     let r = null;
     if (id === 'queue') return musicSheet('queue', api, { toast });
     if (id === 'device') return musicSheet('device', api, { toast });
+    if (id === 'lyrics') return lyricsSheet(api);
     if (id === 'shuffle') {
       if (v && v.shuffle === 'smart') toast('El aleatorio inteligente se apaga desde Spotify; aquí se cambia entre Aleatorio y En orden.');
       r = await ctl('shuffle');
@@ -556,6 +557,125 @@
     return sheet;
   }
 
+  // ---------- Ventana de la letra (la misma ventanita de la cola: cada consola le da su estilo con --ms-…) ----------
+  // La letra sale de LRCLIB (src/letras.js, api.getLyrics). Si viene sincronizada (y está el avance de la API de Spotify),
+  // se marca la línea que se canta y la lista la sigue; con ↑ ↓ o la rueda se mira el resto, y a los 4 s vuelve sola a la
+  // línea actual. Al cambiar de canción se carga la nueva.
+  const LYRICS_AHEAD_MS = 300; // la línea se marca un pelín antes de cantarse (así alcanzas a leerla)
+  function lyricsLine(lines, pos) {
+    let i = -1;
+    for (let k = 0; k < lines.length && lines[k].t <= pos; k++) i = k;
+    return i;
+  }
+  function lyricsSheet(api) {
+    if (sheet) sheet.close();
+    const host = document.getElementById('theme-root') || document.body;
+    const el = document.createElement('div');
+    el.className = 'ms-overlay ms-lyrics';
+    el.innerHTML = `<div class="ms-box"><div class="ms-head">${npIcon('lyrics')}<span class="ly-song">Letra</span><button class="ms-x">${npIcon('close')}</button></div><div class="ms-list ly-list"></div><div class="ms-foot">↑ ↓ mirar la letra · Esc cerrar</div></div>`;
+    host.appendChild(el);
+    const list = el.querySelector('.ly-list');
+    const song = el.querySelector('.ly-song');
+    let st = null;
+    let songKey = null;
+    let lines = null; // [{ t, text }] si viene sincronizada
+    let cur = -1;
+    let manualUntil = 0; // hasta cuándo se respeta lo que moviste tú
+    let followed = true;
+    let closed = false;
+
+    function message(text) {
+      lines = null;
+      cur = -1;
+      list.classList.remove('synced');
+      list.innerHTML = `<div class="ms-empty">${escapeHtml(text)}</div>`;
+    }
+    async function load() {
+      const v = spotifyView(st);
+      const key = v.on ? `${v.title}\u0000${v.artist}` : '';
+      if (key === songKey) return;
+      songKey = key;
+      song.innerHTML = v.on ? `<b>${escapeHtml(v.title)}</b><em>${escapeHtml(v.artist)}</em>` : 'Letra';
+      if (!v.on || !v.title) return message('No hay nada sonando.');
+      message('Buscando la letra…');
+      const r = typeof api.getLyrics === 'function' ? await api.getLyrics({ title: v.title, artist: v.artist, album: v.album, durationMs: v.durationMs }).catch(() => null) : null;
+      if (closed || key !== songKey) return; // cambió la canción mientras se buscaba
+      if (!r || r.status === 'error') return message((r && r.message) || 'No se pudo cargar la letra.');
+      if (r.status === 'instrumental') return message('Canción instrumental: no tiene letra.');
+      if (r.status !== 'ok') return message('No hay letra para esta canción.');
+      lines = r.synced || null;
+      const rows = lines ? lines.map((l) => l.text) : String(r.plain || '').split(/\r?\n/);
+      list.classList.toggle('synced', !!lines);
+      list.innerHTML = rows.map((t, i) => `<p class="ly-l${t ? '' : ' gap'}" data-i="${i}">${t ? escapeHtml(t) : lines ? '♪' : ''}</p>`).join('');
+      list.scrollTop = 0;
+      cur = -1;
+      followed = true;
+      tick();
+    }
+    function follow(p) {
+      list.scrollTo({ top: p.offsetTop - list.clientHeight / 2 + p.offsetHeight / 2, behavior: 'smooth' });
+      followed = true;
+    }
+    function tick() {
+      if (!lines) return;
+      const v = spotifyView(st);
+      if (!v.api || !v.durationMs) return; // sin el avance de la canción no se puede seguir: queda como letra normal
+      const i = lyricsLine(lines, v.progressMs + (v.playing ? Date.now() - v.at : 0) + LYRICS_AHEAD_MS);
+      const manual = Date.now() < manualUntil;
+      if (i !== cur) {
+        cur = i;
+        list.querySelectorAll('.ly-l.on').forEach((p) => p.classList.remove('on'));
+        list.querySelectorAll('.ly-l').forEach((p) => p.classList.toggle('past', Number(p.dataset.i) < i));
+        const p = list.querySelector(`.ly-l[data-i="${i}"]`);
+        if (p) p.classList.add('on');
+        followed = false;
+      }
+      if (!followed && !manual) {
+        const p = list.querySelector(`.ly-l[data-i="${cur}"]`);
+        if (p) follow(p);
+        else followed = true;
+      }
+    }
+    const timer = setInterval(tick, 200);
+    function scrollBy(dy) {
+      list.scrollBy({ top: dy, behavior: 'smooth' });
+      manualUntil = Date.now() + 4000;
+      followed = false;
+    }
+    function key(e) {
+      e.stopImmediatePropagation();
+      const k = e.key;
+      if (k === 'ArrowDown') scrollBy(120);
+      else if (k === 'ArrowUp') scrollBy(-120);
+      else if (k === 'PageDown') scrollBy(500);
+      else if (k === 'PageUp') scrollBy(-500);
+      else if (k === 'Escape' || k === 'Backspace' || k === 'Enter') {
+        e.preventDefault();
+        close();
+      }
+    }
+    list.addEventListener('wheel', () => ((manualUntil = Date.now() + 4000), (followed = false)), { passive: true });
+    const off = typeof api.onSpotify === 'function' ? api.onSpotify((s) => ((st = s), load())) : null;
+    function close() {
+      if (closed) return;
+      closed = true;
+      clearInterval(timer);
+      window.removeEventListener('keydown', key, true);
+      if (off) off();
+      if (typeof api.spotifyWatch === 'function') api.spotifyWatch(false);
+      el.classList.add('leave');
+      setTimeout(() => el.remove(), 180);
+      if (sheet && sheet.el === el) sheet = null;
+    }
+    window.addEventListener('keydown', key, true);
+    el.addEventListener('pointerdown', (e) => e.target === el && close());
+    el.querySelector('.ms-x').addEventListener('click', close);
+    sheet = { el, close };
+    message('Buscando la letra…');
+    if (typeof api.spotifyWatch === 'function') api.spotifyWatch(true).then((s) => s && !closed && ((st = s), load()));
+    return sheet;
+  }
+
   // { message } cuando no hay nada que mostrar, o { channel, guild, members }
   function partyView(d) {
     d = d || {};
@@ -597,6 +717,7 @@
     tv: '<rect x="5" y="9" width="38" height="25" rx="3"/><path d="M16 41h16"/>',
     queue: '<path d="M7 12h24M7 22h24M7 32h14"/><path d="M30 30v-3l10 6-10 6Z" fill="currentColor"/>',
     close: '<path d="M12 12l24 24M36 12 12 36"/>',
+    lyrics: '<rect x="17" y="5" width="14" height="23" rx="7"/><path d="M10 22a14 14 0 0 0 28 0M24 36v7M17 43h14"/>',
     deaf: '<path d="M8 30v-6a16 16 0 0 1 32 0v6"/><rect x="6" y="28" width="8" height="12" rx="3"/><rect x="34" y="28" width="8" height="12" rx="3"/><path d="M6 6l36 36"/>',
   };
   function npIcon(name) {
@@ -622,14 +743,15 @@
       music.classList.toggle('off', !v.on);
       music.classList.toggle('is-playing', v.playing);
       music.classList.toggle('has-api', v.api);
-      const extra = v.api
-        ? `<div class="np-extra">${['shuffle', 'repeat', 'like', 'queue']
-            .map((id) => {
-              const a = musicActions(v).find((x) => x.id === id);
-              return a ? `<button class="np-mini${a.on ? ' on' : ''}" data-mx="${id}" title="${escapeHtml(a.label)}${a.value && id !== 'queue' ? `: ${escapeHtml(a.value)}` : ''}">${npIcon(a.icon)}</button>` : '';
-            })
-            .join('')}</div>`
-        : '';
+      // Aleatorio, repetir, me gusta y cola (con la API de Spotify) y la letra (con cualquier canción sonando)
+      const minis = (v.api ? ['shuffle', 'repeat', 'like', 'queue'] : [])
+        .map((id) => {
+          const a = musicActions(v).find((x) => x.id === id);
+          return a ? `<button class="np-mini${a.on ? ' on' : ''}" data-mx="${id}" title="${escapeHtml(a.label)}${a.value && id !== 'queue' ? `: ${escapeHtml(a.value)}` : ''}">${npIcon(a.icon)}</button>` : '';
+        })
+        .join('');
+      const lyrics = v.on && v.title ? `<button class="np-mini" data-mx="lyrics" title="Letra">${npIcon('lyrics')}</button>` : '';
+      const extra = minis || lyrics ? `<div class="np-extra">${minis}${lyrics}</div>` : '';
       music.innerHTML = `
         <div class="np-head">${npIcon('music')}<span>${escapeHtml(v.app)}</span><em>${v.on ? (v.playing ? 'Sonando' : 'En pausa') : ''}</em></div>
         <div class="np-cover"${v.cover ? ` style="background-image:url('${escapeHtml(v.cover)}')"` : ''}>${v.cover ? '' : npIcon('music')}</div>
@@ -959,6 +1081,8 @@
     musicActions,
     musicRun,
     musicSheet,
+    lyricsSheet,
+    lyricsLine,
     SHUFFLE_LABEL,
     REPEAT_LABEL,
     FRIEND_GROUPS,

@@ -91,6 +91,10 @@ src/media.js            Descarga el arte de Steam y busca el arte propio (CUSTOM
 src/spotify.js          Música por los controles multimedia de Windows (SMTC) + datos de la Web API
 src/spotify-smtc.ps1    Ayudante de PowerShell para SMTC (Spotify / Apple Music / YouTube Music / auto)
 src/spotify-web.js      Spotify Web API: OAuth PKCE (http://127.0.0.1:8957/callback), cola, me gusta, etc.
+src/letras.js           Letra de la canción desde LRCLIB (sin clave): get exacto y si no search (misma duración ± 3 s,
+                        prefiere la sincronizada), parseLrc. Canal music:lyrics → api.getLyrics. En el renderer:
+                        U.lyricsSheet (la misma ventanita .ms-overlay de la cola, con los colores --ms-… de cada consola),
+                        botón 'lyrics' (micrófono) del panel de "Jugando a…" (nowPlaying)
 src/discord.js          Canal de voz de Discord por RPC local (Grupo)
 src/discord-presence.js Presencia en Discord (SET_ACTIVITY) con la app pública DISCORD_PRESENCE_ID de main.js
 src/playlog.js          Contador de horas: sesiones en estadisticas.db (node:sqlite) y resumen por período

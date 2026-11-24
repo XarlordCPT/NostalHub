@@ -203,6 +203,11 @@ const PANTALLAS = {
     'vuelta-al-menu': { pasos: [k('Enter'), espera(700), k('Enter'), espera(1000), k('Enter'), espera(900), k('Escape'), espera(600)], ve: '.xo-page.on .xo-tile.focus' },
   },
 };
+// La letra de la canción (la misma ventana en las 9 consolas, con los colores de cada una), desde el botón del panel de
+// música de "Jugando a…"
+for (const pantallas of Object.values(PANTALLAS)) {
+  if (pantallas.jugando) pantallas.letra = { pasos: [...pantallas.jugando.pasos, espera(700), clic('.np-music [data-mx="lyrics"]'), espera(1200)], ve: '.ms-lyrics .ly-l.on' };
+}
 // Pantallas que no son de una consola
 const GENERALES = {
   selector: { pasos: [], ve: '#selector' },

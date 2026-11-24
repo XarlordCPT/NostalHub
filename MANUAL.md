@@ -343,6 +343,14 @@ la música esté en pausa):
 - **Me gusta** (el corazón), **volumen** de Spotify y **dispositivo** (pasar la música al PC, al teléfono o a un
   parlante). Si suena en el teléfono, también se ve y se controla desde aquí.
 
+**Letra de la canción**: mientras juegas, en el panel de la música, el botón del **micrófono** abre la letra en una
+ventana al medio de la pantalla, con los colores de esa consola. Si la letra viene sincronizada, se marca la línea que se
+está cantando y la ventana la va siguiendo sola (con ↑ ↓ o la rueda miras el resto; a los 4 s vuelve a la línea actual).
+Si cambias de canción, se carga la nueva. Esc la cierra. La letra sale de **LRCLIB** (lrclib.net, gratis): NostalHub le
+manda solo el nombre de la canción, el artista y la duración. Si no la tiene, dice "No hay letra para esta canción"; las
+instrumentales lo dicen; sin internet, "No se pudo cargar la letra". Sin Spotify conectado la letra sale completa, sin
+marcar la línea (para eso hace falta saber en qué segundo va la canción).
+
 Para usar solo los botones básicos sin desconectar Spotify: Ajustes → Sonido → **Spotify conectado directamente** →
 *Desactivado* (la opción aparece cuando la App de música es Spotify). Si todavía no está conectado, activarla abre
 la ventana para conectarlo.

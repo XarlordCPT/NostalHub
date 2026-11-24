@@ -19,6 +19,7 @@ const { DiscordPresence } = require('./src/discord-presence');
 const { SteamWeb } = require('./src/steamweb');
 const { AchievementWatcher, gamerscore, trophyTier } = require('./src/achievements');
 const minecraft = require('./src/minecraft');
+const { Letras } = require('./src/letras');
 const { MinecraftIcons } = require('./src/minecraft-icons');
 const { Overlay } = require('./src/overlay');
 const { Spotify, MUSIC_APPS } = require('./src/spotify');
@@ -1259,6 +1260,9 @@ ipcMain.handle('steam:summary', () => allAchievements());
 ipcMain.handle('spotify:watch', (_e, on) => spotify.watch(!!on));
 ipcMain.handle('spotify:control', (_e, cmd, arg) => spotify.control(String(cmd), arg && typeof arg === 'object' ? { value: Number(arg.value) } : Number.isFinite(Number(arg)) ? Number(arg) : arg != null ? String(arg) : undefined));
 ipcMain.handle('spotify:devices', () => spotifyWeb.devices());
+// Letra de la canción (src/letras.js, desde LRCLIB): la pide la ventana de la letra de cualquier consola
+const letras = new Letras({ agente: `NostalHub/${app.getVersion()}`, log: (m) => anotar('letras', m) });
+ipcMain.handle('music:lyrics', (_e, q) => letras.buscar(q && typeof q === 'object' ? { title: q.title, artist: q.artist, album: q.album, durationMs: Number(q.durationMs) || 0 } : {}));
 
 // ---------- Discord (canal de voz para la PS4) ----------
 ipcMain.handle('discord:watch', (_e, on) => discord.watch(!!on));

@@ -312,6 +312,11 @@
       { id: 'phone', name: 'iPhone de Cristóbal', type: 'Smartphone', active: spState.device.id === 'phone', volume: 50 },
       { id: 'tv', name: 'Living', type: 'Speaker', active: false, volume: 40 },
     ],
+    // Letra inventada (sincronizada: una línea cada 4 s; en el minuto 1:11 de la canción de prueba va en la séptima)
+    getLyrics: async () => {
+      const lines = ['Prendo la consola a medianoche', 'el menú me saluda con su luz', 'elijo un juego viejo de mi estante', 'y vuelve todo lo que fui', '', 'Suena la canción de la pantalla', 'cada logro brilla como ayer', 'no hay apuro, el tiempo se detiene', 'mientras cargo otra vez', '', 'Una partida más', 'una partida más', 'aunque sea tarde ya', 'una partida más'];
+      return { status: 'ok', synced: lines.map((text, i) => ({ t: 47000 + i * 4000, text })), plain: lines.join('\n') };
+    },
     onSpotify: (cb) => (spCbs.add(cb), () => spCbs.delete(cb)),
     onSpotifyWeb: () => () => {}, // la conexión directa con Spotify no cambia en el mock
     discordWatch: async () => dcState,

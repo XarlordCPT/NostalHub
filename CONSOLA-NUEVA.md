@@ -44,6 +44,11 @@ hace algo: la **Xbox One** es la más nueva y la más corta de leer (todo se mue
 - [ ] **Spotify + Grupo de Discord** a los lados al jugar: `window.NostalHubUtil.nowPlaying(contenedor, api)`
       (`start()` al jugar, `stop()` al salir, `dispose()` al desmontar). Si la consola tiene una sección de música
       o de amigos, usar también `api.onSpotify` / `api.onDiscord` (ver PS3, PS4, 3DS).
+      **`nowPlaying` solo arma el contenido: dónde van y cómo se ven los paneles lo pone el `theme.css` de la consola**
+      (`.<vista> .np-panel { position: absolute; top; height; width… }`, `.np-music { left }`, `.np-party { right }`,
+      `.np-head`, `.np-cover`, `.np-ctrl`, `.np-btn`, `.np-m`… Copia el bloque de la Xbox 360 o de la Xbox One y cámbiale
+      los colores). Sin eso salen apilados en una columna al medio: pasó con la Xbox One, y la prueba no avisó porque
+      la captura de referencia se guardó así. **Mira la captura de `jugando` antes de guardarla como referencia.**
 - [ ] **Pestaña / sección de Logros SIEMPRE** (lista de logros del juego): `api.getAchievements(appId)`,
       `api.getAchievementSummary`, `NostalHubUtil.achievementMessage / sortAchievements / achievementTexts`.
       Con **sets** (juego base, DLC, subsets) cada uno lleva su título y contador: en cuadrículas

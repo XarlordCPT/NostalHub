@@ -675,6 +675,18 @@ body[data-console='3ds'] .wb-close:hover { background: #fde8e8; color: #e2402a; 
 #theme-root .ms-row.on .ms-tx em { color: var(--ms-acc, #1ed760); opacity: 1; }
 .ms-empty { padding: 50px 20px; text-align: center; font-size: 28px; opacity: 0.7; }
 .ms-foot { padding: 16px 30px; font-size: 22px; opacity: 0.65; border-top: 2px solid var(--ms-line, rgba(255, 255, 255, 0.14)); }
+/* Letra de la canción: la misma ventanita, más grande (los colores son los de cada consola, abajo) */
+.ms-lyrics .ms-box { width: 1160px; height: 900px; max-height: 900px; }
+.ms-lyrics .ly-song { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; line-height: 1.15; }
+.ms-lyrics .ly-song b { font-size: 34px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ms-lyrics .ly-song em { font-size: 23px; font-weight: 400; font-style: normal; opacity: 0.7; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ly-list { position: relative; padding: 36px 60px; text-align: center; }
+.ly-list.synced { padding: 360px 60px; } /* la línea actual queda al medio, también la primera y la última */
+.ly-l { margin: 0; padding: 8px 0; font-size: 38px; font-weight: 600; line-height: 1.3; transition: color 0.25s, opacity 0.25s; }
+.ly-l.gap { min-height: 26px; }
+.ly-list.synced .ly-l { opacity: 0.4; }
+.ly-list.synced .ly-l.past { opacity: 0.55; }
+.ly-list.synced .ly-l.on { opacity: 1; color: var(--ms-acc, #1ed760); }
 /* Colores de cada consola */
 .theme-ps4 .ms-overlay { --ms-bg: linear-gradient(170deg, #1a4bb5, #0b2c80); --ms-acc: #ffffff; --ms-on-acc: #0b3aa3; --ms-radius: 4px; --ms-sel: rgba(255, 255, 255, 0.14); }
 .theme-x360 .ms-overlay { --ms-bg: linear-gradient(to bottom, #f0f0f0, #d6d6d6); --ms-fg: #222; --ms-acc: #109310; --ms-on-acc: #fff; --ms-line: rgba(0, 0, 0, 0.14); --ms-sel: rgba(16, 147, 16, 0.12); --ms-radius: 0px; }

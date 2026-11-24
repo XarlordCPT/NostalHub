@@ -42,6 +42,7 @@ contextBridge.exposeInMainWorld('nostalhub', {
   spotifyWatch: (on) => ipcRenderer.invoke('spotify:watch', on),
   spotifyControl: (cmd, arg) => ipcRenderer.invoke('spotify:control', cmd, arg),
   spotifyDevices: () => ipcRenderer.invoke('spotify:devices'),
+  getLyrics: (song) => ipcRenderer.invoke('music:lyrics', song),
   onSpotifyWeb: on('spotify:web'),
   onSpotify: on('spotify:update'),
   // Discord (grupo de la PS4)
